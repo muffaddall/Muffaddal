@@ -20,7 +20,7 @@ export async function DayContent({
       <div className="px-4 mt-2 mb-5">
         <p className="text-sm text-white/40 mb-0.5">{formatMonthYear(date)}</p>
         <div className="flex items-end justify-between gap-2">
-          <h1 className="font-display text-5xl leading-none tracking-wide">
+          <h1 className="font-display text-7xl leading-none tracking-wide">
             {formatDayHeading(date)}
           </h1>
           <div className="flex items-center gap-1.5 pb-1">
@@ -93,7 +93,7 @@ function Section({
   return (
     <section>
       <h2
-        className="font-display text-xl tracking-wide mb-2.5"
+        className="font-display text-2xl tracking-wide mb-2.5"
         style={{ color }}
       >
         {label}

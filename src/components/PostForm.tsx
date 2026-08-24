@@ -58,6 +58,7 @@ export function PostForm(props: Props) {
   const [shootNotes, setShootNotes] = useState(initial?.shootNotes ?? "");
   const [editNotes, setEditNotes] = useState(initial?.editNotes ?? "");
   const [postNotes, setPostNotes] = useState(initial?.postNotes ?? "");
+  const [postTime, setPostTime] = useState(initial?.postTime ?? "");
 
   const canSave = name.trim().length > 0;
 
@@ -92,6 +93,7 @@ export function PostForm(props: Props) {
         shootDate: mode === "schedule" ? shootDate : null,
         editDate: mode === "schedule" ? editDate : null,
         postDate: mode === "schedule" ? postDate : null,
+        postTime: mode === "schedule" ? postTime || null : null,
         shootNotes: mode === "schedule" ? shootNotes.trim() : "",
         editNotes: mode === "schedule" ? editNotes.trim() : "",
         postNotes: mode === "schedule" ? postNotes.trim() : "",
@@ -149,7 +151,7 @@ export function PostForm(props: Props) {
           ✕
         </button>
 
-        <h1 className="font-display text-2xl tracking-wide flex-1">
+        <h1 className="font-display text-4xl tracking-wide flex-1">
           {isEdit ? "Edit idea" : "New Idea"}
         </h1>
 
@@ -268,6 +270,8 @@ export function PostForm(props: Props) {
                 onDateChange={setPostDate}
                 notes={postNotes}
                 onNotesChange={setPostNotes}
+                time={postTime}
+                onTimeChange={setPostTime}
               />
             </div>
           </Field>
@@ -345,6 +349,8 @@ function DateWithNotes({
   onDateChange,
   notes,
   onNotesChange,
+  time,
+  onTimeChange,
 }: {
   label: string;
   notesLabel: string;
@@ -353,25 +359,44 @@ function DateWithNotes({
   onDateChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
+  time?: string;
+  onTimeChange?: (v: string) => void;
 }) {
   return (
     <div
       className="rounded-2xl border border-white/8 bg-white/[0.02] p-3.5"
       style={{ borderLeft: `3px solid ${color}` }}
     >
-      <label className="block mb-2.5">
-        <span className="flex items-center gap-1.5 text-sm font-medium text-white/70 mb-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-          {label}
-        </span>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => onDateChange(e.target.value)}
-          className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base outline-none focus:border-[var(--color-post)] transition-colors"
-          style={{ colorScheme: "dark" }}
-        />
-      </label>
+      <div className="flex gap-2.5 mb-2.5">
+        <label className="block flex-1">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-white/70 mb-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+            {label}
+          </span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => onDateChange(e.target.value)}
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base outline-none focus:border-[var(--color-post)] transition-colors"
+            style={{ colorScheme: "dark" }}
+          />
+        </label>
+
+        {onTimeChange && (
+          <label className="block w-28 shrink-0">
+            <span className="block text-sm font-medium text-white/70 mb-1.5">
+              Time
+            </span>
+            <input
+              type="time"
+              value={time ?? ""}
+              onChange={(e) => onTimeChange(e.target.value)}
+              className="w-full rounded-xl bg-white/5 border border-white/10 px-2.5 py-3 text-base outline-none focus:border-[var(--color-post)] transition-colors"
+              style={{ colorScheme: "dark" }}
+            />
+          </label>
+        )}
+      </div>
 
       <label className="block">
         <span className="text-xs text-white/40 mb-1 block">

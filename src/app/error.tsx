@@ -8,7 +8,7 @@ export default function Error({
 }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-      <h1 className="font-display text-4xl tracking-wide mb-2">
+      <h1 className="font-display text-5xl tracking-wide mb-2">
         Something went sideways
       </h1>
       <p className="text-sm text-white/50 mb-6 max-w-xs">

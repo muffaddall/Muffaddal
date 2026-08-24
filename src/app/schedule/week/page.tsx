@@ -53,7 +53,7 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
           <p className="text-sm text-white/40 mb-0.5">
             {formatWeekRangeLabel(days)}
           </p>
-          <h1 className="font-display text-4xl leading-none tracking-wide">
+          <h1 className="font-display text-6xl leading-none tracking-wide">
             This Week
           </h1>
         </div>

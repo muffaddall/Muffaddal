@@ -40,7 +40,7 @@ export default async function ScheduleMonthPage(
       <TopBar active="month" />
 
       <div className="px-4 mt-2 mb-4 flex items-center justify-between">
-        <h1 className="font-display text-4xl tracking-wide">
+        <h1 className="font-display text-6xl tracking-wide">
           {MONTH_NAMES[month - 1]} <span className="text-white/40">{year}</span>
         </h1>
         <div className="flex items-center gap-1.5">

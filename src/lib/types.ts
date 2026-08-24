@@ -20,6 +20,7 @@ export type Post = {
   shootDate: string | null; // YYYY-MM-DD
   editDate: string | null; // YYYY-MM-DD
   postDate: string | null; // YYYY-MM-DD
+  postTime: string | null; // HH:MM
   type: PostType;
   idea: string;
   inspiration: string;
@@ -46,6 +47,7 @@ export type PostInput = {
   shootDate: string | null;
   editDate: string | null;
   postDate: string | null;
+  postTime: string | null;
   type: PostType;
   idea: string;
   inspiration: string;

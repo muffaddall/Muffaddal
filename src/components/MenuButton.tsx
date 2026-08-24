@@ -23,12 +23,7 @@ export function MenuButton() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex">
-          <button
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-            className="flex-1 bg-black/60"
-          />
-          <div className="w-64 max-w-[80%] h-full bg-[var(--color-surface)] border-l border-white/10 p-5 flex flex-col">
+          <div className="w-64 max-w-[80%] h-full bg-[var(--color-surface)] border-r border-white/10 p-5 flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <span className="font-display text-2xl tracking-wide">Menu</span>
               <button
@@ -47,6 +42,9 @@ export function MenuButton() {
               <MenuLink href="/schedule/day" onNavigate={() => setOpen(false)}>
                 Content Schedule
               </MenuLink>
+              <MenuLink href="/posting-schedule" onNavigate={() => setOpen(false)}>
+                Posting Schedule
+              </MenuLink>
               <MenuLink href="/vault" onNavigate={() => setOpen(false)}>
                 Idea Vault
               </MenuLink>
@@ -58,6 +56,11 @@ export function MenuButton() {
               </button>
             </form>
           </div>
+          <button
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+            className="flex-1 bg-black/60"
+          />
         </div>
       )}
     </>

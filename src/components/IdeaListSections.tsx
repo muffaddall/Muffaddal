@@ -15,7 +15,7 @@ export function IdeaListSections({
   return (
     <div className="px-4 flex flex-col gap-6">
       <section>
-        <h2 className="font-display text-xl tracking-wide mb-2.5 text-white/85">
+        <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
           Not scheduled
         </h2>
         {unscheduled.length === 0 ? (
@@ -30,7 +30,7 @@ export function IdeaListSections({
       </section>
 
       <section>
-        <h2 className="font-display text-xl tracking-wide mb-2.5 text-white/85">
+        <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
           Scheduled
         </h2>
         {scheduled.length === 0 ? (

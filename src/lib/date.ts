@@ -4,6 +4,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  parse,
   startOfMonth,
   startOfWeek,
 } from "date-fns";
@@ -75,6 +76,10 @@ export function shiftWeek(anchorDate: string, deltaWeeks: number): string {
 
 export function formatWeekdayShort(date: string): string {
   return format(parseDateStr(date), "EEE");
+}
+
+export function formatTimeLabel(time: string): string {
+  return format(parse(time, "HH:mm", new Date()), "h:mm a");
 }
 
 export function formatWeekRangeLabel(days: string[]): string {

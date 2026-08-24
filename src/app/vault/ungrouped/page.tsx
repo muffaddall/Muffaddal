@@ -25,7 +25,7 @@ export default async function VaultUngroupedPage() {
         <Link href="/vault" className="text-xs text-white/40 mb-1 inline-block">
           ‹ Idea Vault
         </Link>
-        <h1 className="font-display text-4xl tracking-wide leading-none">
+        <h1 className="font-display text-6xl tracking-wide leading-none">
           Ungrouped
         </h1>
       </div>

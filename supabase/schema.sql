@@ -18,6 +18,7 @@ create table if not exists posts (
   shoot_date date,
   edit_date date,
   post_date date,
+  post_time time,
   type text not null check (type in ('Reel', 'Carousel', 'Static Post', 'Story', 'Other')),
   idea text not null default '',
   inspiration text,
@@ -34,6 +35,7 @@ alter table posts add column if not exists shoot_notes text;
 alter table posts add column if not exists edit_notes text;
 alter table posts add column if not exists post_notes text;
 alter table posts add column if not exists group_id uuid references groups(id) on delete set null;
+alter table posts add column if not exists post_time time;
 alter table posts alter column shoot_date drop not null;
 alter table posts alter column edit_date drop not null;
 alter table posts alter column post_date drop not null;

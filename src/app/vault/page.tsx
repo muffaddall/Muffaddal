@@ -22,7 +22,7 @@ export default async function VaultPage() {
       </div>
 
       <div className="px-4 mt-3 mb-5">
-        <h1 className="font-display text-4xl tracking-wide leading-none">
+        <h1 className="font-display text-6xl tracking-wide leading-none">
           Idea Vault
         </h1>
       </div>

@@ -108,6 +108,10 @@ re-run against an existing database.
   - **Day** — same three-section view as Home, with prev/next/today nav.
   - **Week** — a 7-day list showing each post's name and role (Shoot/Edit/Post).
   - **Month** — a calendar grid with colored dots per day.
+- **Posting Schedule** (`/posting-schedule`) — a week-at-a-time view of just
+  posting dates and times (no shoot/edit clutter), one week per screen with
+  prev/next navigation, posts listed in chronological order by time within
+  each day.
 - **Idea Vault** (`/vault`) — every idea, scheduled or not, organized into
   groups. `/vault/group/[id]` and `/vault/ungrouped` each split into a
   "Not scheduled" section (with a "Schedule" button per idea) and a
@@ -118,8 +122,9 @@ re-run against an existing database.
    (pick an existing one or create a new one inline).
 2. Either **Save without scheduling** (goes straight to the Idea Vault, into
    whichever group you picked) or **Schedule**, which reveals the three
-   dates — each with its own optional notes field — and **Save & schedule**,
-   which makes the idea show up in Content Schedule too.
+   dates — each with its own optional notes field, plus a posting **time**
+   next to the posting date (used by the Posting Schedule page) — and
+   **Save & schedule**, which makes the idea show up in Content Schedule too.
 
 Editing an idea (`/edit/[id]`) reopens the same form pre-filled, with a
 "Delete" option. Saving or deleting returns you to wherever you opened the

@@ -9,7 +9,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-5xl tracking-wide text-center mb-1">
+        <h1 className="font-display text-6xl tracking-wide text-center mb-1">
           Content Pipeline
         </h1>
         <p className="text-center text-sm text-white/50 mb-8">

@@ -22,7 +22,7 @@ export default async function HomePage(props: PageProps<"/">) {
       </div>
 
       <div className="px-4 mt-3 mb-6">
-        <h1 className="font-display text-4xl tracking-wide leading-none mb-2">
+        <h1 className="font-display text-6xl tracking-wide leading-none mb-2">
           Welcome back
         </h1>
         <p className="text-sm text-white/45 italic">&ldquo;{quoteOfTheDay()}&rdquo;</p>

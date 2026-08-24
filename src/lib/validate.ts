@@ -1,11 +1,19 @@
 import { POST_TYPES, type PostInput } from "@/lib/types";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
 
 function parseNullableDate(value: unknown, label: string): string | null {
   if (value === null || value === undefined || value === "") return null;
   const str = String(value);
   if (!DATE_RE.test(str)) throw new Error(`${label} must be a valid date`);
+  return str;
+}
+
+function parseNullableTime(value: unknown, label: string): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  const str = String(value);
+  if (!TIME_RE.test(str)) throw new Error(`${label} must be a valid time`);
   return str;
 }
 
@@ -26,6 +34,7 @@ export function parsePostInput(body: unknown): PostInput {
   if (anySet && !allSet) {
     throw new Error("Shoot, edit, and posting dates must all be set to schedule this idea");
   }
+  const postTime = postDate === null ? null : parseNullableTime(b.postTime, "postTime");
 
   const type = b.type;
   if (typeof type !== "string" || !POST_TYPES.includes(type as never)) {
@@ -45,6 +54,7 @@ export function parsePostInput(body: unknown): PostInput {
     shootDate,
     editDate,
     postDate,
+    postTime,
     type: type as PostInput["type"],
     idea,
     inspiration,

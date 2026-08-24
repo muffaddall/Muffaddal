@@ -8,6 +8,7 @@ type PostRow = {
   shoot_date: string | null;
   edit_date: string | null;
   post_date: string | null;
+  post_time: string | null;
   type: Post["type"];
   idea: string;
   inspiration: string | null;
@@ -25,6 +26,7 @@ function fromRow(row: PostRow): Post {
     shootDate: row.shoot_date,
     editDate: row.edit_date,
     postDate: row.post_date,
+    postTime: row.post_time ? row.post_time.slice(0, 5) : null,
     type: row.type,
     idea: row.idea,
     inspiration: row.inspiration ?? "",
@@ -42,6 +44,7 @@ function toRow(input: PostInput) {
     shoot_date: input.shootDate,
     edit_date: input.editDate,
     post_date: input.postDate,
+    post_time: input.postTime,
     type: input.type,
     idea: input.idea,
     inspiration: input.inspiration || null,
@@ -83,6 +86,20 @@ export async function getPostsForRange(
     .or(
       `and(shoot_date.gte.${start},shoot_date.lte.${end}),and(edit_date.gte.${start},edit_date.lte.${end}),and(post_date.gte.${start},post_date.lte.${end})`
     );
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(fromRow).filter(isScheduled);
+}
+
+export async function getPostsByPostDateRange(
+  start: string,
+  end: string
+): Promise<ScheduledPost[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .gte("post_date", start)
+    .lte("post_date", end);
 
   if (error) throw new Error(error.message);
   return (data ?? []).map(fromRow).filter(isScheduled);
