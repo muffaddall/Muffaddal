@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getPost } from "@/lib/posts";
-import { PostWizard } from "@/components/PostWizard";
+import { PostForm } from "@/components/PostForm";
 
 export default async function EditPostPage(props: PageProps<"/edit/[id]">) {
   const { id } = await props.params;
@@ -8,5 +8,5 @@ export default async function EditPostPage(props: PageProps<"/edit/[id]">) {
 
   if (!post) notFound();
 
-  return <PostWizard mode="edit" postId={post.id} initial={post} />;
+  return <PostForm mode="edit" postId={post.id} initial={post} />;
 }

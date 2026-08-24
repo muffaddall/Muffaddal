@@ -71,5 +71,15 @@ npm run dev
 Each row in `posts` has `name`, `shoot_date`, `edit_date`, `post_date`,
 `type` (Reel / Carousel / Static Post / Story / Other), `idea`, and
 `inspiration`. A post can appear on three different calendar days at once
-(its shoot/edit/post dates), which is what the Day view's three sections
-and the Month view's colored dots are built around.
+(its shoot/edit/post dates), which is what the Day view's three sections,
+the Week view's per-day dots, and the Month view's colored dots are all
+built around.
+
+## Views
+
+- **Day** (`/`) — the default landing page. Today's Shoot/Edit/Post sections.
+- **Week** (`/week`) — a 7-day agenda list with role-colored dots per day.
+- **Month** (`/month`) — a calendar grid with colored dots per day.
+
+Adding or editing a post uses a single-page form (`/add`, `/edit/[id]`) with
+all fields — name, three dates, format, idea, inspiration — visible at once.

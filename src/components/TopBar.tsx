@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-export function TopBar({ active }: { active: "day" | "month" }) {
+export function TopBar({ active }: { active: "day" | "week" | "month" }) {
   return (
     <div className="flex items-center gap-2 px-4 pt-4 pb-2">
       <nav className="flex items-center gap-1 rounded-full bg-white/5 p-1 border border-white/10">
         <Link
           href="/"
-          className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             active === "day"
               ? "bg-white/15 text-white"
               : "text-white/50"
@@ -15,8 +15,18 @@ export function TopBar({ active }: { active: "day" | "month" }) {
           Day
         </Link>
         <Link
+          href="/week"
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            active === "week"
+              ? "bg-white/15 text-white"
+              : "text-white/50"
+          }`}
+        >
+          Week
+        </Link>
+        <Link
           href="/month"
-          className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             active === "month"
               ? "bg-white/15 text-white"
               : "text-white/50"

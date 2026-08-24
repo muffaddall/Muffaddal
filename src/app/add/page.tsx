@@ -1,5 +1,5 @@
-import { PostWizard } from "@/components/PostWizard";
+import { PostForm } from "@/components/PostForm";
 
 export default function AddPostPage() {
-  return <PostWizard mode="add" />;
+  return <PostForm mode="add" />;
 }
