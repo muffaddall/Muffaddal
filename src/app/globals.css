@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0b0e14;
+  --color-surface: #12161f;
+  --color-surface-2: #171c27;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-fg: #f4f6fb;
+  --color-fg-dim: rgba(244, 246, 251, 0.55);
+
+  /* Role colors — where a post sits in the workflow */
+  --color-shoot: #ff6b4a;
+  --color-edit: #4ad9ff;
+  --color-post: #ffd84a;
+
+  /* Format/type badge colors — deliberately separate palette */
+  --color-type-reel: #a78bfa;
+  --color-type-carousel: #ff7ac6;
+  --color-type-static: #34d399;
+  --color-type-story: #6366f1;
+  --color-type-other: #94a3b8;
+
+  --font-display: var(--font-bebas-neue), "Arial Narrow", sans-serif;
+  --font-body: var(--font-space-grotesk), system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-border: var(--color-border);
+  --color-fg: var(--color-fg);
+  --color-fg-dim: var(--color-fg-dim);
+  --color-shoot: var(--color-shoot);
+  --color-edit: var(--color-edit);
+  --color-post: var(--color-post);
+  --color-type-reel: var(--color-type-reel);
+  --color-type-carousel: var(--color-type-carousel);
+  --color-type-static: var(--color-type-static);
+  --color-type-story: var(--color-type-story);
+  --color-type-other: var(--color-type-other);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+input,
+textarea,
+select {
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--color-post);
+  color: #0b0e14;
+}
