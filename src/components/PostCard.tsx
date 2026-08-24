@@ -8,10 +8,16 @@ function shortDate(date: string) {
   return format(parseDateStr(date), "MMM d");
 }
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({
+  post,
+  returnTo = "/",
+}: {
+  post: Post;
+  returnTo?: string;
+}) {
   return (
     <Link
-      href={`/edit/${post.id}`}
+      href={`/edit/${post.id}?from=${encodeURIComponent(returnTo)}`}
       className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">

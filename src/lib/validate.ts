@@ -30,6 +30,9 @@ export function parsePostInput(body: unknown): PostInput {
   const idea = typeof b.idea === "string" ? b.idea.trim() : "";
   const inspiration =
     typeof b.inspiration === "string" ? b.inspiration.trim() : "";
+  const shootNotes = typeof b.shootNotes === "string" ? b.shootNotes.trim() : "";
+  const editNotes = typeof b.editNotes === "string" ? b.editNotes.trim() : "";
+  const postNotes = typeof b.postNotes === "string" ? b.postNotes.trim() : "";
 
   return {
     name,
@@ -39,5 +42,8 @@ export function parsePostInput(body: unknown): PostInput {
     type: type as PostInput["type"],
     idea,
     inspiration,
+    shootNotes,
+    editNotes,
+    postNotes,
   };
 }

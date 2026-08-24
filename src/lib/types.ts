@@ -17,6 +17,9 @@ export type Post = {
   type: PostType;
   idea: string;
   inspiration: string;
+  shootNotes: string;
+  editNotes: string;
+  postNotes: string;
   createdAt: string;
 };
 
@@ -28,4 +31,7 @@ export type PostInput = {
   type: PostType;
   idea: string;
   inspiration: string;
+  shootNotes: string;
+  editNotes: string;
+  postNotes: string;
 };

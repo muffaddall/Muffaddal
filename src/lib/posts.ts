@@ -11,6 +11,9 @@ type PostRow = {
   type: Post["type"];
   idea: string;
   inspiration: string | null;
+  shoot_notes: string | null;
+  edit_notes: string | null;
+  post_notes: string | null;
   created_at: string;
 };
 
@@ -24,6 +27,9 @@ function fromRow(row: PostRow): Post {
     type: row.type,
     idea: row.idea,
     inspiration: row.inspiration ?? "",
+    shootNotes: row.shoot_notes ?? "",
+    editNotes: row.edit_notes ?? "",
+    postNotes: row.post_notes ?? "",
     createdAt: row.created_at,
   };
 }
@@ -37,6 +43,9 @@ function toRow(input: PostInput) {
     type: input.type,
     idea: input.idea,
     inspiration: input.inspiration || null,
+    shoot_notes: input.shootNotes || null,
+    edit_notes: input.editNotes || null,
+    post_notes: input.postNotes || null,
   };
 }
 

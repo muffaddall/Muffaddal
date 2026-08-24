@@ -64,22 +64,34 @@ npm run dev
 - `/login` is a password-only form (no username/signup) that compares the
   submitted password to `SITE_PASSWORD` with a constant-time comparison,
   then sets an httpOnly session cookie good for 180 days.
-- There's a "Log out" link at the bottom of the Month view.
+- "Log out" is in the hamburger menu (top-left on every page).
 
 ## Data model
 
 Each row in `posts` has `name`, `shoot_date`, `edit_date`, `post_date`,
-`type` (Reel / Carousel / Static Post / Story / Other), `idea`, and
-`inspiration`. A post can appear on three different calendar days at once
-(its shoot/edit/post dates), which is what the Day view's three sections,
-the Week view's per-day dots, and the Month view's colored dots are all
-built around.
+`type` (Reel / Carousel / Static Post / Story / Other), `idea`,
+`inspiration`, and an optional notes field per date
+(`shoot_notes` / `edit_notes` / `post_notes`). A post can appear on three
+different calendar days at once (its shoot/edit/post dates), which is what
+the Day view's three sections, the Week view's per-day post list, and the
+Month view's colored dots are all built around.
 
-## Views
+If you're updating from an earlier deploy, re-run `supabase/schema.sql` in
+the Supabase SQL editor — it's idempotent and will add the three notes
+columns to your existing `posts` table.
 
-- **Day** (`/`) — the default landing page. Today's Shoot/Edit/Post sections.
-- **Week** (`/week`) — a 7-day agenda list with role-colored dots per day.
-- **Month** (`/month`) — a calendar grid with colored dots per day.
+## Pages
+
+- **Home** (`/`) — the default landing page. A welcome message, a
+  quick "+ Add post" button, and today's Shoot/Edit/Post sections.
+- **Content Schedule** (`/schedule/day`, `/schedule/week`, `/schedule/month`)
+  — reachable from the hamburger menu. Day/Week/Month tabs:
+  - **Day** — same three-section view as Home, with prev/next/today nav.
+  - **Week** — a 7-day list showing each post's name and role (Shoot/Edit/Post).
+  - **Month** — a calendar grid with colored dots per day.
 
 Adding or editing a post uses a single-page form (`/add`, `/edit/[id]`) with
-all fields — name, three dates, format, idea, inspiration — visible at once.
+all fields — name, three dates (each with an optional notes field), format,
+idea, inspiration — visible at once. Saving or deleting returns you to
+wherever you opened the form from (Home or the Content Schedule tab you
+were on).

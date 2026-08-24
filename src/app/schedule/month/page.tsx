@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getPostsForRange } from "@/lib/posts";
 import { isInMonth, monthGridDays, shiftMonth } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
-import { logout } from "@/app/login/actions";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTH_NAMES = [
@@ -10,7 +9,9 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export default async function MonthPage(props: PageProps<"/month">) {
+export default async function ScheduleMonthPage(
+  props: PageProps<"/schedule/month">
+) {
   const searchParams = await props.searchParams;
   const now = new Date();
   const year = Number(searchParams.y) || now.getFullYear();
@@ -44,14 +45,14 @@ export default async function MonthPage(props: PageProps<"/month">) {
         </h1>
         <div className="flex items-center gap-1.5">
           <Link
-            href={`/month?y=${prev.year}&m=${prev.month}`}
+            href={`/schedule/month?y=${prev.year}&m=${prev.month}`}
             aria-label="Previous month"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-lg"
           >
             ‹
           </Link>
           <Link
-            href={`/month?y=${next.year}&m=${next.month}`}
+            href={`/schedule/month?y=${next.year}&m=${next.month}`}
             aria-label="Next month"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-lg"
           >
@@ -82,7 +83,7 @@ export default async function MonthPage(props: PageProps<"/month">) {
             return (
               <Link
                 key={day}
-                href={`/?date=${day}`}
+                href={`/schedule/day?date=${day}`}
                 className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border transition-colors ${
                   isToday
                     ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
@@ -130,12 +131,6 @@ export default async function MonthPage(props: PageProps<"/month">) {
           Post
         </span>
       </div>
-
-      <form action={logout} className="flex justify-center mt-8">
-        <button type="submit" className="text-xs text-white/30">
-          Log out
-        </button>
-      </form>
     </div>
   );
 }

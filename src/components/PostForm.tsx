@@ -13,14 +13,16 @@ const TYPE_COLORS: Record<PostType, string> = {
   Other: "var(--color-type-other)",
 };
 
-type Props =
+type Props = (
   | { mode: "add" }
-  | { mode: "edit"; postId: string; initial: Post };
+  | { mode: "edit"; postId: string; initial: Post }
+) & { returnTo?: string };
 
 export function PostForm(props: Props) {
   const router = useRouter();
   const isEdit = props.mode === "edit";
   const initial = isEdit ? props.initial : undefined;
+  const returnTo = props.returnTo ?? "/";
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -34,6 +36,9 @@ export function PostForm(props: Props) {
     type: initial?.type ?? "Reel",
     idea: initial?.idea ?? "",
     inspiration: initial?.inspiration ?? "",
+    shootNotes: initial?.shootNotes ?? "",
+    editNotes: initial?.editNotes ?? "",
+    postNotes: initial?.postNotes ?? "",
   });
 
   const set = <K extends keyof PostInput>(key: K, value: PostInput[K]) =>
@@ -57,7 +62,7 @@ export function PostForm(props: Props) {
         throw new Error(data.error ?? "Something went wrong");
       }
       const { post } = (await res.json()) as { post: Post };
-      router.push(`/?date=${post.postDate}`);
+      router.push(`${returnTo}?date=${post.postDate}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -72,7 +77,7 @@ export function PostForm(props: Props) {
     try {
       const res = await fetch(`/api/posts/${props.postId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
-      router.push("/");
+      router.push(returnTo);
       router.refresh();
     } catch {
       setError("Failed to delete. Try again.");
@@ -120,23 +125,32 @@ export function PostForm(props: Props) {
 
         <Field label="Dates">
           <div className="flex flex-col gap-3">
-            <DateField
+            <DateWithNotes
               label="Shoot date"
+              notesLabel="Shooting notes"
               color="var(--color-shoot)"
-              value={form.shootDate}
-              onChange={(v) => set("shootDate", v)}
+              date={form.shootDate}
+              onDateChange={(v) => set("shootDate", v)}
+              notes={form.shootNotes}
+              onNotesChange={(v) => set("shootNotes", v)}
             />
-            <DateField
+            <DateWithNotes
               label="Edit date"
+              notesLabel="Edit notes"
               color="var(--color-edit)"
-              value={form.editDate}
-              onChange={(v) => set("editDate", v)}
+              date={form.editDate}
+              onDateChange={(v) => set("editDate", v)}
+              notes={form.editNotes}
+              onNotesChange={(v) => set("editNotes", v)}
             />
-            <DateField
+            <DateWithNotes
               label="Posting date"
+              notesLabel="Posting notes"
               color="var(--color-post)"
-              value={form.postDate}
-              onChange={(v) => set("postDate", v)}
+              date={form.postDate}
+              onDateChange={(v) => set("postDate", v)}
+              notes={form.postNotes}
+              onNotesChange={(v) => set("postNotes", v)}
             />
           </div>
         </Field>
@@ -223,30 +237,54 @@ function Field({
   );
 }
 
-function DateField({
+function DateWithNotes({
   label,
+  notesLabel,
   color,
-  value,
-  onChange,
+  date,
+  onDateChange,
+  notes,
+  onNotesChange,
 }: {
   label: string;
+  notesLabel: string;
   color: string;
-  value: string;
-  onChange: (v: string) => void;
+  date: string;
+  onDateChange: (v: string) => void;
+  notes: string;
+  onNotesChange: (v: string) => void;
 }) {
   return (
-    <label className="block">
-      <span className="flex items-center gap-1.5 text-sm font-medium text-white/70 mb-1.5">
-        <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-        {label}
-      </span>
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base outline-none focus:border-[var(--color-post)] transition-colors"
-        style={{ colorScheme: "dark" }}
-      />
-    </label>
+    <div
+      className="rounded-2xl border border-white/8 bg-white/[0.02] p-3.5"
+      style={{ borderLeft: `3px solid ${color}` }}
+    >
+      <label className="block mb-2.5">
+        <span className="flex items-center gap-1.5 text-sm font-medium text-white/70 mb-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+          {label}
+        </span>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => onDateChange(e.target.value)}
+          className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base outline-none focus:border-[var(--color-post)] transition-colors"
+          style={{ colorScheme: "dark" }}
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-xs text-white/40 mb-1 block">
+          {notesLabel} <span className="text-white/25">· Optional</span>
+        </span>
+        <textarea
+          value={notes}
+          onChange={(e) => onNotesChange(e.target.value)}
+          placeholder={`Anything to remember for the ${label.toLowerCase()}...`}
+          rows={2}
+          className="w-full rounded-xl bg-white/5 border border-white/10 px-3.5 py-2.5 text-sm outline-none focus:border-[var(--color-post)] transition-colors resize-none"
+        />
+      </label>
+    </div>
   );
 }
