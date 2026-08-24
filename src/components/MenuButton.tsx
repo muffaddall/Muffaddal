@@ -47,6 +47,9 @@ export function MenuButton() {
               <MenuLink href="/schedule/day" onNavigate={() => setOpen(false)}>
                 Content Schedule
               </MenuLink>
+              <MenuLink href="/vault" onNavigate={() => setOpen(false)}>
+                Idea Vault
+              </MenuLink>
             </nav>
 
             <form action={logout} className="mt-auto pt-4 border-t border-white/8">

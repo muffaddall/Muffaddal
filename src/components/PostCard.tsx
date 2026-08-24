@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import type { Post } from "@/lib/types";
+import type { ScheduledPost } from "@/lib/types";
 import { parseDateStr } from "@/lib/date";
 import { TypeBadge } from "@/components/TypeBadge";
 
@@ -12,7 +12,7 @@ export function PostCard({
   post,
   returnTo = "/",
 }: {
-  post: Post;
+  post: ScheduledPost;
   returnTo?: string;
 }) {
   return (

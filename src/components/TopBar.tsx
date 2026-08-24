@@ -34,10 +34,10 @@ export function TopBar({ active }: { active: "day" | "week" | "month" }) {
       </nav>
 
       <Link
-        href="/add?from=/schedule/day"
+        href="/new-idea?from=/schedule/day"
         className="ml-auto flex items-center gap-1 rounded-full bg-[var(--color-post)] text-black text-sm font-semibold px-3.5 py-1.5 active:scale-95 transition-transform shrink-0"
       >
-        <span className="text-base leading-none">+</span> Add
+        <span className="text-base leading-none">+</span> New Idea
       </Link>
     </div>
   );

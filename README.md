@@ -15,17 +15,20 @@ with a real URL that stays in sync across every device you log in from.
 
 ## One-time setup
 
-### 1. Create the Supabase project and table
+### 1. Create the Supabase project and tables
 
-1. Create a project at [supabase.com](https://supabase.com).
+1. Create a project at [supabase.com](https://supabase.com). Pick a region
+   close to wherever you'll deploy on Vercel — see the latency note below.
 2. Open the SQL editor and run everything in [`supabase/schema.sql`](./supabase/schema.sql).
-   This creates the `posts` table with row-level security enabled and no
-   policies — meaning only requests using the **service role key** can read
-   or write, which is exactly what this app's server code uses.
-3. From **Project Settings → API**, grab:
+   This creates the `posts` and `groups` tables with row-level security
+   enabled and no policies — meaning only requests using the **service
+   role key** (or the newer **secret key**, same thing functionally) can
+   read or write, which is exactly what this app's server code uses.
+3. From **Project Settings → API Keys**, grab:
    - `Project URL` → `SUPABASE_URL`
-   - `service_role` secret key → `SUPABASE_SERVICE_ROLE_KEY` (never expose
-     this to the browser — it's only read on the server in this app)
+   - the **secret key** (or `service_role` key on older projects) →
+     `SUPABASE_SERVICE_ROLE_KEY` (never expose this to the browser — it's
+     only read on the server in this app)
 
 ### 2. Choose your password and a session secret
 
@@ -49,6 +52,16 @@ with a real URL that stays in sync across every device you log in from.
    stored in Supabase, so it's the same across every device/browser you log
    into.
 
+### Latency
+
+Every page here talks to Supabase, so the physical distance between where
+your Vercel function runs and where your Supabase project lives shows up
+directly as page-load time. `vercel.json` pins Vercel's function region to
+`sin1` (Singapore) — update it to whatever region is closest to your
+Supabase project's region (shown on its dashboard overview) if you picked
+somewhere else. On Vercel's Hobby plan you can only pick one region; check
+**Project Settings → Functions → Function Region** matches too.
+
 ## Local development
 
 ```bash
@@ -68,30 +81,46 @@ npm run dev
 
 ## Data model
 
-Each row in `posts` has `name`, `shoot_date`, `edit_date`, `post_date`,
-`type` (Reel / Carousel / Static Post / Story / Other), `idea`,
-`inspiration`, and an optional notes field per date
-(`shoot_notes` / `edit_notes` / `post_notes`). A post can appear on three
-different calendar days at once (its shoot/edit/post dates), which is what
-the Day view's three sections, the Week view's per-day post list, and the
-Month view's colored dots are all built around.
+`posts`: `name`, `shoot_date`/`edit_date`/`post_date` (all nullable —
+null means the idea hasn't been scheduled yet), `type` (Reel / Carousel /
+Static Post / Story / Other), `idea`, `inspiration`, a notes field per date
+(`shoot_notes`/`edit_notes`/`post_notes`), and `group_id` (nullable,
+references `groups`).
+
+`groups`: just `id` and `name` — a lightweight way to bundle a series of
+ideas together (e.g. a multi-part series).
+
+A post is considered **scheduled** once all three dates are set (the app
+enforces all-or-nothing — either none of the dates are set, or all three
+are). Scheduled posts are what show up in Content Schedule's Day/Week/Month
+views; everything (scheduled or not) shows up in the Idea Vault.
 
 If you're updating from an earlier deploy, re-run `supabase/schema.sql` in
-the Supabase SQL editor — it's idempotent and will add the three notes
-columns to your existing `posts` table.
+the Supabase SQL editor — every statement in it is idempotent and safe to
+re-run against an existing database.
 
 ## Pages
 
 - **Home** (`/`) — the default landing page. A welcome message, a
-  quick "+ Add post" button, and today's Shoot/Edit/Post sections.
+  quick "+ New Idea" button, and today's Shoot/Edit/Post sections.
 - **Content Schedule** (`/schedule/day`, `/schedule/week`, `/schedule/month`)
-  — reachable from the hamburger menu. Day/Week/Month tabs:
+  — reachable from the hamburger menu. Only shows *scheduled* ideas.
   - **Day** — same three-section view as Home, with prev/next/today nav.
   - **Week** — a 7-day list showing each post's name and role (Shoot/Edit/Post).
   - **Month** — a calendar grid with colored dots per day.
+- **Idea Vault** (`/vault`) — every idea, scheduled or not, organized into
+  groups. `/vault/group/[id]` and `/vault/ungrouped` each split into a
+  "Not scheduled" section (with a "Schedule" button per idea) and a
+  "Scheduled" section.
 
-Adding or editing a post uses a single-page form (`/add`, `/edit/[id]`) with
-all fields — name, three dates (each with an optional notes field), format,
-idea, inspiration — visible at once. Saving or deleting returns you to
-wherever you opened the form from (Home or the Content Schedule tab you
-were on).
+**New Idea** (`/new-idea`) is a two-phase flow:
+1. Capture: idea name, type of post, optional inspiration, optional group
+   (pick an existing one or create a new one inline).
+2. Either **Save without scheduling** (goes straight to the Idea Vault, into
+   whichever group you picked) or **Schedule**, which reveals the three
+   dates — each with its own optional notes field — and **Save & schedule**,
+   which makes the idea show up in Content Schedule too.
+
+Editing an idea (`/edit/[id]`) reopens the same form pre-filled, with a
+"Delete" option. Saving or deleting returns you to wherever you opened the
+form from.

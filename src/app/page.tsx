@@ -14,10 +14,10 @@ export default async function HomePage(props: PageProps<"/">) {
       <div className="flex items-center px-4 pt-4 pb-2">
         <MenuButton />
         <Link
-          href="/add?from=/"
+          href="/new-idea?from=/"
           className="ml-auto flex items-center gap-1 rounded-full bg-[var(--color-post)] text-black text-sm font-semibold px-4 py-1.5 active:scale-95 transition-transform"
         >
-          <span className="text-base leading-none">+</span> Add post
+          <span className="text-base leading-none">+</span> New Idea
         </Link>
       </div>
 

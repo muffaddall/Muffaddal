@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPostsForDate } from "@/lib/posts";
-import type { Post } from "@/lib/types";
+import type { ScheduledPost } from "@/lib/types";
 import { formatDayHeading, formatMonthYear, shiftDate, todayStr } from "@/lib/date";
 import { PostCard } from "@/components/PostCard";
 import { EmptyState } from "@/components/EmptyState";
@@ -86,7 +86,7 @@ function Section({
 }: {
   label: string;
   color: string;
-  posts: Post[];
+  posts: ScheduledPost[];
   emptyLabel: string;
   basePath: string;
 }) {

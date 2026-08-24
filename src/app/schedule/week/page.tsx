@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPostsForRange } from "@/lib/posts";
-import type { Post } from "@/lib/types";
+import type { ScheduledPost } from "@/lib/types";
 import {
   formatWeekdayShort,
   formatWeekRangeLabel,
@@ -28,7 +28,7 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
   const posts = await getPostsForRange(days[0], days[days.length - 1]);
   const today = todayStr();
 
-  const entriesByDate = new Map<string, { role: Role; post: Post }[]>();
+  const entriesByDate = new Map<string, { role: Role; post: ScheduledPost }[]>();
   for (const day of days) entriesByDate.set(day, []);
   for (const p of posts) {
     const pairs: [Role, string][] = [

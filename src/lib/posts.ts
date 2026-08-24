@@ -1,19 +1,20 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
-import type { Post, PostInput } from "@/lib/types";
+import { isScheduled, type Post, type PostInput, type ScheduledPost } from "@/lib/types";
 
 type PostRow = {
   id: string;
   name: string;
-  shoot_date: string;
-  edit_date: string;
-  post_date: string;
+  shoot_date: string | null;
+  edit_date: string | null;
+  post_date: string | null;
   type: Post["type"];
   idea: string;
   inspiration: string | null;
   shoot_notes: string | null;
   edit_notes: string | null;
   post_notes: string | null;
+  group_id: string | null;
   created_at: string;
 };
 
@@ -30,6 +31,7 @@ function fromRow(row: PostRow): Post {
     shootNotes: row.shoot_notes ?? "",
     editNotes: row.edit_notes ?? "",
     postNotes: row.post_notes ?? "",
+    groupId: row.group_id,
     createdAt: row.created_at,
   };
 }
@@ -46,13 +48,14 @@ function toRow(input: PostInput) {
     shoot_notes: input.shootNotes || null,
     edit_notes: input.editNotes || null,
     post_notes: input.postNotes || null,
+    group_id: input.groupId,
   };
 }
 
 export async function getPostsForDate(date: string): Promise<{
-  shoot: Post[];
-  edit: Post[];
-  post: Post[];
+  shoot: ScheduledPost[];
+  edit: ScheduledPost[];
+  post: ScheduledPost[];
 }> {
   const { data, error } = await supabase
     .from("posts")
@@ -64,16 +67,16 @@ export async function getPostsForDate(date: string): Promise<{
 
   const rows = (data ?? []).map(fromRow);
   return {
-    shoot: rows.filter((p) => p.shootDate === date),
-    edit: rows.filter((p) => p.editDate === date),
-    post: rows.filter((p) => p.postDate === date),
+    shoot: rows.filter((p) => p.shootDate === date).filter(isScheduled),
+    edit: rows.filter((p) => p.editDate === date).filter(isScheduled),
+    post: rows.filter((p) => p.postDate === date).filter(isScheduled),
   };
 }
 
 export async function getPostsForRange(
   start: string,
   end: string
-): Promise<Post[]> {
+): Promise<ScheduledPost[]> {
   const { data, error } = await supabase
     .from("posts")
     .select("*")
@@ -82,7 +85,7 @@ export async function getPostsForRange(
     );
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map(fromRow);
+  return (data ?? []).map(fromRow).filter(isScheduled);
 }
 
 export async function getPost(id: string): Promise<Post | null> {
@@ -94,6 +97,15 @@ export async function getPost(id: string): Promise<Post | null> {
 
   if (error) throw new Error(error.message);
   return data ? fromRow(data) : null;
+}
+
+export async function getPostsByGroup(groupId: string | null): Promise<Post[]> {
+  let query = supabase.from("posts").select("*").order("created_at", { ascending: true });
+  query = groupId === null ? query.is("group_id", null) : query.eq("group_id", groupId);
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(fromRow);
 }
 
 export async function createPost(input: PostInput): Promise<Post> {
