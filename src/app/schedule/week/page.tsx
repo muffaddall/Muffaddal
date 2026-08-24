@@ -10,6 +10,7 @@ import {
   weekDays,
 } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
+import { PlatformTicks } from "@/components/PlatformTicks";
 
 type Role = "shoot" | "edit" | "post";
 
@@ -127,9 +128,10 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
                         >
                           {meta.label}
                         </span>
-                        <span className="text-sm text-white/85 truncate">
+                        <span className="text-sm text-white/85 truncate flex-1">
                           {post.name}
                         </span>
+                        {role === "post" && <PlatformTicks post={post} />}
                       </Link>
                     );
                   })}

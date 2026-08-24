@@ -8,6 +8,14 @@ export const POST_TYPES = [
 
 export type PostType = (typeof POST_TYPES)[number];
 
+export const PLATFORMS = [
+  { key: "postedTiktok", label: "TikTok", initial: "T" },
+  { key: "postedYoutube", label: "YouTube", initial: "Y" },
+  { key: "postedInstagram", label: "Instagram", initial: "I" },
+] as const;
+
+export type PlatformKey = (typeof PLATFORMS)[number]["key"];
+
 export type Group = {
   id: string;
   name: string;
@@ -28,6 +36,9 @@ export type Post = {
   editNotes: string;
   postNotes: string;
   groupId: string | null;
+  postedTiktok: boolean;
+  postedYoutube: boolean;
+  postedInstagram: boolean;
   createdAt: string;
 };
 
@@ -55,4 +66,7 @@ export type PostInput = {
   editNotes: string;
   postNotes: string;
   groupId: string | null;
+  postedTiktok: boolean;
+  postedYoutube: boolean;
+  postedInstagram: boolean;
 };

@@ -48,6 +48,9 @@ export function parsePostInput(body: unknown): PostInput {
   const editNotes = typeof b.editNotes === "string" ? b.editNotes.trim() : "";
   const postNotes = typeof b.postNotes === "string" ? b.postNotes.trim() : "";
   const groupId = typeof b.groupId === "string" && b.groupId ? b.groupId : null;
+  const postedTiktok = b.postedTiktok === true;
+  const postedYoutube = b.postedYoutube === true;
+  const postedInstagram = b.postedInstagram === true;
 
   return {
     name,
@@ -62,5 +65,8 @@ export function parsePostInput(body: unknown): PostInput {
     editNotes,
     postNotes,
     groupId,
+    postedTiktok,
+    postedYoutube,
+    postedInstagram,
   };
 }

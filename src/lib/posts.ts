@@ -16,6 +16,9 @@ type PostRow = {
   edit_notes: string | null;
   post_notes: string | null;
   group_id: string | null;
+  posted_tiktok: boolean | null;
+  posted_youtube: boolean | null;
+  posted_instagram: boolean | null;
   created_at: string;
 };
 
@@ -34,6 +37,9 @@ function fromRow(row: PostRow): Post {
     editNotes: row.edit_notes ?? "",
     postNotes: row.post_notes ?? "",
     groupId: row.group_id,
+    postedTiktok: row.posted_tiktok ?? false,
+    postedYoutube: row.posted_youtube ?? false,
+    postedInstagram: row.posted_instagram ?? false,
     createdAt: row.created_at,
   };
 }
@@ -52,6 +58,9 @@ function toRow(input: PostInput) {
     edit_notes: input.editNotes || null,
     post_notes: input.postNotes || null,
     group_id: input.groupId,
+    posted_tiktok: input.postedTiktok,
+    posted_youtube: input.postedYoutube,
+    posted_instagram: input.postedInstagram,
   };
 }
 

@@ -84,8 +84,10 @@ npm run dev
 `posts`: `name`, `shoot_date`/`edit_date`/`post_date` (all nullable —
 null means the idea hasn't been scheduled yet), `type` (Reel / Carousel /
 Static Post / Story / Other), `idea`, `inspiration`, a notes field per date
-(`shoot_notes`/`edit_notes`/`post_notes`), and `group_id` (nullable,
-references `groups`).
+(`shoot_notes`/`edit_notes`/`post_notes`), `group_id` (nullable, references
+`groups`), and three booleans — `posted_tiktok`, `posted_youtube`,
+`posted_instagram` — for tracking which platforms a scheduled post has
+actually been published to.
 
 `groups`: just `id` and `name` — a lightweight way to bundle a series of
 ideas together (e.g. a multi-part series).
@@ -123,8 +125,14 @@ re-run against an existing database.
 2. Either **Save without scheduling** (goes straight to the Idea Vault, into
    whichever group you picked) or **Schedule**, which reveals the three
    dates — each with its own optional notes field, plus a posting **time**
-   next to the posting date (used by the Posting Schedule page) — and
-   **Save & schedule**, which makes the idea show up in Content Schedule too.
+   next to the posting date (used by the Posting Schedule page), plus three
+   tappable "Posted to socials" chips (TikTok/YouTube/Instagram) to mark
+   which platforms it's actually gone live on — and **Save & schedule**,
+   which makes the idea show up in Content Schedule too.
+
+A small colored T/Y/I indicator (filled when posted, outlined when not)
+shows up on post cards in Day view, the Week tab, and Posting Schedule, so
+you can tell at a glance which platforms are still pending for any post.
 
 Editing an idea (`/edit/[id]`) reopens the same form pre-filled, with a
 "Delete" option. Saving or deleting returns you to wherever you opened the

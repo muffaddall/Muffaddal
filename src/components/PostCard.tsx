@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import type { ScheduledPost } from "@/lib/types";
 import { parseDateStr } from "@/lib/date";
 import { TypeBadge } from "@/components/TypeBadge";
+import { PlatformTicks } from "@/components/PlatformTicks";
 
 function shortDate(date: string) {
   return format(parseDateStr(date), "MMM d");
@@ -29,28 +30,31 @@ export function PostCard({
         <p className="text-sm text-white/55 line-clamp-2 mb-3">{post.idea}</p>
       )}
 
-      <div className="flex items-center gap-3 text-xs text-white/45">
-        <span className="flex items-center gap-1">
-          <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--color-shoot)" }}
-          />
-          {shortDate(post.shootDate)}
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--color-edit)" }}
-          />
-          {shortDate(post.editDate)}
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--color-post)" }}
-          />
-          {shortDate(post.postDate)}
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 text-xs text-white/45">
+          <span className="flex items-center gap-1">
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "var(--color-shoot)" }}
+            />
+            {shortDate(post.shootDate)}
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "var(--color-edit)" }}
+            />
+            {shortDate(post.editDate)}
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "var(--color-post)" }}
+            />
+            {shortDate(post.postDate)}
+          </span>
+        </div>
+        <PlatformTicks post={post} />
       </div>
     </Link>
   );

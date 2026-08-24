@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  PLATFORMS,
   POST_TYPES,
   type Group,
+  type PlatformKey,
   type Post,
   type PostInput,
   type PostType,
@@ -59,6 +61,20 @@ export function PostForm(props: Props) {
   const [editNotes, setEditNotes] = useState(initial?.editNotes ?? "");
   const [postNotes, setPostNotes] = useState(initial?.postNotes ?? "");
   const [postTime, setPostTime] = useState(initial?.postTime ?? "");
+  const [postedTiktok, setPostedTiktok] = useState(initial?.postedTiktok ?? false);
+  const [postedYoutube, setPostedYoutube] = useState(initial?.postedYoutube ?? false);
+  const [postedInstagram, setPostedInstagram] = useState(initial?.postedInstagram ?? false);
+
+  const postedState: Record<PlatformKey, boolean> = {
+    postedTiktok,
+    postedYoutube,
+    postedInstagram,
+  };
+  const postedSetters: Record<PlatformKey, (v: boolean) => void> = {
+    postedTiktok: setPostedTiktok,
+    postedYoutube: setPostedYoutube,
+    postedInstagram: setPostedInstagram,
+  };
 
   const canSave = name.trim().length > 0;
 
@@ -97,6 +113,9 @@ export function PostForm(props: Props) {
         shootNotes: mode === "schedule" ? shootNotes.trim() : "",
         editNotes: mode === "schedule" ? editNotes.trim() : "",
         postNotes: mode === "schedule" ? postNotes.trim() : "",
+        postedTiktok: mode === "schedule" && postedTiktok,
+        postedYoutube: mode === "schedule" && postedYoutube,
+        postedInstagram: mode === "schedule" && postedInstagram,
       };
 
       const url = isEdit ? `/api/posts/${props.postId}` : "/api/posts";
@@ -273,6 +292,42 @@ export function PostForm(props: Props) {
                 time={postTime}
                 onTimeChange={setPostTime}
               />
+            </div>
+          </Field>
+        )}
+
+        {scheduleOpen && (
+          <Field label="Posted to socials" hint="Tap once it's live">
+            <div className="flex gap-2.5">
+              {PLATFORMS.map(({ key, label }) => {
+                const posted = postedState[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => postedSetters[key](!posted)}
+                    className="flex-1 rounded-2xl border p-3.5 text-center transition-colors"
+                    style={{
+                      borderColor: posted
+                        ? "var(--color-type-static)"
+                        : "rgba(255,255,255,0.1)",
+                      background: posted
+                        ? "var(--color-type-static)22"
+                        : "rgba(255,255,255,0.03)",
+                    }}
+                  >
+                    <span className="block text-sm font-medium">{label}</span>
+                    <span
+                      className="block text-xs mt-1"
+                      style={{
+                        color: posted ? "var(--color-type-static)" : "rgba(255,255,255,0.35)",
+                      }}
+                    >
+                      {posted ? "Posted" : "Not yet"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </Field>
         )}

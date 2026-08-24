@@ -26,6 +26,9 @@ create table if not exists posts (
   edit_notes text,
   post_notes text,
   group_id uuid references groups(id) on delete set null,
+  posted_tiktok boolean not null default false,
+  posted_youtube boolean not null default false,
+  posted_instagram boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -36,6 +39,9 @@ alter table posts add column if not exists edit_notes text;
 alter table posts add column if not exists post_notes text;
 alter table posts add column if not exists group_id uuid references groups(id) on delete set null;
 alter table posts add column if not exists post_time time;
+alter table posts add column if not exists posted_tiktok boolean not null default false;
+alter table posts add column if not exists posted_youtube boolean not null default false;
+alter table posts add column if not exists posted_instagram boolean not null default false;
 alter table posts alter column shoot_date drop not null;
 alter table posts alter column edit_date drop not null;
 alter table posts alter column post_date drop not null;

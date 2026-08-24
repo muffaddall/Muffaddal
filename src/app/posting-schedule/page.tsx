@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MenuButton } from "@/components/MenuButton";
 import { TypeBadge } from "@/components/TypeBadge";
+import { PlatformTicks } from "@/components/PlatformTicks";
 import { getPostsByPostDateRange } from "@/lib/posts";
 import type { ScheduledPost } from "@/lib/types";
 import {
@@ -115,15 +116,20 @@ export default async function PostingSchedulePage(
                     <Link
                       key={p.id}
                       href={`/edit/${p.id}?from=/posting-schedule`}
-                      className="flex items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/8 p-3.5 active:scale-[0.99] transition-transform"
+                      className="flex flex-col gap-2.5 rounded-2xl bg-white/[0.03] border border-white/8 p-3.5 active:scale-[0.99] transition-transform"
                     >
-                      <span className="shrink-0 rounded-full bg-[var(--color-post)]/15 text-[var(--color-post)] text-sm font-semibold px-3 py-1.5 min-w-[86px] text-center">
-                        {p.postTime ? formatTimeLabel(p.postTime) : "No time"}
-                      </span>
-                      <span className="flex-1 font-semibold text-base truncate">
-                        {p.name}
-                      </span>
-                      <TypeBadge type={p.type} />
+                      <div className="flex items-center gap-3">
+                        <span className="shrink-0 rounded-full bg-[var(--color-post)]/15 text-[var(--color-post)] text-sm font-semibold px-3 py-1.5 min-w-[86px] text-center">
+                          {p.postTime ? formatTimeLabel(p.postTime) : "No time"}
+                        </span>
+                        <span className="flex-1 font-semibold text-base truncate">
+                          {p.name}
+                        </span>
+                        <TypeBadge type={p.type} />
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <PlatformTicks post={p} size="md" />
+                      </div>
                     </Link>
                   ))}
                 </div>
