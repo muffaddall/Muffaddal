@@ -1,7 +1,7 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 
-export const SESSION_COOKIE = "pcp_session";
+export const SESSION_COOKIE = "expense_tracker_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 180; // 180 days
 
 function getSecretKey() {

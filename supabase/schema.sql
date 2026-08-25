@@ -4,59 +4,66 @@
 
 create extension if not exists "pgcrypto";
 
-create table if not exists groups (
+-- One row per expense line item, scoped to the first-of-month it belongs to.
+create table if not exists expense_entries (
   id uuid primary key default gen_random_uuid(),
+  month date not null,
+  date_label text not null default '1st',
   name text not null,
+  amount numeric not null default 0,
+  category text not null default 'recurring'
+    check (category in ('recurring', 'stoppable', 'installment', 'debt', 'one_off')),
+  sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
 
-alter table groups enable row level security;
+create index if not exists expense_entries_month_idx on expense_entries (month);
 
-create table if not exists posts (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  shoot_date date,
-  edit_date date,
-  post_date date,
-  post_time time,
-  type text not null check (type in ('Reel', 'Carousel', 'Static Post', 'Story', 'Other')),
-  idea text not null default '',
-  inspiration text,
-  shoot_notes text,
-  edit_notes text,
-  post_notes text,
-  group_id uuid references groups(id) on delete set null,
-  posted_tiktok boolean not null default false,
-  posted_youtube boolean not null default false,
-  posted_instagram boolean not null default false,
-  shot_done boolean not null default false,
-  edited_done boolean not null default false,
+alter table expense_entries enable row level security;
+
+-- Declared monthly income, one row per month (defaults to 15000 like the sheet).
+create table if not exists monthly_income (
+  month date primary key,
+  income numeric not null default 15000
+);
+
+alter table monthly_income enable row level security;
+
+-- One row per month of investing: money added that month, and the portfolio's
+-- value at end-of-month once known (null until you fill it in).
+create table if not exists investment_months (
+  month date primary key,
+  contribution numeric not null default 0,
+  portfolio_value_eom numeric,
   created_at timestamptz not null default now()
 );
 
--- Adds/relaxes these if you're re-running this against a table created
--- before ideas could be unscheduled or grouped.
-alter table posts add column if not exists shoot_notes text;
-alter table posts add column if not exists edit_notes text;
-alter table posts add column if not exists post_notes text;
-alter table posts add column if not exists group_id uuid references groups(id) on delete set null;
-alter table posts add column if not exists post_time time;
-alter table posts add column if not exists posted_tiktok boolean not null default false;
-alter table posts add column if not exists posted_youtube boolean not null default false;
-alter table posts add column if not exists posted_instagram boolean not null default false;
-alter table posts add column if not exists shot_done boolean not null default false;
-alter table posts add column if not exists edited_done boolean not null default false;
-alter table posts alter column shoot_date drop not null;
-alter table posts alter column edit_date drop not null;
-alter table posts alter column post_date drop not null;
+alter table investment_months enable row level security;
 
-create index if not exists posts_shoot_date_idx on posts (shoot_date);
-create index if not exists posts_edit_date_idx on posts (edit_date);
-create index if not exists posts_post_date_idx on posts (post_date);
-create index if not exists posts_group_id_idx on posts (group_id);
+-- Standing debts. Store amounts negative (owed) to match how the sheet signs them.
+create table if not exists debts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  amount numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table debts enable row level security;
+
+-- Monthly debt paydown + savings progress. Running balances (debt left, total
+-- savings, account total) are computed from these month-over-month, not stored.
+create table if not exists savings_months (
+  month date primary key,
+  debt_paydown numeric not null default 0,
+  big_payment numeric not null default 0,
+  savings_kept numeric not null default 0,
+  money_kept numeric not null default 50000,
+  created_at timestamptz not null default now()
+);
+
+alter table savings_months enable row level security;
 
 -- Row Level Security is left enabled with no policies, so only requests
 -- using the service role key (server-side only, never exposed to the
 -- browser) can read or write. The app's own password gate is what
 -- protects access to that server code.
-alter table posts enable row level security;

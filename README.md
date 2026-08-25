@@ -1,8 +1,10 @@
-# Content Pipeline
+# Expense Tracker
 
-A private, password-protected content planning tool for Instagram / YouTube
-Shorts / TikTok. Single-user login, Next.js + Supabase, deployable to Vercel
-with a real URL that stays in sync across every device you log in from.
+A private, password-protected money dashboard that replaces the "Big Expense
+Tracker" spreadsheet. Single-user login, Next.js + Supabase, deployable to
+Vercel with a real URL that stays in sync across every device you log in
+from. This is a standalone app — it shares nothing with any other project in
+this repository.
 
 ## Stack
 
@@ -20,11 +22,15 @@ with a real URL that stays in sync across every device you log in from.
 1. Create a project at [supabase.com](https://supabase.com). Pick a region
    close to wherever you'll deploy on Vercel — see the latency note below.
 2. Open the SQL editor and run everything in [`supabase/schema.sql`](./supabase/schema.sql).
-   This creates the `posts` and `groups` tables with row-level security
-   enabled and no policies — meaning only requests using the **service
-   role key** (or the newer **secret key**, same thing functionally) can
-   read or write, which is exactly what this app's server code uses.
-3. From **Project Settings → API Keys**, grab:
+   This creates the tables with row-level security enabled and no policies —
+   meaning only requests using the **service role key** (or the newer
+   **secret key**, same thing functionally) can read or write, which is
+   exactly what this app's server code uses.
+3. Optional: run [`supabase/seed.sql`](./supabase/seed.sql) to import the
+   data from the original spreadsheet (all logged expenses, the investment
+   history, the standing debts, and the monthly savings progress) so the app
+   starts populated instead of empty. Skip it to start from scratch.
+4. From **Project Settings → API Keys**, grab:
    - `Project URL` → `SUPABASE_URL`
    - the **secret key** (or `service_role` key on older projects) →
      `SUPABASE_SERVICE_ROLE_KEY` (never expose this to the browser — it's
@@ -41,7 +47,8 @@ with a real URL that stays in sync across every device you log in from.
 
 ### 3. Deploy to Vercel
 
-1. Import this repository into [Vercel](https://vercel.com/new).
+1. Import this repository into [Vercel](https://vercel.com/new), pointing
+   at this branch.
 2. Add these environment variables in the project settings:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
@@ -77,25 +84,33 @@ npm run dev
 - `/login` is a password-only form (no username/signup) that compares the
   submitted password to `SITE_PASSWORD` with a constant-time comparison,
   then sets an httpOnly session cookie good for 180 days.
-- "Log out" is in the hamburger menu (top-left on every page).
+- "Log out" is in the top nav on every page.
 
 ## Data model
 
-`posts`: `name`, `shoot_date`/`edit_date`/`post_date` (all nullable —
-null means the idea hasn't been scheduled yet), `type` (Reel / Carousel /
-Static Post / Story / Other), `idea`, `inspiration`, a notes field per date
-(`shoot_notes`/`edit_notes`/`post_notes`), `group_id` (nullable, references
-`groups`), three booleans for platforms (`posted_tiktok`, `posted_youtube`,
-`posted_instagram`), and two more booleans (`shot_done`, `edited_done`) for
-whether the shoot/edit steps themselves are done.
+`expense_entries`: one row per line item in the monthly expense table —
+`month`, `date_label` (e.g. `"1st"`), `name`, `amount`, and `category`
+(`recurring` / `stoppable` / `installment` / `debt` / `one_off`, matching
+the sheet's color-coded legend).
 
-`groups`: just `id` and `name` — a lightweight way to bundle a series of
-ideas together (e.g. a multi-part series).
+`monthly_income`: declared income for a given `month` (defaults to 15000,
+same as the sheet).
 
-A post is considered **scheduled** once all three dates are set (the app
-enforces all-or-nothing — either none of the dates are set, or all three
-are). Scheduled posts are what show up in Content Schedule's Day/Week/Month
-views; everything (scheduled or not) shows up in the Idea Vault.
+`investment_months`: one row per month of investing — `contribution` (money
+added that month) and `portfolio_value_eom` (nullable until you know it).
+Total invested, portfolio growth, P&L %, and $ P&L are all computed from
+these on read, never stored, so they can't drift out of sync — same
+approach the original spreadsheet's formulas used.
+
+`debts`: standing debts, `name` + `amount` (negative = owed, matching the
+sheet's sign convention; a debt that's been overpaid ends up positive).
+
+`savings_months`: one row per month of debt paydown / saving — `debt_paydown`,
+`big_payment` (an occasional lump sum, can be negative), `savings_kept`, and
+`money_kept`. Debt-left, cumulative total savings, and account total are all
+computed by walking the months in order (each month's debt-left carries into
+the next month's starting balance), mirroring the running formulas in the
+sheet's Savings Tracker tab.
 
 If you're updating from an earlier deploy, re-run `supabase/schema.sql` in
 the Supabase SQL editor — every statement in it is idempotent and safe to
@@ -103,45 +118,18 @@ re-run against an existing database.
 
 ## Pages
 
-- **Home** (`/`) — the default landing page. A welcome message, a
-  quick "+ New Idea" button, and today's Shoot/Edit/Post sections.
-- **Content Schedule** (`/schedule/day`, `/schedule/week`, `/schedule/month`)
-  — reachable from the hamburger menu. Only shows *scheduled* ideas.
-  - **Day** — same three-section view as Home, with prev/next/today nav.
-  - **Week** — a 7-day list showing each post's name and role (Shoot/Edit/Post).
-  - **Month** — a calendar grid with colored dots per day.
-- **Posting Schedule** (`/posting-schedule`) — a week-at-a-time view of just
-  posting dates and times (no shoot/edit clutter), one week per screen with
-  prev/next navigation, posts listed in chronological order by time within
-  each day.
-- **Idea Vault** (`/vault`) — every idea, scheduled or not, organized into
-  groups. `/vault/group/[id]` and `/vault/ungrouped` each split into a
-  "Not scheduled" section (with a "Schedule" button per idea) and a
-  "Scheduled" section.
-
-**New Idea** (`/new-idea`) is a two-phase flow:
-1. Capture: idea name, type of post, optional inspiration, optional group
-   (pick an existing one or create a new one inline).
-2. Either **Save without scheduling** (goes straight to the Idea Vault, into
-   whichever group you picked) or **Schedule**, which reveals the three
-   dates — each with its own optional notes field, a "Mark shot"/"Mark
-   edited" toggle next to the shoot/edit dates, a posting **time** next to
-   the posting date (used by the Posting Schedule page), plus three
-   tappable "Posted to socials" chips (TikTok/YouTube/Instagram) to mark
-   which platforms it's actually gone live on — and **Save & schedule**,
-   which makes the idea show up in Content Schedule too.
-
-Already-scheduled ideas show an **"Unschedule this idea"** link instead
-(with a confirmation) — it clears the dates/time/notes/ticks and sends the
-idea back to the Idea Vault without deleting it, for undoing a mis-tap.
-
-Small colored badges (filled when done, outlined when not) show up on post
-cards in Day view, the Week tab, and Posting Schedule: **S**/**E** for
-whether it's been shot/edited, and **T**/**Y**/**I** for which platforms
-it's been posted to (Week view shows the one relevant to that row — S on
-the Shoot line, E on the Edit line, T/Y/I on the Post line), so you can
-tell at a glance what's still pending for any post.
-
-Editing an idea (`/edit/[id]`) reopens the same form pre-filled, with a
-"Delete" option. Saving or deleting returns you to wherever you opened the
-form from.
+- **Overview** (`/`) — the current month's income/spend/leftover, the
+  latest investment snapshot, and the latest savings/debt snapshot, each
+  linking into its full page.
+- **Expenses** (`/expenses`) — one month at a time (prev/next nav), with an
+  editable income figure, every expense entry color-coded by category, and
+  inline add/edit/delete.
+- **Investments** (`/investments`) — every logged month in one table:
+  contribution, running total invested, portfolio value, P&L %, and $ P&L,
+  with inline add/edit/delete. Leave portfolio value blank for a month you
+  don't know yet — that month's growth/P&L just shows a dash instead of a
+  divide-by-zero error like the original sheet had.
+- **Savings & debt** (`/savings`) — your standing debts (with a running
+  total) and the month-by-month savings table (debt paydown, debt left,
+  savings kept, running total savings, account total), with inline
+  add/edit/delete on both.

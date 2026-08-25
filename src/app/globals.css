@@ -1,26 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #0b0e14;
-  --color-surface: #12161f;
-  --color-surface-2: #171c27;
+  --color-bg: #0b0f0e;
+  --color-surface: #121815;
+  --color-surface-2: #171f1b;
   --color-border: rgba(255, 255, 255, 0.08);
-  --color-fg: #f4f6fb;
-  --color-fg-dim: rgba(244, 246, 251, 0.55);
+  --color-fg: #f2f6f3;
+  --color-fg-dim: rgba(242, 246, 243, 0.55);
 
-  /* Role colors — where a post sits in the workflow */
-  --color-shoot: #ff6b4a;
-  --color-edit: #4ad9ff;
-  --color-post: #ffd84a;
+  --color-accent: #34d399;
+  --color-negative: #ff6b6b;
+  --color-positive: #34d399;
 
-  /* Format/type badge colors — deliberately separate palette */
-  --color-type-reel: #a78bfa;
-  --color-type-carousel: #ff7ac6;
-  --color-type-static: #34d399;
-  --color-type-story: #6366f1;
-  --color-type-other: #94a3b8;
+  /* Expense category colors, one per legend entry from the sheet */
+  --color-cat-recurring: #4ad9ff;
+  --color-cat-stoppable: #a78bfa;
+  --color-cat-installment: #34d399;
+  --color-cat-debt: #ff6b6b;
+  --color-cat-one_off: #ffc247;
 
-  --font-display: var(--font-bebas-neue), "Arial Narrow", sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-body: var(--font-space-grotesk), system-ui, sans-serif;
 }
 
@@ -31,14 +30,14 @@
   --color-border: var(--color-border);
   --color-fg: var(--color-fg);
   --color-fg-dim: var(--color-fg-dim);
-  --color-shoot: var(--color-shoot);
-  --color-edit: var(--color-edit);
-  --color-post: var(--color-post);
-  --color-type-reel: var(--color-type-reel);
-  --color-type-carousel: var(--color-type-carousel);
-  --color-type-static: var(--color-type-static);
-  --color-type-story: var(--color-type-story);
-  --color-type-other: var(--color-type-other);
+  --color-accent: var(--color-accent);
+  --color-negative: var(--color-negative);
+  --color-positive: var(--color-positive);
+  --color-cat-recurring: var(--color-cat-recurring);
+  --color-cat-stoppable: var(--color-cat-stoppable);
+  --color-cat-installment: var(--color-cat-installment);
+  --color-cat-debt: var(--color-cat-debt);
+  --color-cat-one_off: var(--color-cat-one_off);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
 }
@@ -59,7 +58,7 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 input,
@@ -69,6 +68,6 @@ select {
 }
 
 ::selection {
-  background: var(--color-post);
-  color: #0b0e14;
+  background: var(--color-accent);
+  color: #0b0f0e;
 }

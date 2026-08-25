@@ -17,7 +17,7 @@ export default function Error({
       </p>
       <button
         onClick={reset}
-        className="rounded-xl bg-[var(--color-post)] text-black font-semibold px-6 py-3 text-sm active:scale-[0.98] transition-transform"
+        className="rounded-xl bg-[var(--color-accent)] text-black font-semibold px-6 py-3 text-sm active:scale-[0.98] transition-transform"
       >
         Try again
       </button>
