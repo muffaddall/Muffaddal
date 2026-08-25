@@ -77,6 +77,7 @@ export function PostForm(props: Props) {
   };
 
   const canSave = name.trim().length > 0;
+  const wasScheduled = initial ? initial.postDate !== null : false;
 
   async function resolveGroupId(): Promise<string | null> {
     if (groupSelection === NEW_GROUP) {
@@ -142,6 +143,16 @@ export function PostForm(props: Props) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSaving(null);
     }
+  }
+
+  async function handleUnschedule() {
+    if (wasScheduled) {
+      const ok = window.confirm(
+        "Unschedule this idea? It'll move back to the Idea Vault and come off the calendar, but won't be deleted."
+      );
+      if (!ok) return;
+    }
+    await submit("vault");
   }
 
   async function handleDelete() {
@@ -346,11 +357,17 @@ export function PostForm(props: Props) {
               {saving === "schedule" ? "Saving…" : "Save & schedule"}
             </button>
             <button
-              onClick={() => submit("vault")}
+              onClick={handleUnschedule}
               disabled={!canSave || saving !== null}
-              className="w-full text-center text-sm text-white/45 py-1 disabled:opacity-40"
+              className={`w-full text-center text-sm py-1 disabled:opacity-40 ${
+                wasScheduled ? "text-[var(--color-shoot)] font-medium" : "text-white/45"
+              }`}
             >
-              {saving === "vault" ? "Saving…" : "Save without scheduling instead"}
+              {saving === "vault"
+                ? "Saving…"
+                : wasScheduled
+                  ? "Unschedule this idea"
+                  : "Save without scheduling instead"}
             </button>
           </>
         ) : (
