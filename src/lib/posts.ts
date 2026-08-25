@@ -19,6 +19,8 @@ type PostRow = {
   posted_tiktok: boolean | null;
   posted_youtube: boolean | null;
   posted_instagram: boolean | null;
+  shot_done: boolean | null;
+  edited_done: boolean | null;
   created_at: string;
 };
 
@@ -40,6 +42,8 @@ function fromRow(row: PostRow): Post {
     postedTiktok: row.posted_tiktok ?? false,
     postedYoutube: row.posted_youtube ?? false,
     postedInstagram: row.posted_instagram ?? false,
+    shotDone: row.shot_done ?? false,
+    editedDone: row.edited_done ?? false,
     createdAt: row.created_at,
   };
 }
@@ -61,6 +65,8 @@ function toRow(input: PostInput) {
     posted_tiktok: input.postedTiktok,
     posted_youtube: input.postedYoutube,
     posted_instagram: input.postedInstagram,
+    shot_done: input.shotDone,
+    edited_done: input.editedDone,
   };
 }
 

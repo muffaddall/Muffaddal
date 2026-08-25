@@ -85,9 +85,9 @@ npm run dev
 null means the idea hasn't been scheduled yet), `type` (Reel / Carousel /
 Static Post / Story / Other), `idea`, `inspiration`, a notes field per date
 (`shoot_notes`/`edit_notes`/`post_notes`), `group_id` (nullable, references
-`groups`), and three booleans — `posted_tiktok`, `posted_youtube`,
-`posted_instagram` — for tracking which platforms a scheduled post has
-actually been published to.
+`groups`), three booleans for platforms (`posted_tiktok`, `posted_youtube`,
+`posted_instagram`), and two more booleans (`shot_done`, `edited_done`) for
+whether the shoot/edit steps themselves are done.
 
 `groups`: just `id` and `name` — a lightweight way to bundle a series of
 ideas together (e.g. a multi-part series).
@@ -124,15 +124,23 @@ re-run against an existing database.
    (pick an existing one or create a new one inline).
 2. Either **Save without scheduling** (goes straight to the Idea Vault, into
    whichever group you picked) or **Schedule**, which reveals the three
-   dates — each with its own optional notes field, plus a posting **time**
-   next to the posting date (used by the Posting Schedule page), plus three
+   dates — each with its own optional notes field, a "Mark shot"/"Mark
+   edited" toggle next to the shoot/edit dates, a posting **time** next to
+   the posting date (used by the Posting Schedule page), plus three
    tappable "Posted to socials" chips (TikTok/YouTube/Instagram) to mark
    which platforms it's actually gone live on — and **Save & schedule**,
    which makes the idea show up in Content Schedule too.
 
-A small colored T/Y/I indicator (filled when posted, outlined when not)
-shows up on post cards in Day view, the Week tab, and Posting Schedule, so
-you can tell at a glance which platforms are still pending for any post.
+Already-scheduled ideas show an **"Unschedule this idea"** link instead
+(with a confirmation) — it clears the dates/time/notes/ticks and sends the
+idea back to the Idea Vault without deleting it, for undoing a mis-tap.
+
+Small colored badges (filled when done, outlined when not) show up on post
+cards in Day view, the Week tab, and Posting Schedule: **S**/**E** for
+whether it's been shot/edited, and **T**/**Y**/**I** for which platforms
+it's been posted to (Week view shows the one relevant to that row — S on
+the Shoot line, E on the Edit line, T/Y/I on the Post line), so you can
+tell at a glance what's still pending for any post.
 
 Editing an idea (`/edit/[id]`) reopens the same form pre-filled, with a
 "Delete" option. Saving or deleting returns you to wherever you opened the

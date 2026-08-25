@@ -64,6 +64,8 @@ export function PostForm(props: Props) {
   const [postedTiktok, setPostedTiktok] = useState(initial?.postedTiktok ?? false);
   const [postedYoutube, setPostedYoutube] = useState(initial?.postedYoutube ?? false);
   const [postedInstagram, setPostedInstagram] = useState(initial?.postedInstagram ?? false);
+  const [shotDone, setShotDone] = useState(initial?.shotDone ?? false);
+  const [editedDone, setEditedDone] = useState(initial?.editedDone ?? false);
 
   const postedState: Record<PlatformKey, boolean> = {
     postedTiktok,
@@ -117,6 +119,8 @@ export function PostForm(props: Props) {
         postedTiktok: mode === "schedule" && postedTiktok,
         postedYoutube: mode === "schedule" && postedYoutube,
         postedInstagram: mode === "schedule" && postedInstagram,
+        shotDone: mode === "schedule" && shotDone,
+        editedDone: mode === "schedule" && editedDone,
       };
 
       const url = isEdit ? `/api/posts/${props.postId}` : "/api/posts";
@@ -282,6 +286,9 @@ export function PostForm(props: Props) {
                 onDateChange={setShootDate}
                 notes={shootNotes}
                 onNotesChange={setShootNotes}
+                doneLabel="Shot"
+                done={shotDone}
+                onDoneChange={setShotDone}
               />
               <DateWithNotes
                 label="Edit date"
@@ -291,6 +298,9 @@ export function PostForm(props: Props) {
                 onDateChange={setEditDate}
                 notes={editNotes}
                 onNotesChange={setEditNotes}
+                doneLabel="Edited"
+                done={editedDone}
+                onDoneChange={setEditedDone}
               />
               <DateWithNotes
                 label="Posting date"
@@ -423,6 +433,9 @@ function DateWithNotes({
   onNotesChange,
   time,
   onTimeChange,
+  doneLabel,
+  done,
+  onDoneChange,
 }: {
   label: string;
   notesLabel: string;
@@ -433,18 +446,37 @@ function DateWithNotes({
   onNotesChange: (v: string) => void;
   time?: string;
   onTimeChange?: (v: string) => void;
+  doneLabel?: string;
+  done?: boolean;
+  onDoneChange?: (v: boolean) => void;
 }) {
   return (
     <div
       className="rounded-2xl border border-white/8 bg-white/[0.02] p-3.5"
       style={{ borderLeft: `3px solid ${color}` }}
     >
+      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+        <span className="flex items-center gap-1.5 text-sm font-medium text-white/70">
+          <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+          {label}
+        </span>
+        {onDoneChange && (
+          <button
+            type="button"
+            onClick={() => onDoneChange(!done)}
+            className="rounded-full px-2.5 py-1 text-xs font-semibold transition-colors"
+            style={{
+              background: done ? "var(--color-type-static)" : "rgba(255,255,255,0.06)",
+              color: done ? "#000" : "rgba(255,255,255,0.5)",
+            }}
+          >
+            {done ? `✓ ${doneLabel}` : `Mark ${doneLabel?.toLowerCase()}`}
+          </button>
+        )}
+      </div>
+
       <div className="flex gap-2.5 mb-2.5">
         <label className="block flex-1">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-white/70 mb-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-            {label}
-          </span>
           <input
             type="date"
             value={date}

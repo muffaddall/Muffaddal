@@ -11,6 +11,7 @@ import {
 } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
 import { PlatformTicks } from "@/components/PlatformTicks";
+import { StatusTick } from "@/components/StatusTick";
 
 type Role = "shoot" | "edit" | "post";
 
@@ -131,6 +132,20 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
                         <span className="text-sm text-white/85 truncate flex-1">
                           {post.name}
                         </span>
+                        {role === "shoot" && (
+                          <StatusTick
+                            label="S"
+                            done={post.shotDone}
+                            title={`Shot: ${post.shotDone ? "done" : "not done"}`}
+                          />
+                        )}
+                        {role === "edit" && (
+                          <StatusTick
+                            label="E"
+                            done={post.editedDone}
+                            title={`Edited: ${post.editedDone ? "done" : "not done"}`}
+                          />
+                        )}
                         {role === "post" && <PlatformTicks post={post} />}
                       </Link>
                     );

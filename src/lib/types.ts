@@ -39,6 +39,8 @@ export type Post = {
   postedTiktok: boolean;
   postedYoutube: boolean;
   postedInstagram: boolean;
+  shotDone: boolean;
+  editedDone: boolean;
   createdAt: string;
 };
 
@@ -69,4 +71,6 @@ export type PostInput = {
   postedTiktok: boolean;
   postedYoutube: boolean;
   postedInstagram: boolean;
+  shotDone: boolean;
+  editedDone: boolean;
 };

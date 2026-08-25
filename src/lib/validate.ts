@@ -51,6 +51,8 @@ export function parsePostInput(body: unknown): PostInput {
   const postedTiktok = b.postedTiktok === true;
   const postedYoutube = b.postedYoutube === true;
   const postedInstagram = b.postedInstagram === true;
+  const shotDone = b.shotDone === true;
+  const editedDone = b.editedDone === true;
 
   return {
     name,
@@ -68,5 +70,7 @@ export function parsePostInput(body: unknown): PostInput {
     postedTiktok,
     postedYoutube,
     postedInstagram,
+    shotDone,
+    editedDone,
   };
 }
