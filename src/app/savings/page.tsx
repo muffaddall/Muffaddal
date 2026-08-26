@@ -1,16 +1,16 @@
 import { MenuButton } from "@/components/MenuButton";
-import { getDebts, getSavingsMonths, totalDebt } from "@/lib/savings";
+import { getBpfPurchases, getSavingsMonths, totalBpfPurchases } from "@/lib/savings";
 import { currentMonth, formatMoney } from "@/lib/format";
-import DebtRow from "./DebtRow";
-import AddDebtForm from "./AddDebtForm";
+import BpfPurchaseRow from "./BpfPurchaseRow";
+import AddBpfPurchaseForm from "./AddBpfPurchaseForm";
 import SavingsMonthRow from "./SavingsMonthRow";
 import AddSavingsMonthForm from "./AddSavingsMonthForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function SavingsPage() {
-  const [debts, months] = await Promise.all([getDebts(), getSavingsMonths()]);
-  const debtTotal = totalDebt(debts);
+  const [purchases, months] = await Promise.all([getBpfPurchases(), getSavingsMonths()]);
+  const purchaseTotal = totalBpfPurchases(purchases);
 
   const thisMonth = currentMonth();
   const pastMonths = months.filter((m) => m.month <= thisMonth);
@@ -28,25 +28,24 @@ export default async function SavingsPage() {
 
         <section className="mb-10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-[var(--color-fg-dim)]">Standing debts</h2>
-            <span
-              className="text-sm tabular-nums"
-              style={{ color: debtTotal < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
-            >
-              Total: {formatMoney(debtTotal)}
+            <h2 className="text-sm font-medium text-[var(--color-fg-dim)]">
+              Big Purchase Fund purchases
+            </h2>
+            <span className="text-sm tabular-nums text-[var(--color-negative)]">
+              Total: {formatMoney(purchaseTotal)}
             </span>
           </div>
           <ul className="flex flex-col gap-1 mb-3">
-            {debts.map((debt) => (
-              <DebtRow key={debt.id} debt={debt} />
+            {purchases.map((purchase) => (
+              <BpfPurchaseRow key={purchase.id} purchase={purchase} />
             ))}
-            {debts.length === 0 && (
+            {purchases.length === 0 && (
               <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
-                No debts logged.
+                No purchases logged.
               </li>
             )}
           </ul>
-          <AddDebtForm />
+          <AddBpfPurchaseForm />
         </section>
 
         {current && (
@@ -78,10 +77,9 @@ export default async function SavingsPage() {
             Monthly savings progress
           </h2>
           <p className="text-xs text-[var(--color-fg-dim)] mb-3">
-            Debt paydown is the Big Purchase Fund balance: money paid in (&ldquo;Big Purchase
-            Fund&rdquo; entries) minus money spent from it (&ldquo;Big Purchase Fund
-            purchase&rdquo; entries). Savings kept comes from &ldquo;Savings contribution&rdquo;
-            entries. All on the Expenses tab — edit them there.
+            Debt paydown comes from that month&apos;s &ldquo;Big Purchase Fund&rdquo; entries on
+            the Expenses tab. Savings kept comes from &ldquo;Savings contribution&rdquo; entries
+            there too. Big Purchase Fund purchases (above) reduce the balance separately.
           </p>
           <div className="overflow-x-auto mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <table className="w-full min-w-[780px] border-collapse">

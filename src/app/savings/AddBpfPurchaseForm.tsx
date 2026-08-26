@@ -1,15 +1,15 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { createDebt } from "./actions";
+import { createBpfPurchase } from "./actions";
 
-export default function AddDebtForm() {
+export default function AddBpfPurchaseForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
     formData: FormData
   ) => {
-    const result = await createDebt(prev, formData);
+    const result = await createBpfPurchase(prev, formData);
     if (!result) formRef.current?.reset();
     return result;
   }, undefined);
@@ -22,7 +22,7 @@ export default function AddDebtForm() {
     >
       <input
         name="name"
-        placeholder="Debt name"
+        placeholder="What did you buy?"
         required
         className="min-w-0 flex-1 rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
@@ -30,16 +30,16 @@ export default function AddDebtForm() {
         name="amount"
         type="number"
         step="any"
-        placeholder="Amount owed (negative)"
+        placeholder="Amount spent"
         required
-        className="w-44 rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+        className="w-40 rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
       <button
         type="submit"
         disabled={pending}
         className="rounded-lg bg-[var(--color-accent)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
       >
-        {pending ? "Adding…" : "Add debt"}
+        {pending ? "Adding…" : "Add big purchase expense"}
       </button>
       {state?.error && <p className="w-full text-xs text-[var(--color-negative)]">{state.error}</p>}
     </form>
