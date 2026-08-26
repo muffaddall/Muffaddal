@@ -10,15 +10,13 @@ import {
   weekDays,
 } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
-import { PlatformTicks } from "@/components/PlatformTicks";
 import { StatusTick } from "@/components/StatusTick";
 
-type Role = "shoot" | "edit" | "post";
+type Role = "shoot" | "edit";
 
 const ROLE_META: Record<Role, { label: string; color: string }> = {
   shoot: { label: "Shoot", color: "var(--color-shoot)" },
   edit: { label: "Edit", color: "var(--color-edit)" },
-  post: { label: "Post", color: "var(--color-post)" },
 };
 
 export default async function ScheduleWeekPage(props: PageProps<"/schedule/week">) {
@@ -30,18 +28,11 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
   const posts = await getPostsForRange(days[0], days[days.length - 1]);
   const today = todayStr();
 
-  const entriesByDate = new Map<string, { role: Role; post: ScheduledPost }[]>();
-  for (const day of days) entriesByDate.set(day, []);
+  const entriesByDate = new Map<string, Record<Role, ScheduledPost[]>>();
+  for (const day of days) entriesByDate.set(day, { shoot: [], edit: [] });
   for (const p of posts) {
-    const pairs: [Role, string][] = [
-      ["shoot", p.shootDate],
-      ["edit", p.editDate],
-      ["post", p.postDate],
-    ];
-    for (const [role, date] of pairs) {
-      const bucket = entriesByDate.get(date);
-      if (bucket) bucket.push({ role, post: p });
-    }
+    entriesByDate.get(p.shootDate)?.shoot.push(p);
+    entriesByDate.get(p.editDate)?.edit.push(p);
   }
 
   const containsToday = days.includes(today);
@@ -91,6 +82,7 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
             const entries = entriesByDate.get(day)!;
             const isToday = day === today;
             const dayNum = parseDateStr(day).getDate();
+            const isEmpty = entries.shoot.length === 0 && entries.edit.length === 0;
 
             return (
               <div
@@ -108,45 +100,50 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
                   <p className="font-display text-2xl leading-none">{dayNum}</p>
                 </div>
 
-                <div className="flex-1 p-2 flex flex-col gap-1.5">
-                  {entries.length === 0 ? (
+                <div className="flex-1 p-2 flex flex-col gap-2.5">
+                  {isEmpty ? (
                     <p className="text-xs text-white/25 text-center py-3">—</p>
                   ) : (
-                    entries.map(({ role, post }, i) => {
+                    (["shoot", "edit"] as Role[]).map((role) => {
+                      const rolePosts = entries[role];
+                      if (rolePosts.length === 0) return null;
                       const meta = ROLE_META[role];
                       return (
-                        <Link
-                          key={`${post.id}-${role}-${i}`}
-                          href={`/edit/${post.id}?from=/schedule/week`}
-                          className="flex flex-col gap-1 rounded-xl bg-white/[0.03] border border-white/8 p-2 active:scale-[0.98] transition-transform"
-                        >
+                        <div key={role} className="flex flex-col gap-1.5">
                           <span
                             className="text-[10px] font-semibold uppercase tracking-wide"
                             style={{ color: meta.color }}
                           >
                             {meta.label}
                           </span>
-                          <span className="text-xs font-medium leading-snug line-clamp-2">
-                            {post.name}
-                          </span>
-                          <div className="flex items-center justify-end">
-                            {role === "shoot" && (
-                              <StatusTick
-                                label="S"
-                                done={post.shotDone}
-                                title={`Shot: ${post.shotDone ? "done" : "not done"}`}
-                              />
-                            )}
-                            {role === "edit" && (
-                              <StatusTick
-                                label="E"
-                                done={post.editedDone}
-                                title={`Edited: ${post.editedDone ? "done" : "not done"}`}
-                              />
-                            )}
-                            {role === "post" && <PlatformTicks post={post} />}
-                          </div>
-                        </Link>
+                          {rolePosts.map((post) => (
+                            <Link
+                              key={`${post.id}-${role}`}
+                              href={`/edit/${post.id}?from=/schedule/week`}
+                              className="flex flex-col gap-1 rounded-xl bg-white/[0.03] border border-white/8 p-2 active:scale-[0.98] transition-transform"
+                            >
+                              <span className="text-xs font-medium leading-snug line-clamp-2">
+                                {post.name}
+                              </span>
+                              <div className="flex items-center justify-end">
+                                {role === "shoot" && (
+                                  <StatusTick
+                                    label="S"
+                                    done={post.shotDone}
+                                    title={`Shot: ${post.shotDone ? "done" : "not done"}`}
+                                  />
+                                )}
+                                {role === "edit" && (
+                                  <StatusTick
+                                    label="E"
+                                    done={post.editedDone}
+                                    title={`Edited: ${post.editedDone ? "done" : "not done"}`}
+                                  />
+                                )}
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
                       );
                     })
                   )}

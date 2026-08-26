@@ -1,13 +1,23 @@
 import Link from "next/link";
 import { getPostsForRange } from "@/lib/posts";
+import type { ScheduledPost } from "@/lib/types";
 import { isInMonth, monthGridDays, shiftMonth } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
 
-const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+type Role = "shoot" | "edit";
+
+const ROLE_META: Record<Role, { label: string; color: string }> = {
+  shoot: { label: "Shoot", color: "var(--color-shoot)" },
+  edit: { label: "Edit", color: "var(--color-edit)" },
+};
+
+const MAX_VISIBLE_PER_DAY = 3;
 
 export default async function ScheduleMonthPage(
   props: PageProps<"/schedule/month">
@@ -20,15 +30,11 @@ export default async function ScheduleMonthPage(
   const days = monthGridDays(year, month);
   const posts = await getPostsForRange(days[0], days[days.length - 1]);
 
-  const dotsByDate = new Map<
-    string,
-    { shoot: boolean; edit: boolean; post: boolean }
-  >();
-  for (const day of days) dotsByDate.set(day, { shoot: false, edit: false, post: false });
+  const entriesByDate = new Map<string, { role: Role; post: ScheduledPost }[]>();
+  for (const day of days) entriesByDate.set(day, []);
   for (const p of posts) {
-    if (dotsByDate.has(p.shootDate)) dotsByDate.get(p.shootDate)!.shoot = true;
-    if (dotsByDate.has(p.editDate)) dotsByDate.get(p.editDate)!.edit = true;
-    if (dotsByDate.has(p.postDate)) dotsByDate.get(p.postDate)!.post = true;
+    entriesByDate.get(p.shootDate)?.push({ role: "shoot", post: p });
+    entriesByDate.get(p.editDate)?.push({ role: "edit", post: p });
   }
 
   const prev = shiftMonth(year, month, -1);
@@ -61,59 +67,65 @@ export default async function ScheduleMonthPage(
         </div>
       </div>
 
-      <div className="px-3">
-        <div className="grid grid-cols-7 mb-1.5">
-          {WEEKDAY_LABELS.map((w, i) => (
-            <div
-              key={i}
-              className="text-center text-[11px] font-medium text-white/35 py-1"
-            >
-              {w}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {days.map((day) => {
-            const dots = dotsByDate.get(day)!;
-            const inMonth = isInMonth(day, year, month);
-            const isToday = day === todayStr;
-            const dayNum = Number(day.slice(-2));
-
-            return (
-              <Link
-                key={day}
-                href={`/schedule/day?date=${day}`}
-                className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border transition-colors ${
-                  isToday
-                    ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
-                    : "border-white/5 bg-white/[0.02]"
-                } ${inMonth ? "" : "opacity-30"}`}
+      <div className="px-2 sm:px-4 overflow-x-auto">
+        <div className="min-w-[700px]">
+          <div className="grid grid-cols-7 mb-1">
+            {WEEKDAY_LABELS.map((w) => (
+              <div
+                key={w}
+                className="text-center text-[11px] font-medium text-white/35 py-1"
               >
-                <span className="text-sm font-medium">{dayNum}</span>
-                <span className="flex items-center gap-0.5 h-1.5">
-                  {dots.shoot && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: "var(--color-shoot)" }}
-                    />
-                  )}
-                  {dots.edit && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: "var(--color-edit)" }}
-                    />
-                  )}
-                  {dots.post && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: "var(--color-post)" }}
-                    />
-                  )}
-                </span>
-              </Link>
-            );
-          })}
+                {w}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((day) => {
+              const dayEntries = entriesByDate.get(day)!;
+              const inMonth = isInMonth(day, year, month);
+              const isToday = day === todayStr;
+              const dayNum = Number(day.slice(-2));
+              const overflow = dayEntries.length - MAX_VISIBLE_PER_DAY;
+
+              return (
+                <div
+                  key={day}
+                  className={`min-h-[6.5rem] rounded-lg border p-1.5 flex flex-col gap-1 ${
+                    isToday
+                      ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
+                      : "border-white/5 bg-white/[0.02]"
+                  } ${inMonth ? "" : "opacity-30"}`}
+                >
+                  <span className="text-xs font-medium">{dayNum}</span>
+                  <div className="flex flex-col gap-0.5">
+                    {dayEntries.slice(0, MAX_VISIBLE_PER_DAY).map(({ role, post }, i) => {
+                      const meta = ROLE_META[role];
+                      return (
+                        <Link
+                          key={`${post.id}-${role}-${i}`}
+                          href={`/edit/${post.id}?from=/schedule/month`}
+                          className="block rounded px-1 py-0.5 text-[10px] font-medium leading-tight truncate"
+                          style={{
+                            background: `color-mix(in srgb, ${meta.color} 18%, transparent)`,
+                            color: meta.color,
+                          }}
+                          title={`${meta.label}: ${post.name}`}
+                        >
+                          {post.name}
+                        </Link>
+                      );
+                    })}
+                    {overflow > 0 && (
+                      <span className="text-[10px] text-white/35 px-1">
+                        +{overflow} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -125,10 +137,6 @@ export default async function ScheduleMonthPage(
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: "var(--color-edit)" }} />
           Edit
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: "var(--color-post)" }} />
-          Post
         </span>
       </div>
     </div>
