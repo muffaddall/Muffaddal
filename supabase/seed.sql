@@ -5,14 +5,14 @@
 insert into expense_entries (month, date_label, name, amount, category, sort_order) values
   -- August 2026
   ('2026-08-01', '1st', 'Etoro', 2500, 'recurring', 1),
-  ('2026-08-01', '1st', 'Saving', 2500, 'recurring', 2),
+  ('2026-08-01', '1st', 'Saving', 2500, 'savings', 2),
   ('2026-08-01', '1st', 'Etisalat', 185, 'recurring', 3),
   ('2026-08-01', '1st', 'Subsciptions', 100, 'recurring', 4),
   ('2026-08-01', '1st', 'Debt Paying Back', 782, 'debt', 5),
   ('2026-08-01', '1st', 'Gfit for Fatema and Family', 2500, 'one_off', 6),
   -- September 2026
   ('2026-09-01', '1st', 'Etoro', 3000, 'recurring', 1),
-  ('2026-09-01', '1st', 'Saving', 2150, 'recurring', 2),
+  ('2026-09-01', '1st', 'Saving', 2150, 'savings', 2),
   ('2026-09-01', '1st', 'Etisalat', 185, 'recurring', 3),
   ('2026-09-01', '1st', 'Subsciptions', 100, 'recurring', 4),
   ('2026-09-01', '10th', 'Padel Coaching', 1700, 'stoppable', 5),
@@ -20,7 +20,7 @@ insert into expense_entries (month, date_label, name, amount, category, sort_ord
   ('2026-09-01', '1st', 'Debt Paying Back', 2150, 'debt', 7),
   -- October 2026
   ('2026-10-01', '1st', 'Etoro', 3000, 'recurring', 1),
-  ('2026-10-01', '1st', 'Saving', 3000, 'recurring', 2),
+  ('2026-10-01', '1st', 'Saving', 3000, 'savings', 2),
   ('2026-10-01', '1st', 'Etisalat', 185, 'recurring', 3),
   ('2026-10-01', '1st', 'Subsciptions', 100, 'recurring', 4),
   ('2026-10-01', '15th', 'Padel Coaching', 1700, 'stoppable', 5),
@@ -28,7 +28,7 @@ insert into expense_entries (month, date_label, name, amount, category, sort_ord
   ('2026-10-01', '1st', 'Debt Paying Back', 2000, 'debt', 7),
   -- November 2026
   ('2026-11-01', '1st', 'Etoro', 3000, 'recurring', 1),
-  ('2026-11-01', '1st', 'Saving', 3000, 'recurring', 2),
+  ('2026-11-01', '1st', 'Saving', 3000, 'savings', 2),
   ('2026-11-01', '1st', 'Etisalat', 185, 'recurring', 3),
   ('2026-11-01', '1st', 'Subsciptions', 100, 'recurring', 4),
   ('2026-11-01', '19th', 'Padel Coaching', 1700, 'stoppable', 5),
@@ -36,7 +36,7 @@ insert into expense_entries (month, date_label, name, amount, category, sort_ord
   ('2026-11-01', '1st', 'Debt Paying Back', 2000, 'debt', 7),
   -- December 2026
   ('2026-12-01', '1st', 'Etoro', 3000, 'recurring', 1),
-  ('2026-12-01', '1st', 'Saving', 3000, 'recurring', 2),
+  ('2026-12-01', '1st', 'Saving', 3000, 'savings', 2),
   ('2026-12-01', '1st', 'Etisalat', 185, 'recurring', 3),
   ('2026-12-01', '1st', 'Subsciptions', 100, 'recurring', 4),
   ('2026-12-01', '24th', 'Padel Coaching', 1700, 'stoppable', 5),
@@ -44,7 +44,7 @@ insert into expense_entries (month, date_label, name, amount, category, sort_ord
   ('2026-12-01', '1st', 'Debt Paying Back', 2000, 'debt', 7),
   -- January 2027
   ('2027-01-01', '1st', 'Etoro', 3000, 'recurring', 1),
-  ('2027-01-01', '1st', 'Saving', 3000, 'recurring', 2),
+  ('2027-01-01', '1st', 'Saving', 3000, 'savings', 2),
   ('2027-01-01', '1st', 'Etisalat', 185, 'recurring', 3),
   ('2027-01-01', '1st', 'Subsciptions', 100, 'recurring', 4),
   ('2027-01-01', '28th', 'Padel Coaching', 1700, 'stoppable', 5),
@@ -84,22 +84,24 @@ insert into debts (name, amount) values
   ('Fines', -1450)
 on conflict do nothing;
 
-insert into savings_months (month, debt_paydown, big_payment, savings_kept, money_kept) values
-  ('2026-08-01', 782, 0, 2515, 50000),
-  ('2026-09-01', 2150, 0, 2150, 50000),
-  ('2026-10-01', 2000, 0, 3000, 50000),
-  ('2026-11-01', 2000, 0, 3000, 50000),
-  ('2026-12-01', 2000, 0, 3000, 50000),
-  ('2027-01-01', 2000, -1950, 3000, 50000),
-  ('2027-02-01', 2000, 0, 3000, 50000),
-  ('2027-03-01', 2000, 0, 3000, 50000),
-  ('2027-04-01', 2000, 0, 3000, 50000),
-  ('2027-05-01', 2000, 0, 3000, 50000),
-  ('2027-06-01', 2000, 0, 3000, 50000),
-  ('2027-07-01', 2000, 0, 3000, 50000),
-  ('2027-08-01', 2000, 0, 3000, 50000),
-  ('2027-09-01', 2000, 0, 3000, 50000),
-  ('2027-10-01', 2000, 0, 3000, 50000),
-  ('2027-11-01', 2000, 0, 3000, 50000),
-  ('2027-12-01', 2000, 0, 3000, 50000)
+-- debt_paydown and savings_kept aren't set here — the app computes them
+-- from that month's "debt" / "savings" category expense entries instead.
+insert into savings_months (month, big_payment, money_kept) values
+  ('2026-08-01', 0, 50000),
+  ('2026-09-01', 0, 50000),
+  ('2026-10-01', 0, 50000),
+  ('2026-11-01', 0, 50000),
+  ('2026-12-01', 0, 50000),
+  ('2027-01-01', -1950, 50000),
+  ('2027-02-01', 0, 50000),
+  ('2027-03-01', 0, 50000),
+  ('2027-04-01', 0, 50000),
+  ('2027-05-01', 0, 50000),
+  ('2027-06-01', 0, 50000),
+  ('2027-07-01', 0, 50000),
+  ('2027-08-01', 0, 50000),
+  ('2027-09-01', 0, 50000),
+  ('2027-10-01', 0, 50000),
+  ('2027-11-01', 0, 50000),
+  ('2027-12-01', 0, 50000)
 on conflict (month) do nothing;

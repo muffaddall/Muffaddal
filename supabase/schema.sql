@@ -80,6 +80,12 @@ create index if not exists expense_entries_month_idx on expense_entries (month);
 
 alter table expense_entries enable row level security;
 
+-- Widens the category check to include "savings" for installs that already
+-- had this table (the create table above only applies to a fresh table).
+alter table expense_entries drop constraint if exists expense_entries_category_check;
+alter table expense_entries add constraint expense_entries_category_check
+  check (category in ('recurring', 'stoppable', 'installment', 'debt', 'savings', 'one_off'));
+
 -- Declared monthly income, one row per month (defaults to 15000 like the sheet).
 create table if not exists monthly_income (
   month date primary key,

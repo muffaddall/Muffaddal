@@ -21,7 +21,7 @@ export default function SavingsMonthRow({ row }: { row: SavingsMonthComputed }) 
     return (
       <tr className="bg-white/5">
         <td colSpan={8} className="p-2">
-          <form action={formAction} className="grid grid-cols-2 gap-2 sm:grid-cols-[8rem_10rem_8rem_8rem_8rem_auto_auto]">
+          <form action={formAction} className="grid grid-cols-2 gap-2 sm:grid-cols-[8rem_10rem_8rem_10rem_8rem_auto_auto]">
             <input type="hidden" name="month" value={monthToInputValue(row.month)} />
             <span className="flex items-center text-sm text-[var(--color-fg-dim)]">
               {formatMonth(row.month)}
@@ -39,15 +39,10 @@ export default function SavingsMonthRow({ row }: { row: SavingsMonthComputed }) 
               required
               className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
             />
-            <input
-              name="savings_kept"
-              type="number"
-              step="any"
-              defaultValue={row.savings_kept}
-              placeholder="Savings kept"
-              required
-              className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
-            />
+            <span className="flex flex-col justify-center rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm text-[var(--color-fg-dim)]">
+              {formatMoney(row.savings_kept)}
+              <span className="text-[10px] leading-tight">from Expenses</span>
+            </span>
             <input
               name="money_kept"
               type="number"

@@ -28,6 +28,7 @@
   --color-cat-stoppable: #a78bfa;
   --color-cat-installment: #34d399;
   --color-cat-debt: #ff6b6b;
+  --color-cat-savings: #f472b6;
   --color-cat-one_off: #ffc247;
 
   --font-display: var(--font-bebas-neue), "Arial Narrow", sans-serif;
@@ -56,6 +57,7 @@
   --color-cat-stoppable: var(--color-cat-stoppable);
   --color-cat-installment: var(--color-cat-installment);
   --color-cat-debt: var(--color-cat-debt);
+  --color-cat-savings: var(--color-cat-savings);
   --color-cat-one_off: var(--color-cat-one_off);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
