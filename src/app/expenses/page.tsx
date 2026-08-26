@@ -5,6 +5,7 @@ import MonthNav from "./MonthNav";
 import IncomeEditor from "./IncomeEditor";
 import AddExpenseForm from "./AddExpenseForm";
 import ExpenseRow from "./ExpenseRow";
+import CopyPreviousMonthButton from "./CopyPreviousMonthButton";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,10 @@ export default async function ExpensesPage({
               {formatSignedMoney(leftover)}
             </p>
           </div>
+        </div>
+
+        <div className="flex justify-end mb-3">
+          <CopyPreviousMonthButton month={month} />
         </div>
 
         <ul className="flex flex-col gap-1 mb-4">

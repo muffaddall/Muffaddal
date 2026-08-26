@@ -78,9 +78,10 @@ export default async function SavingsPage() {
             Monthly savings progress
           </h2>
           <p className="text-xs text-[var(--color-fg-dim)] mb-3">
-            Debt paydown and savings kept both come from that month&apos;s &ldquo;Debt paying
-            back&rdquo; and &ldquo;Savings contribution&rdquo; entries on the Expenses tab — edit
-            them there.
+            Debt paydown is the Big Purchase Fund balance: money paid in (&ldquo;Big Purchase
+            Fund&rdquo; entries) minus money spent from it (&ldquo;Big Purchase Fund
+            purchase&rdquo; entries). Savings kept comes from &ldquo;Savings contribution&rdquo;
+            entries. All on the Expenses tab — edit them there.
           </p>
           <div className="overflow-x-auto mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <table className="w-full min-w-[780px] border-collapse">

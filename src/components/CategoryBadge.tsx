@@ -5,6 +5,7 @@ const DOT_CLASS: Record<ExpenseCategory, string> = {
   stoppable: "bg-[var(--color-cat-stoppable)]",
   installment: "bg-[var(--color-cat-installment)]",
   debt: "bg-[var(--color-cat-debt)]",
+  bpf_purchase: "bg-[var(--color-cat-bpf_purchase)]",
   savings: "bg-[var(--color-cat-savings)]",
   one_off: "bg-[var(--color-cat-one_off)]",
 };

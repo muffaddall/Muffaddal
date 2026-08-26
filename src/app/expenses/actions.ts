@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import {
   addExpenseEntry,
+  copyExpensesToMonth,
   deleteExpenseEntry,
   setIncomeForMonth,
   updateExpenseEntry,
 } from "@/lib/expenses";
+import { addMonths } from "@/lib/format";
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from "@/lib/types";
 
 function parseCategory(value: FormDataEntryValue | null): ExpenseCategory {
@@ -60,6 +62,14 @@ export async function removeExpense(id: string): Promise<void> {
   await deleteExpenseEntry(id);
   revalidatePath("/expenses");
   revalidatePath("/");
+}
+
+export async function copyPreviousMonth(month: string): Promise<{ error?: string; copied?: number }> {
+  const previousMonth = addMonths(month, -1);
+  const copied = await copyExpensesToMonth(previousMonth, month);
+  revalidatePath("/expenses");
+  revalidatePath("/");
+  return { copied };
 }
 
 export async function saveIncome(

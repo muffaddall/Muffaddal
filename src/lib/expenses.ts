@@ -73,6 +73,26 @@ export async function deleteExpenseEntry(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// Copies every entry from one month into another as new rows (new ids),
+// so editing a copy never touches the original month's entry.
+export async function copyExpensesToMonth(fromMonth: string, toMonth: string): Promise<number> {
+  const source = await getExpensesForMonth(fromMonth);
+  if (source.length === 0) return 0;
+
+  const copies = source.map((entry) => ({
+    month: toMonth,
+    date_label: entry.date_label,
+    name: entry.name,
+    amount: entry.amount,
+    category: entry.category,
+    sort_order: entry.sort_order,
+  }));
+
+  const { error } = await supabase.from("expense_entries").insert(copies);
+  if (error) throw error;
+  return copies.length;
+}
+
 export function totalForMonth(entries: ExpenseEntry[]): number {
   return entries.reduce((sum, e) => sum + e.amount, 0);
 }

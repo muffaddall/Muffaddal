@@ -52,10 +52,11 @@ async function getAmountByMonthForCategory(category: string): Promise<Map<string
 }
 
 export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
-  const [debts, monthsRes, debtPaydownByMonth, savingsKeptByMonth] = await Promise.all([
+  const [debts, monthsRes, bpfInByMonth, bpfOutByMonth, savingsKeptByMonth] = await Promise.all([
     getDebts(),
     supabase.from("savings_months").select("*").order("month", { ascending: true }),
     getAmountByMonthForCategory("debt"),
+    getAmountByMonthForCategory("bpf_purchase"),
     getAmountByMonthForCategory("savings"),
   ]);
   if (monthsRes.error) throw monthsRes.error;
@@ -67,7 +68,8 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
   const allMonths = Array.from(
     new Set([
       ...savingsByMonth.keys(),
-      ...debtPaydownByMonth.keys(),
+      ...bpfInByMonth.keys(),
+      ...bpfOutByMonth.keys(),
       ...savingsKeptByMonth.keys(),
     ])
   ).sort();
@@ -78,7 +80,9 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
 
   return allMonths.map((month) => {
     const saved = savingsByMonth.get(month);
-    const debt_paydown = debtPaydownByMonth.get(month) ?? 0;
+    // Net movement on the Big Purchase Fund: money paid in (category "debt")
+    // minus money spent from it (category "bpf_purchase").
+    const debt_paydown = (bpfInByMonth.get(month) ?? 0) - (bpfOutByMonth.get(month) ?? 0);
     const savings_kept = savingsKeptByMonth.get(month) ?? 0;
     const big_payment = saved?.big_payment ?? 0;
     const money_kept = saved?.money_kept ?? 50000;
