@@ -81,6 +81,9 @@ export function MenuButton() {
               <MenuLink href="/weight" onNavigate={() => setOpen(false)}>
                 Weight Tracker
               </MenuLink>
+              <MenuLink href="/workouts" onNavigate={() => setOpen(false)}>
+                Workout Tracker
+              </MenuLink>
             </div>
 
             <form action={logout} className="mt-auto pt-4 border-t border-white/8">

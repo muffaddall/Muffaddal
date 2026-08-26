@@ -183,3 +183,21 @@ create table if not exists weight_logs (
 create index if not exists weight_logs_date_idx on weight_logs (date);
 
 alter table weight_logs enable row level security;
+
+-- Workout entries across the three tracked disciplines. Pace, personal
+-- best, and average pace are all computed on read from distance/duration,
+-- never stored redundantly.
+create table if not exists workout_logs (
+  id uuid primary key default gen_random_uuid(),
+  discipline text not null check (discipline in ('running', 'cycling', 'swimming')),
+  date date not null,
+  time time,
+  distance_km numeric not null,
+  duration_min numeric not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists workout_logs_discipline_idx on workout_logs (discipline);
+create index if not exists workout_logs_date_idx on workout_logs (date);
+
+alter table workout_logs enable row level security;

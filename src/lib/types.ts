@@ -174,6 +174,63 @@ export type WeightLog = {
   createdAt: string;
 };
 
+export const WORKOUT_DISCIPLINES = ["running", "cycling", "swimming"] as const;
+
+export type WorkoutDiscipline = (typeof WORKOUT_DISCIPLINES)[number];
+
+export const WORKOUT_DISCIPLINE_LABELS: Record<WorkoutDiscipline, string> = {
+  running: "Running",
+  cycling: "Cycling",
+  swimming: "Swimming",
+};
+
+export function isWorkoutDiscipline(value: string): value is WorkoutDiscipline {
+  return (WORKOUT_DISCIPLINES as readonly string[]).includes(value);
+}
+
+export type WorkoutLog = {
+  id: string;
+  discipline: WorkoutDiscipline;
+  date: string; // YYYY-MM-DD
+  time: string | null; // HH:MM
+  distanceKm: number;
+  durationMin: number;
+  createdAt: string;
+};
+
+export function computeWorkoutPace(log: WorkoutLog): number {
+  return log.durationMin / log.distanceKm;
+}
+
+/** Formats a min/km pace as "M:SS /km". */
+export function formatPace(paceMinPerKm: number | null): string {
+  if (paceMinPerKm === null || !Number.isFinite(paceMinPerKm)) return "—";
+  const whole = Math.floor(paceMinPerKm);
+  const seconds = Math.round((paceMinPerKm - whole) * 60);
+  const adjWhole = seconds === 60 ? whole + 1 : whole;
+  const adjSeconds = seconds === 60 ? 0 : seconds;
+  return `${adjWhole}:${String(adjSeconds).padStart(2, "0")} /km`;
+}
+
+export type WorkoutStats = {
+  personalBestPace: number | null;
+  averagePace: number | null;
+};
+
+/** PB = fastest (lowest) pace. Average pace = total duration / total distance. */
+export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
+  if (logs.length === 0) return { personalBestPace: null, averagePace: null };
+
+  const paces = logs.map(computeWorkoutPace);
+  const personalBestPace = Math.min(...paces);
+
+  const totalDistance = logs.reduce((sum, l) => sum + l.distanceKm, 0);
+  const totalDuration = logs.reduce((sum, l) => sum + l.durationMin, 0);
+  const averagePace = totalDistance > 0 ? totalDuration / totalDistance : null;
+
+  return { personalBestPace, averagePace };
+}
+
 export type PostInput = {
   name: string;
   shootDate: string | null;

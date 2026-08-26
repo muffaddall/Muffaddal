@@ -29,6 +29,7 @@ const GROUPS: { title: string; color: string; sections: Section[] }[] = [
     sections: [
       { href: "/calories", label: "Calorie Tracker", description: "Daily log and weekly deficit/surplus" },
       { href: "/weight", label: "Weight Tracker", description: "Log entries and see your trend" },
+      { href: "/workouts", label: "Workout Tracker", description: "Running, cycling & swimming logs" },
     ],
   },
 ];
