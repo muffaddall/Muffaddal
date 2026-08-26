@@ -74,9 +74,13 @@ export default async function SavingsPage() {
         )}
 
         <section className="mb-10">
-          <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">
+          <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-1">
             Monthly savings progress
           </h2>
+          <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+            Debt paydown comes from that month&apos;s &ldquo;Debt paying back&rdquo; entries on the
+            Expenses tab — edit it there.
+          </p>
           <div className="overflow-x-auto mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <table className="w-full min-w-[780px] border-collapse">
               <thead>

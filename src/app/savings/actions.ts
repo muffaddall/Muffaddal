@@ -49,19 +49,17 @@ export async function saveSavingsMonth(
   formData: FormData
 ): Promise<FormState> {
   const monthInput = String(formData.get("month") ?? "");
-  const debt_paydown = Number(formData.get("debt_paydown"));
   const big_payment = Number(formData.get("big_payment"));
   const savings_kept = Number(formData.get("savings_kept"));
   const money_kept = Number(formData.get("money_kept"));
 
   if (!monthInput) return { error: "Month is required." };
-  if (![debt_paydown, big_payment, savings_kept, money_kept].every(Number.isFinite)) {
+  if (![big_payment, savings_kept, money_kept].every(Number.isFinite)) {
     return { error: "All amounts must be numbers." };
   }
 
   await upsertSavingsMonth({
     month: inputValueToMonth(monthInput),
-    debt_paydown,
     big_payment,
     savings_kept,
     money_kept,

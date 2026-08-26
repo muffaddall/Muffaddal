@@ -19,22 +19,13 @@ export default function AddSavingsMonthForm() {
     <form
       ref={formRef}
       action={formAction}
-      className="grid grid-cols-2 gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3 sm:grid-cols-[8rem_8rem_8rem_8rem_8rem_auto]"
+      className="grid grid-cols-2 gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3 sm:grid-cols-[8rem_8rem_8rem_8rem_auto]"
     >
       <input
         name="month"
         type="month"
         required
         defaultValue={monthToInputValue(currentMonth())}
-        className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
-      />
-      <input
-        name="debt_paydown"
-        type="number"
-        step="any"
-        placeholder="Debt paydown"
-        defaultValue={0}
-        required
         className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
       <input
