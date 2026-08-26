@@ -154,3 +154,32 @@ create table if not exists savings_months (
 );
 
 alter table savings_months enable row level security;
+
+-- ---- Fitness section (calorie + weight tracking) ----
+
+-- One row per day. Intake/net/deficit-or-surplus are computed on read from
+-- these four meal fields plus calories burned, never stored redundantly.
+create table if not exists calorie_logs (
+  date date primary key,
+  breakfast numeric not null default 0,
+  lunch numeric not null default 0,
+  dinner numeric not null default 0,
+  snacks numeric not null default 0,
+  burned numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table calorie_logs enable row level security;
+
+-- Manually logged weight entries — as many or as few per day as you like.
+create table if not exists weight_logs (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  time time,
+  weight numeric not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists weight_logs_date_idx on weight_logs (date);
+
+alter table weight_logs enable row level security;

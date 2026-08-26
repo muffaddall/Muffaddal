@@ -44,8 +44,8 @@ export function shiftMonth(year: number, month: number, delta: number) {
 export function monthGridDays(year: number, month: number): string[] {
   const first = startOfMonth(new Date(year, month - 1, 1));
   const last = endOfMonth(first);
-  const gridStart = startOfWeek(first, { weekStartsOn: 0 });
-  const gridEnd = endOfWeek(last, { weekStartsOn: 0 });
+  const gridStart = startOfWeek(first, { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(last, { weekStartsOn: 1 });
 
   const days: string[] = [];
   let cursor = gridStart;
@@ -62,7 +62,7 @@ export function isInMonth(date: string, year: number, month: number) {
 }
 
 export function weekDays(anchorDate: string): string[] {
-  const start = startOfWeek(parseDateStr(anchorDate), { weekStartsOn: 0 });
+  const start = startOfWeek(parseDateStr(anchorDate), { weekStartsOn: 1 });
   const days: string[] = [];
   for (let i = 0; i < 7; i++) {
     days.push(format(addDays(start, i), DATE_FMT));
@@ -76,6 +76,10 @@ export function shiftWeek(anchorDate: string, deltaWeeks: number): string {
 
 export function formatWeekdayShort(date: string): string {
   return format(parseDateStr(date), "EEE");
+}
+
+export function formatDateShort(date: string): string {
+  return format(parseDateStr(date), "MMM d, yyyy");
 }
 
 export function formatTimeLabel(time: string): string {

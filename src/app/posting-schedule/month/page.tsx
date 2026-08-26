@@ -5,7 +5,7 @@ import { getPostsByPostDateRange } from "@/lib/posts";
 import type { ScheduledPost } from "@/lib/types";
 import { formatTimeLabel, isInMonth, monthGridDays, shiftMonth } from "@/lib/date";
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",

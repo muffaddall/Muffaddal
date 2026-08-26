@@ -4,7 +4,7 @@ import type { ScheduledPost } from "@/lib/types";
 import { isInMonth, monthGridDays, shiftMonth } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",

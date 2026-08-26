@@ -143,6 +143,37 @@ export type SavingsMonthComputed = SavingsMonth & {
   account_total: number;
 };
 
+// ---- Fitness section (calorie / weight tracking) ----
+
+export type CalorieLog = {
+  date: string; // YYYY-MM-DD
+  breakfast: number;
+  lunch: number;
+  dinner: number;
+  snacks: number;
+  burned: number;
+};
+
+export type CalorieLogComputed = CalorieLog & {
+  intake: number;
+  net: number;
+  isDeficit: boolean;
+};
+
+export function computeCalorieLog(log: CalorieLog): CalorieLogComputed {
+  const intake = log.breakfast + log.lunch + log.dinner + log.snacks;
+  const net = intake - log.burned;
+  return { ...log, intake, net, isDeficit: net <= 0 };
+}
+
+export type WeightLog = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  time: string | null; // HH:MM
+  weight: number;
+  createdAt: string;
+};
+
 export type PostInput = {
   name: string;
   shootDate: string | null;

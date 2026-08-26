@@ -4,9 +4,10 @@ import { quoteOfTheDay } from "@/lib/quotes";
 
 type Section = { href: string; label: string; description: string };
 
-const GROUPS: { title: string; sections: Section[] }[] = [
+const GROUPS: { title: string; color: string; sections: Section[] }[] = [
   {
     title: "Content",
+    color: "var(--color-shoot)",
     sections: [
       { href: "/schedule/day", label: "Shooting / Editing Schedule", description: "Shoot and edit — day/week/month" },
       { href: "/posting-schedule", label: "Posting Schedule", description: "This week's posts by time" },
@@ -15,10 +16,19 @@ const GROUPS: { title: string; sections: Section[] }[] = [
   },
   {
     title: "Finance",
+    color: "var(--color-accent)",
     sections: [
       { href: "/expenses", label: "Expenses", description: "Monthly income and spending" },
       { href: "/investments", label: "Investments", description: "Etoro contributions and P&L" },
       { href: "/savings", label: "Savings & debt", description: "Big Purchase Fund and savings progress" },
+    ],
+  },
+  {
+    title: "Fitness",
+    color: "var(--color-fitness)",
+    sections: [
+      { href: "/calories", label: "Calorie Tracker", description: "Daily log and weekly deficit/surplus" },
+      { href: "/weight", label: "Weight Tracker", description: "Log entries and see your trend" },
     ],
   },
 ];
@@ -46,7 +56,10 @@ export default function HomePage() {
       <div className="px-4 flex flex-col gap-7 max-w-2xl mx-auto">
         {GROUPS.map((group) => (
           <div key={group.title}>
-            <h2 className="text-xs uppercase tracking-wide text-white/40 font-semibold mb-3 px-1">
+            <h2
+              className="font-display text-2xl tracking-wide leading-none mb-3 px-1"
+              style={{ color: group.color }}
+            >
               {group.title}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -63,18 +76,6 @@ export default function HomePage() {
             </div>
           </div>
         ))}
-
-        <div>
-          <h2 className="text-xs uppercase tracking-wide text-white/40 font-semibold mb-3 px-1">
-            Fitness
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-dashed border-white/15 p-4">
-              <p className="font-semibold text-base mb-1 text-white/35">Coming soon</p>
-              <p className="text-xs text-white/25">Nothing here yet</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
