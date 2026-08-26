@@ -29,42 +29,37 @@ export default async function CaloriesMonthPage(props: PageProps<"/calories/mont
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="pb-10">
+    <div className="pb-6">
       <PageHeader title="Calorie Tracker" />
-      <div className="flex justify-center mb-2">
+      <div className="flex justify-center mb-3">
         <CaloriesTabs active="month" />
       </div>
 
-      <div className="px-4 mt-2 mb-4 flex flex-col items-center gap-2">
-        <h2 className="font-display text-5xl tracking-wide text-center">
-          {MONTH_NAMES[month - 1]} <span className="text-white/40">{year}</span>
-        </h2>
-        <div className="flex items-center gap-1.5">
+      <div className="mx-auto max-w-xs px-4">
+        <div className="mb-2 flex items-center justify-center gap-2">
           <Link
             href={`/calories/month?y=${prev.year}&m=${prev.month}`}
             aria-label="Previous month"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-lg"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 border border-white/10 text-xs"
           >
             ‹
           </Link>
+          <h2 className="font-display text-lg tracking-wide leading-none text-center min-w-[9rem]">
+            {MONTH_NAMES[month - 1]} <span className="text-white/40">{year}</span>
+          </h2>
           <Link
             href={`/calories/month?y=${next.year}&m=${next.month}`}
             aria-label="Next month"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-lg"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 border border-white/10 text-xs"
           >
             ›
           </Link>
         </div>
-      </div>
 
-      <div className="px-3">
-        <div className="grid grid-cols-7 mb-1.5">
+        <div className="grid grid-cols-7 mb-1">
           {WEEKDAY_LABELS.map((w) => (
-            <div
-              key={w}
-              className="text-center text-[11px] font-medium text-white/35 py-1"
-            >
-              {w}
+            <div key={w} className="text-center text-[9px] font-medium text-white/35">
+              {w[0]}
             </div>
           ))}
         </div>
@@ -88,32 +83,32 @@ export default async function CaloriesMonthPage(props: PageProps<"/calories/mont
               <Link
                 key={day}
                 href={`/calories?date=${day}`}
-                className={`aspect-square rounded-xl flex items-center justify-center border transition-colors ${stateClass} ${
+                className={`h-8 rounded-md flex items-center justify-center border transition-colors ${stateClass} ${
                   inMonth ? "" : "opacity-30"
                 }`}
               >
-                <span className="text-sm font-medium">{dayNum}</span>
+                <span className="text-[11px] font-medium">{dayNum}</span>
               </Link>
             );
           })}
         </div>
-      </div>
 
-      <div className="flex items-center gap-4 justify-center mt-6 text-xs text-white/40">
-        <span className="flex items-center gap-1.5">
-          <span
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ background: "var(--color-positive)" }}
-          />
-          Deficit
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ background: "var(--color-negative)" }}
-          />
-          Surplus
-        </span>
+        <div className="flex items-center gap-3 justify-center mt-3 text-[11px] text-white/40">
+          <span className="flex items-center gap-1">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: "var(--color-positive)" }}
+            />
+            Deficit
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: "var(--color-negative)" }}
+            />
+            Surplus
+          </span>
+        </div>
       </div>
     </div>
   );

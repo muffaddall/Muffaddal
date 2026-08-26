@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { removeWorkoutLog } from "./actions";
-import { computeWorkoutPace, formatPace, type WorkoutLog } from "@/lib/types";
+import { computeWorkoutPace, formatDistance, formatPace, type WorkoutLog } from "@/lib/types";
 import { formatDateShort, formatTimeLabel } from "@/lib/date";
 
 export default function WorkoutRow({ log }: { log: WorkoutLog }) {
@@ -15,9 +15,9 @@ export default function WorkoutRow({ log }: { log: WorkoutLog }) {
       <td className="py-2 pr-3 text-[var(--color-fg-dim)]">
         {log.time ? formatTimeLabel(log.time) : "—"}
       </td>
-      <td className="py-2 pr-3 tabular-nums">{log.distanceKm} km</td>
+      <td className="py-2 pr-3 tabular-nums">{formatDistance(log.distance, log.discipline)}</td>
       <td className="py-2 pr-3 tabular-nums">{log.durationMin} min</td>
-      <td className="py-2 pr-3 tabular-nums">{formatPace(pace)}</td>
+      <td className="py-2 pr-3 tabular-nums">{formatPace(pace, log.discipline)}</td>
       <td className="py-2 text-right">
         <button
           type="button"

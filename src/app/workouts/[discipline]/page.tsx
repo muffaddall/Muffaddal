@@ -4,6 +4,7 @@ import { getWorkoutLogs } from "@/lib/workouts";
 import {
   WORKOUT_DISCIPLINE_LABELS,
   computeWorkoutStats,
+  formatDistance,
   formatPace,
   isWorkoutDiscipline,
 } from "@/lib/types";
@@ -20,20 +21,26 @@ export default async function WorkoutDisciplinePage(
   const discipline = disciplineParam;
 
   const logs = await getWorkoutLogs(discipline);
-  const { personalBestPace, averagePace } = computeWorkoutStats(logs);
+  const { personalBestPace, personalBestDistance, averagePace } = computeWorkoutStats(logs);
 
   return (
     <div className="pb-10">
       <PageHeader title={WORKOUT_DISCIPLINE_LABELS[discipline]} subtitle="Workout Tracker" />
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">Personal Best</p>
-            <p className="font-display text-2xl">{formatPace(personalBestPace)}</p>
+            <p className="text-xs text-[var(--color-fg-dim)] mb-1">PB Distance</p>
+            <p className="font-display text-xl">
+              {formatDistance(personalBestDistance, discipline)}
+            </p>
+          </div>
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+            <p className="text-xs text-[var(--color-fg-dim)] mb-1">PB Pace</p>
+            <p className="font-display text-xl">{formatPace(personalBestPace, discipline)}</p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
             <p className="text-xs text-[var(--color-fg-dim)] mb-1">Average pace</p>
-            <p className="font-display text-2xl">{formatPace(averagePace)}</p>
+            <p className="font-display text-xl">{formatPace(averagePace, discipline)}</p>
           </div>
         </div>
 

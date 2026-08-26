@@ -7,7 +7,7 @@ type WorkoutLogRow = {
   discipline: WorkoutDiscipline;
   date: string;
   time: string | null;
-  distance_km: number;
+  distance: number;
   duration_min: number;
   created_at: string;
 };
@@ -18,7 +18,7 @@ function fromRow(row: WorkoutLogRow): WorkoutLog {
     discipline: row.discipline,
     date: row.date,
     time: row.time ? row.time.slice(0, 5) : null,
-    distanceKm: row.distance_km,
+    distance: row.distance,
     durationMin: row.duration_min,
     createdAt: row.created_at,
   };
@@ -41,14 +41,14 @@ export async function addWorkoutLog(input: {
   discipline: WorkoutDiscipline;
   date: string;
   time: string | null;
-  distanceKm: number;
+  distance: number;
   durationMin: number;
 }): Promise<void> {
   const { error } = await supabase.from("workout_logs").insert({
     discipline: input.discipline,
     date: input.date,
     time: input.time,
-    distance_km: input.distanceKm,
+    distance: input.distance,
     duration_min: input.durationMin,
   });
   if (error) throw new Error(error.message);

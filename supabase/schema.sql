@@ -192,10 +192,22 @@ create table if not exists workout_logs (
   discipline text not null check (discipline in ('running', 'cycling', 'swimming')),
   date date not null,
   time time,
-  distance_km numeric not null,
+  distance numeric not null,
   duration_min numeric not null,
   created_at timestamptz not null default now()
 );
+
+-- Renamed from distance_km — swimming logs meters, not km, so the column
+-- is unit-agnostic; the app knows which unit each discipline uses.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'workout_logs' and column_name = 'distance_km'
+  ) then
+    alter table workout_logs rename column distance_km to distance;
+  end if;
+end $$;
 
 create index if not exists workout_logs_discipline_idx on workout_logs (discipline);
 create index if not exists workout_logs_date_idx on workout_logs (date);

@@ -3,9 +3,10 @@
 import { useActionState, useRef } from "react";
 import { createWorkoutLog } from "./actions";
 import { todayStr } from "@/lib/date";
-import type { WorkoutDiscipline } from "@/lib/types";
+import { WORKOUT_DISCIPLINE_UNITS, type WorkoutDiscipline } from "@/lib/types";
 
 export default function AddWorkoutForm({ discipline }: { discipline: WorkoutDiscipline }) {
+  const units = WORKOUT_DISCIPLINE_UNITS[discipline];
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
@@ -36,10 +37,10 @@ export default function AddWorkoutForm({ discipline }: { discipline: WorkoutDisc
         className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
       <input
-        name="distanceKm"
+        name="distance"
         type="number"
         step="any"
-        placeholder="Distance (km)"
+        placeholder={units.distanceLabel}
         required
         className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />

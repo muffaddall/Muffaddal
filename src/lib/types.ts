@@ -188,47 +188,81 @@ export function isWorkoutDiscipline(value: string): value is WorkoutDiscipline {
   return (WORKOUT_DISCIPLINES as readonly string[]).includes(value);
 }
 
+// Running/cycling are logged and paced in km. Swimming is logged in meters
+// and paced per 100m, matching how swimmers actually talk about pace.
+export const WORKOUT_DISCIPLINE_UNITS: Record<
+  WorkoutDiscipline,
+  { distanceUnit: string; distanceLabel: string; paceUnit: string; paceSegment: number }
+> = {
+  running: { distanceUnit: "km", distanceLabel: "Distance (km)", paceUnit: "/km", paceSegment: 1 },
+  cycling: { distanceUnit: "km", distanceLabel: "Distance (km)", paceUnit: "/km", paceSegment: 1 },
+  swimming: { distanceUnit: "m", distanceLabel: "Distance (m)", paceUnit: "/100m", paceSegment: 100 },
+};
+
 export type WorkoutLog = {
   id: string;
   discipline: WorkoutDiscipline;
   date: string; // YYYY-MM-DD
   time: string | null; // HH:MM
-  distanceKm: number;
+  distance: number; // in the discipline's distanceUnit
   durationMin: number;
   createdAt: string;
 };
 
+/** Pace in minutes per pace-segment (per km, or per 100m for swimming). */
 export function computeWorkoutPace(log: WorkoutLog): number {
-  return log.durationMin / log.distanceKm;
+  const { paceSegment } = WORKOUT_DISCIPLINE_UNITS[log.discipline];
+  return log.durationMin / (log.distance / paceSegment);
 }
 
-/** Formats a min/km pace as "M:SS /km". */
-export function formatPace(paceMinPerKm: number | null): string {
-  if (paceMinPerKm === null || !Number.isFinite(paceMinPerKm)) return "—";
-  const whole = Math.floor(paceMinPerKm);
-  const seconds = Math.round((paceMinPerKm - whole) * 60);
+export function formatDistance(
+  distance: number | null,
+  discipline: WorkoutDiscipline
+): string {
+  if (distance === null) return "—";
+  return `${distance} ${WORKOUT_DISCIPLINE_UNITS[discipline].distanceUnit}`;
+}
+
+/** Formats a pace as "M:SS /km" or "M:SS /100m" depending on discipline. */
+export function formatPace(
+  pace: number | null,
+  discipline: WorkoutDiscipline
+): string {
+  if (pace === null || !Number.isFinite(pace)) return "—";
+  const whole = Math.floor(pace);
+  const seconds = Math.round((pace - whole) * 60);
   const adjWhole = seconds === 60 ? whole + 1 : whole;
   const adjSeconds = seconds === 60 ? 0 : seconds;
-  return `${adjWhole}:${String(adjSeconds).padStart(2, "0")} /km`;
+  const unit = WORKOUT_DISCIPLINE_UNITS[discipline].paceUnit;
+  return `${adjWhole}:${String(adjSeconds).padStart(2, "0")} ${unit}`;
 }
 
 export type WorkoutStats = {
   personalBestPace: number | null;
+  personalBestDistance: number | null;
   averagePace: number | null;
 };
 
-/** PB = fastest (lowest) pace. Average pace = total duration / total distance. */
+/**
+ * PB pace = fastest (lowest) pace. PB distance = longest single workout.
+ * Average pace = total duration / total distance (segment-weighted, not a
+ * naive average of per-entry paces).
+ */
 export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
-  if (logs.length === 0) return { personalBestPace: null, averagePace: null };
+  if (logs.length === 0) {
+    return { personalBestPace: null, personalBestDistance: null, averagePace: null };
+  }
 
   const paces = logs.map(computeWorkoutPace);
   const personalBestPace = Math.min(...paces);
+  const personalBestDistance = Math.max(...logs.map((l) => l.distance));
 
-  const totalDistance = logs.reduce((sum, l) => sum + l.distanceKm, 0);
+  const { paceSegment } = WORKOUT_DISCIPLINE_UNITS[logs[0].discipline];
+  const totalSegments = logs.reduce((sum, l) => sum + l.distance / paceSegment, 0);
   const totalDuration = logs.reduce((sum, l) => sum + l.durationMin, 0);
-  const averagePace = totalDistance > 0 ? totalDuration / totalDistance : null;
+  const averagePace = totalSegments > 0 ? totalDuration / totalSegments : null;
 
-  return { personalBestPace, averagePace };
+  return { personalBestPace, personalBestDistance, averagePace };
 }
 
 export type PostInput = {
