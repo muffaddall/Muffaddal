@@ -2,13 +2,25 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { quoteOfTheDay } from "@/lib/quotes";
 
-const SECTIONS: { href: string; label: string; description: string }[] = [
-  { href: "/schedule/day", label: "Shooting / Editing Schedule", description: "Shoot and edit — day/week/month" },
-  { href: "/posting-schedule", label: "Posting Schedule", description: "This week's posts by time" },
-  { href: "/vault", label: "Idea Vault", description: "Every idea, scheduled or not" },
-  { href: "/expenses", label: "Expenses", description: "Monthly income and spending" },
-  { href: "/investments", label: "Investments", description: "Etoro contributions and P&L" },
-  { href: "/savings", label: "Savings & debt", description: "Big Purchase Fund and savings progress" },
+type Section = { href: string; label: string; description: string };
+
+const GROUPS: { title: string; sections: Section[] }[] = [
+  {
+    title: "Content",
+    sections: [
+      { href: "/schedule/day", label: "Shooting / Editing Schedule", description: "Shoot and edit — day/week/month" },
+      { href: "/posting-schedule", label: "Posting Schedule", description: "This week's posts by time" },
+      { href: "/vault", label: "Idea Vault", description: "Every idea, scheduled or not" },
+    ],
+  },
+  {
+    title: "Finance",
+    sections: [
+      { href: "/expenses", label: "Expenses", description: "Monthly income and spending" },
+      { href: "/investments", label: "Investments", description: "Etoro contributions and P&L" },
+      { href: "/savings", label: "Savings & debt", description: "Big Purchase Fund and savings progress" },
+    ],
+  },
 ];
 
 export default function HomePage() {
@@ -31,17 +43,38 @@ export default function HomePage() {
         &ldquo;{quoteOfTheDay()}&rdquo;
       </p>
 
-      <div className="px-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
-        {SECTIONS.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            className="rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
-          >
-            <p className="font-semibold text-base mb-1">{section.label}</p>
-            <p className="text-xs text-white/45">{section.description}</p>
-          </Link>
+      <div className="px-4 flex flex-col gap-7 max-w-2xl mx-auto">
+        {GROUPS.map((group) => (
+          <div key={group.title}>
+            <h2 className="text-xs uppercase tracking-wide text-white/40 font-semibold mb-3 px-1">
+              {group.title}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {group.sections.map((section) => (
+                <Link
+                  key={section.href}
+                  href={section.href}
+                  className="rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+                >
+                  <p className="font-semibold text-base mb-1">{section.label}</p>
+                  <p className="text-xs text-white/45">{section.description}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
         ))}
+
+        <div>
+          <h2 className="text-xs uppercase tracking-wide text-white/40 font-semibold mb-3 px-1">
+            Fitness
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-dashed border-white/15 p-4">
+              <p className="font-semibold text-base mb-1 text-white/35">Coming soon</p>
+              <p className="text-xs text-white/25">Nothing here yet</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
