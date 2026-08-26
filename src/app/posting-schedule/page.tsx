@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { TypeBadge } from "@/components/TypeBadge";
 import { PlatformTicks } from "@/components/PlatformTicks";
+import { PostingScheduleTabs } from "@/components/PostingScheduleTabs";
 import { getPostsByPostDateRange } from "@/lib/posts";
 import type { ScheduledPost } from "@/lib/types";
 import {
@@ -45,7 +46,11 @@ export default async function PostingSchedulePage(
 
   return (
     <div className="pb-10">
-      <PageHeader title="Posting Schedule" subtitle={formatWeekRangeLabel(days)} />
+      <PageHeader
+        title="Posting Schedule"
+        subtitle={formatWeekRangeLabel(days)}
+        right={<PostingScheduleTabs active="week" />}
+      />
 
       <div className="px-4 mt-1 mb-6 flex items-center justify-center gap-1.5">
         <Link
@@ -72,59 +77,57 @@ export default async function PostingSchedulePage(
         </Link>
       </div>
 
-      <div className="px-4 flex flex-col gap-4">
-        {days.map((day) => {
-          const dayPosts = postsByDate.get(day)!;
-          const isToday = day === today;
-          const dayNum = parseDateStr(day).getDate();
+      <div className="px-4 overflow-x-auto">
+        <div className="grid grid-cols-7 gap-2 min-w-[980px]">
+          {days.map((day) => {
+            const dayPosts = postsByDate.get(day)!;
+            const isToday = day === today;
+            const dayNum = parseDateStr(day).getDate();
 
-          return (
-            <div
-              key={day}
-              className={`rounded-3xl border p-5 ${
-                isToday
-                  ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
-                  : "border-white/8 bg-[var(--color-surface)]"
-              }`}
-            >
-              <div className="flex items-baseline gap-2.5 mb-3.5">
-                <span className="font-display text-3xl leading-none">
-                  {dayNum}
-                </span>
-                <span className="text-sm font-medium text-white/45 uppercase tracking-wide">
-                  {formatWeekdayShort(day)}
-                </span>
-              </div>
+            return (
+              <div
+                key={day}
+                className={`rounded-2xl border flex flex-col ${
+                  isToday
+                    ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
+                    : "border-white/8 bg-[var(--color-surface)]"
+                }`}
+              >
+                <div className="px-3 pt-3 pb-2 border-b border-white/8 text-center">
+                  <p className="text-[11px] font-medium text-white/45 uppercase tracking-wide">
+                    {formatWeekdayShort(day)}
+                  </p>
+                  <p className="font-display text-2xl leading-none">{dayNum}</p>
+                </div>
 
-              {dayPosts.length === 0 ? (
-                <p className="text-sm text-white/30">Nothing posting</p>
-              ) : (
-                <div className="flex flex-col gap-2.5">
-                  {dayPosts.map((p) => (
-                    <Link
-                      key={p.id}
-                      href={`/edit/${p.id}?from=/posting-schedule`}
-                      className="flex flex-col gap-2.5 rounded-2xl bg-white/[0.03] border border-white/8 p-3.5 active:scale-[0.99] transition-transform"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="shrink-0 rounded-full bg-[var(--color-post)]/15 text-[var(--color-post)] text-sm font-semibold px-3 py-1.5 min-w-[86px] text-center">
+                <div className="flex-1 p-2 flex flex-col gap-2">
+                  {dayPosts.length === 0 ? (
+                    <p className="text-xs text-white/25 text-center py-3">—</p>
+                  ) : (
+                    dayPosts.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/edit/${p.id}?from=/posting-schedule`}
+                        className="flex flex-col gap-1.5 rounded-xl bg-white/[0.03] border border-white/8 p-2.5 active:scale-[0.98] transition-transform"
+                      >
+                        <span className="text-[11px] font-semibold text-[var(--color-post)]">
                           {p.postTime ? formatTimeLabel(p.postTime) : "No time"}
                         </span>
-                        <span className="flex-1 font-semibold text-base truncate">
+                        <span className="text-xs font-medium leading-snug line-clamp-2">
                           {p.name}
                         </span>
-                        <TypeBadge type={p.type} />
-                      </div>
-                      <div className="flex items-center justify-end">
-                        <PlatformTicks post={p} size="md" />
-                      </div>
-                    </Link>
-                  ))}
+                        <div className="flex items-center justify-between">
+                          <TypeBadge type={p.type} />
+                          <PlatformTicks post={p} />
+                        </div>
+                      </Link>
+                    ))
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

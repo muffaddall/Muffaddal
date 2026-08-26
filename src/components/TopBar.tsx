@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { MenuButton } from "@/components/MenuButton";
+import { HomeButton } from "@/components/HomeButton";
 
 export function TopBar({ active }: { active: "day" | "week" | "month" }) {
   return (
     <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+      <HomeButton />
       <MenuButton />
 
       <nav className="flex items-center gap-1 rounded-full bg-white/5 p-1 border border-white/10">

@@ -6,14 +6,16 @@ import { EmptyState } from "@/components/EmptyState";
 export function IdeaListSections({
   scheduled,
   unscheduled,
+  posted,
   basePath,
 }: {
   scheduled: ScheduledPost[];
   unscheduled: Post[];
+  posted: ScheduledPost[];
   basePath: string;
 }) {
   return (
-    <div className="px-4 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <section>
         <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
           Not scheduled
@@ -43,6 +45,19 @@ export function IdeaListSections({
           </div>
         )}
       </section>
+
+      {posted.length > 0 && (
+        <section>
+          <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
+            Posted
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {posted.map((p) => (
+              <PostCard key={p.id} post={p} returnTo={basePath} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

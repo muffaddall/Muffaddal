@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { quoteOfTheDay } from "@/lib/quotes";
 
 const SECTIONS: { href: string; label: string; description: string }[] = [
-  { href: "/schedule/day", label: "Content Schedule", description: "Shoot, edit, and post — day/week/month" },
+  { href: "/schedule/day", label: "Shooting / Editing Schedule", description: "Shoot and edit — day/week/month" },
   { href: "/posting-schedule", label: "Posting Schedule", description: "This week's posts by time" },
   { href: "/vault", label: "Idea Vault", description: "Every idea, scheduled or not" },
   { href: "/expenses", label: "Expenses", description: "Monthly income and spending" },
@@ -16,6 +16,7 @@ export default function HomePage() {
     <div className="pb-10">
       <PageHeader
         title="Muffaddal's Life Planner"
+        showHome={false}
         right={
           <Link
             href="/new-idea?from=/"

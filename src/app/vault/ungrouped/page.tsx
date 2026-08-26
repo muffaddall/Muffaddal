@@ -6,7 +6,7 @@ import { getIdeasForGroup } from "@/lib/groups";
 export const dynamic = "force-dynamic";
 
 export default async function VaultUngroupedPage() {
-  const { scheduled, unscheduled } = await getIdeasForGroup(null);
+  const { scheduled, unscheduled, posted } = await getIdeasForGroup(null);
   const basePath = "/vault/ungrouped";
 
   return (
@@ -28,11 +28,14 @@ export default async function VaultUngroupedPage() {
         }
       />
 
-      <IdeaListSections
-        scheduled={scheduled}
-        unscheduled={unscheduled}
-        basePath={basePath}
-      />
+      <div className="px-4">
+        <IdeaListSections
+          scheduled={scheduled}
+          unscheduled={unscheduled}
+          posted={posted}
+          basePath={basePath}
+        />
+      </div>
     </div>
   );
 }

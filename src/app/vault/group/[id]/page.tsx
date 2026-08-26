@@ -11,7 +11,7 @@ export default async function VaultGroupPage(props: PageProps<"/vault/group/[id]
   const group = await getGroup(id);
   if (!group) notFound();
 
-  const { scheduled, unscheduled } = await getIdeasForGroup(id);
+  const { scheduled, unscheduled, posted } = await getIdeasForGroup(id);
   const basePath = `/vault/group/${id}`;
 
   return (
@@ -33,11 +33,14 @@ export default async function VaultGroupPage(props: PageProps<"/vault/group/[id]
         }
       />
 
-      <IdeaListSections
-        scheduled={scheduled}
-        unscheduled={unscheduled}
-        basePath={basePath}
-      />
+      <div className="px-4">
+        <IdeaListSections
+          scheduled={scheduled}
+          unscheduled={unscheduled}
+          posted={posted}
+          basePath={basePath}
+        />
+      </div>
     </div>
   );
 }

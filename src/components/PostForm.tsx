@@ -10,6 +10,7 @@ import {
   type Post,
   type PostInput,
   type PostType,
+  type TargetPlatformKey,
 } from "@/lib/types";
 import { todayStr } from "@/lib/date";
 
@@ -64,6 +65,9 @@ export function PostForm(props: Props) {
   const [postedTiktok, setPostedTiktok] = useState(initial?.postedTiktok ?? false);
   const [postedYoutube, setPostedYoutube] = useState(initial?.postedYoutube ?? false);
   const [postedInstagram, setPostedInstagram] = useState(initial?.postedInstagram ?? false);
+  const [targetTiktok, setTargetTiktok] = useState(initial?.targetTiktok ?? true);
+  const [targetYoutube, setTargetYoutube] = useState(initial?.targetYoutube ?? true);
+  const [targetInstagram, setTargetInstagram] = useState(initial?.targetInstagram ?? true);
   const [shotDone, setShotDone] = useState(initial?.shotDone ?? false);
   const [editedDone, setEditedDone] = useState(initial?.editedDone ?? false);
 
@@ -76,6 +80,16 @@ export function PostForm(props: Props) {
     postedTiktok: setPostedTiktok,
     postedYoutube: setPostedYoutube,
     postedInstagram: setPostedInstagram,
+  };
+  const targetState: Record<TargetPlatformKey, boolean> = {
+    targetTiktok,
+    targetYoutube,
+    targetInstagram,
+  };
+  const targetSetters: Record<TargetPlatformKey, (v: boolean) => void> = {
+    targetTiktok: setTargetTiktok,
+    targetYoutube: setTargetYoutube,
+    targetInstagram: setTargetInstagram,
   };
 
   const canSave = name.trim().length > 0;
@@ -119,6 +133,9 @@ export function PostForm(props: Props) {
         postedTiktok: mode === "schedule" && postedTiktok,
         postedYoutube: mode === "schedule" && postedYoutube,
         postedInstagram: mode === "schedule" && postedInstagram,
+        targetTiktok,
+        targetYoutube,
+        targetInstagram,
         shotDone: mode === "schedule" && shotDone,
         editedDone: mode === "schedule" && editedDone,
       };
@@ -201,7 +218,7 @@ export function PostForm(props: Props) {
         )}
       </div>
 
-      <div className="flex-1 px-5 pt-3 pb-40 flex flex-col gap-6 overflow-y-auto">
+      <div className="flex-1 px-5 pt-3 flex flex-col gap-6 overflow-y-auto">
         <Field label="Idea name">
           <input
             type="text"
@@ -273,6 +290,28 @@ export function PostForm(props: Props) {
               className="w-full mt-2.5 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-base outline-none focus:border-[var(--color-post)] transition-colors"
             />
           )}
+        </Field>
+
+        <Field label="Posting to" hint="Which platforms this is meant for">
+          <div className="flex gap-2.5">
+            {PLATFORMS.map(({ targetKey, label }) => {
+              const targeted = targetState[targetKey];
+              return (
+                <button
+                  key={targetKey}
+                  type="button"
+                  onClick={() => targetSetters[targetKey](!targeted)}
+                  className="flex-1 rounded-2xl border p-3 text-center transition-colors"
+                  style={{
+                    borderColor: targeted ? "var(--color-post)" : "rgba(255,255,255,0.1)",
+                    background: targeted ? "var(--color-post)22" : "rgba(255,255,255,0.03)",
+                  }}
+                >
+                  <span className="block text-sm font-medium">{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </Field>
 
         {scheduleOpen && (
@@ -354,9 +393,8 @@ export function PostForm(props: Props) {
         )}
 
         {error && <p className="text-sm text-[var(--color-shoot)]">{error}</p>}
-      </div>
 
-      <div className="fixed bottom-0 inset-x-0 px-5 pb-6 pt-4 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent flex flex-col gap-2">
+      <div className="sticky bottom-0 -mx-5 px-5 pb-6 pt-4 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)] to-transparent flex flex-col gap-2">
         {scheduleOpen ? (
           <>
             <button
@@ -398,6 +436,7 @@ export function PostForm(props: Props) {
             </button>
           </>
         )}
+      </div>
       </div>
     </div>
   );

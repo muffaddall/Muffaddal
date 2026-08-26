@@ -29,6 +29,9 @@ create table if not exists posts (
   posted_tiktok boolean not null default false,
   posted_youtube boolean not null default false,
   posted_instagram boolean not null default false,
+  target_tiktok boolean not null default true,
+  target_youtube boolean not null default true,
+  target_instagram boolean not null default true,
   shot_done boolean not null default false,
   edited_done boolean not null default false,
   created_at timestamptz not null default now()
@@ -44,6 +47,12 @@ alter table posts add column if not exists post_time time;
 alter table posts add column if not exists posted_tiktok boolean not null default false;
 alter table posts add column if not exists posted_youtube boolean not null default false;
 alter table posts add column if not exists posted_instagram boolean not null default false;
+-- Which platforms this idea is meant to go out to — defaults to "all three"
+-- so existing ideas behave the same as before this column existed (fully
+-- posted = every one of TikTok/YouTube/Instagram marked posted).
+alter table posts add column if not exists target_tiktok boolean not null default true;
+alter table posts add column if not exists target_youtube boolean not null default true;
+alter table posts add column if not exists target_instagram boolean not null default true;
 alter table posts add column if not exists shot_done boolean not null default false;
 alter table posts add column if not exists edited_done boolean not null default false;
 alter table posts alter column shoot_date drop not null;

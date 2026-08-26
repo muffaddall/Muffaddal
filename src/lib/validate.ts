@@ -51,6 +51,9 @@ export function parsePostInput(body: unknown): PostInput {
   const postedTiktok = b.postedTiktok === true;
   const postedYoutube = b.postedYoutube === true;
   const postedInstagram = b.postedInstagram === true;
+  const targetTiktok = b.targetTiktok !== false;
+  const targetYoutube = b.targetYoutube !== false;
+  const targetInstagram = b.targetInstagram !== false;
   const shotDone = b.shotDone === true;
   const editedDone = b.editedDone === true;
 
@@ -70,6 +73,9 @@ export function parsePostInput(body: unknown): PostInput {
     postedTiktok,
     postedYoutube,
     postedInstagram,
+    targetTiktok,
+    targetYoutube,
+    targetInstagram,
     shotDone,
     editedDone,
   };

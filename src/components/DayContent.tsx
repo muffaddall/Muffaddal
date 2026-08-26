@@ -13,7 +13,7 @@ export async function DayContent({
   basePath: string;
 }) {
   const isToday = date === todayStr();
-  const { shoot, edit, post } = await getPostsForDate(date);
+  const { shoot, edit } = await getPostsForDate(date);
 
   return (
     <div>
@@ -63,13 +63,6 @@ export async function DayContent({
           color="var(--color-edit)"
           posts={edit}
           emptyLabel="Nothing to edit today"
-          basePath={basePath}
-        />
-        <Section
-          label="Post today"
-          color="var(--color-post)"
-          posts={post}
-          emptyLabel="Nothing to post today"
           basePath={basePath}
         />
       </div>

@@ -9,12 +9,13 @@ export const POST_TYPES = [
 export type PostType = (typeof POST_TYPES)[number];
 
 export const PLATFORMS = [
-  { key: "postedTiktok", label: "TikTok", initial: "T" },
-  { key: "postedYoutube", label: "YouTube", initial: "Y" },
-  { key: "postedInstagram", label: "Instagram", initial: "I" },
+  { key: "postedTiktok", targetKey: "targetTiktok", label: "TikTok", initial: "T" },
+  { key: "postedYoutube", targetKey: "targetYoutube", label: "YouTube", initial: "Y" },
+  { key: "postedInstagram", targetKey: "targetInstagram", label: "Instagram", initial: "I" },
 ] as const;
 
 export type PlatformKey = (typeof PLATFORMS)[number]["key"];
+export type TargetPlatformKey = (typeof PLATFORMS)[number]["targetKey"];
 
 export type Group = {
   id: string;
@@ -39,6 +40,9 @@ export type Post = {
   postedTiktok: boolean;
   postedYoutube: boolean;
   postedInstagram: boolean;
+  targetTiktok: boolean;
+  targetYoutube: boolean;
+  targetInstagram: boolean;
   shotDone: boolean;
   editedDone: boolean;
   createdAt: string;
@@ -53,6 +57,13 @@ export type ScheduledPost = Post & {
 
 export function isScheduled(post: Post): post is ScheduledPost {
   return post.postDate !== null;
+}
+
+/** Fully posted = every platform this idea targets has been marked posted. */
+export function isFullyPosted(post: Post): boolean {
+  const targeted = PLATFORMS.filter(({ targetKey }) => post[targetKey]);
+  if (targeted.length === 0) return false;
+  return targeted.every(({ key }) => post[key]);
 }
 
 // ---- Money section (expenses / investments / savings) ----
@@ -148,6 +159,9 @@ export type PostInput = {
   postedTiktok: boolean;
   postedYoutube: boolean;
   postedInstagram: boolean;
+  targetTiktok: boolean;
+  targetYoutube: boolean;
+  targetInstagram: boolean;
   shotDone: boolean;
   editedDone: boolean;
 };

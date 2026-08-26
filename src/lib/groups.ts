@@ -1,7 +1,7 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
-import { getPostsByGroup } from "@/lib/posts";
-import { isScheduled, type Group, type Post, type ScheduledPost } from "@/lib/types";
+import { getAllPosts, getPostsByGroup } from "@/lib/posts";
+import { isFullyPosted, isScheduled, type Group, type Post, type ScheduledPost } from "@/lib/types";
 
 type GroupRow = {
   id: string;
@@ -45,56 +45,51 @@ export async function createGroup(name: string): Promise<Group> {
   return fromRow(data);
 }
 
-export async function getIdeasForGroup(groupId: string | null): Promise<{
+export type IdeaBuckets = {
   scheduled: ScheduledPost[];
   unscheduled: Post[];
-}> {
-  const posts = await getPostsByGroup(groupId);
+  posted: ScheduledPost[];
+};
+
+function bucketPosts(posts: Post[]): IdeaBuckets {
+  const scheduledAll = posts.filter(isScheduled);
   return {
-    scheduled: posts.filter(isScheduled),
+    scheduled: scheduledAll.filter((p) => !isFullyPosted(p)),
+    posted: scheduledAll.filter(isFullyPosted),
     unscheduled: posts.filter((p) => !isScheduled(p)),
   };
 }
 
-export type VaultOverview = {
-  groups: { group: Group; scheduledCount: number; unscheduledCount: number }[];
-  ungrouped: { scheduledCount: number; unscheduledCount: number };
-};
+export async function getIdeasForGroup(groupId: string | null): Promise<IdeaBuckets> {
+  const posts = await getPostsByGroup(groupId);
+  return bucketPosts(posts);
+}
 
-export async function getVaultOverview(): Promise<VaultOverview> {
-  const [groups, { data: postRows, error }] = await Promise.all([
-    getGroups(),
-    supabase.from("posts").select("group_id, post_date"),
-  ]);
+export type VaultGroupData = IdeaBuckets & { group: Group | null };
 
-  if (error) throw new Error(error.message);
+// Everything the Vault page needs in one shot: every group (plus an
+// "ungrouped" bucket) with its ideas already split into
+// not-scheduled / scheduled / posted.
+export async function getVaultData(): Promise<VaultGroupData[]> {
+  const [groups, posts] = await Promise.all([getGroups(), getAllPosts()]);
 
-  const counts = new Map<string, { scheduledCount: number; unscheduledCount: number }>();
-  let ungroupedScheduled = 0;
-  let ungroupedUnscheduled = 0;
-
-  for (const row of postRows ?? []) {
-    const scheduled = row.post_date !== null;
-    if (row.group_id === null) {
-      if (scheduled) ungroupedScheduled += 1;
-      else ungroupedUnscheduled += 1;
-      continue;
-    }
-    const entry = counts.get(row.group_id) ?? { scheduledCount: 0, unscheduledCount: 0 };
-    if (scheduled) entry.scheduledCount += 1;
-    else entry.unscheduledCount += 1;
-    counts.set(row.group_id, entry);
+  const byGroup = new Map<string | null, Post[]>();
+  for (const post of posts) {
+    const key = post.groupId;
+    const list = byGroup.get(key);
+    if (list) list.push(post);
+    else byGroup.set(key, [post]);
   }
 
-  return {
-    groups: groups.map((group) => ({
-      group,
-      scheduledCount: counts.get(group.id)?.scheduledCount ?? 0,
-      unscheduledCount: counts.get(group.id)?.unscheduledCount ?? 0,
-    })),
-    ungrouped: {
-      scheduledCount: ungroupedScheduled,
-      unscheduledCount: ungroupedUnscheduled,
-    },
-  };
+  const result: VaultGroupData[] = groups.map((group) => ({
+    group,
+    ...bucketPosts(byGroup.get(group.id) ?? []),
+  }));
+
+  const ungrouped = byGroup.get(null) ?? [];
+  if (ungrouped.length > 0) {
+    result.push({ group: null, ...bucketPosts(ungrouped) });
+  }
+
+  return result;
 }

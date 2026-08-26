@@ -39,8 +39,14 @@ export function MenuButton() {
               <MenuLink href="/" onNavigate={() => setOpen(false)}>
                 Home
               </MenuLink>
+            </nav>
+
+            <div className="mt-4 pt-4 border-t border-white/8 flex flex-col gap-1">
+              <span className="px-3 pb-1 text-xs uppercase tracking-wide text-white/35">
+                Content
+              </span>
               <MenuLink href="/schedule/day" onNavigate={() => setOpen(false)}>
-                Content Schedule
+                Shooting / Editing Schedule
               </MenuLink>
               <MenuLink href="/posting-schedule" onNavigate={() => setOpen(false)}>
                 Posting Schedule
@@ -48,11 +54,11 @@ export function MenuButton() {
               <MenuLink href="/vault" onNavigate={() => setOpen(false)}>
                 Idea Vault
               </MenuLink>
-            </nav>
+            </div>
 
             <div className="mt-4 pt-4 border-t border-white/8 flex flex-col gap-1">
               <span className="px-3 pb-1 text-xs uppercase tracking-wide text-white/35">
-                Money
+                Finance
               </span>
               <MenuLink href="/expenses" onNavigate={() => setOpen(false)}>
                 Expenses

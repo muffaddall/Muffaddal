@@ -19,6 +19,9 @@ type PostRow = {
   posted_tiktok: boolean | null;
   posted_youtube: boolean | null;
   posted_instagram: boolean | null;
+  target_tiktok: boolean | null;
+  target_youtube: boolean | null;
+  target_instagram: boolean | null;
   shot_done: boolean | null;
   edited_done: boolean | null;
   created_at: string;
@@ -42,6 +45,9 @@ function fromRow(row: PostRow): Post {
     postedTiktok: row.posted_tiktok ?? false,
     postedYoutube: row.posted_youtube ?? false,
     postedInstagram: row.posted_instagram ?? false,
+    targetTiktok: row.target_tiktok ?? true,
+    targetYoutube: row.target_youtube ?? true,
+    targetInstagram: row.target_instagram ?? true,
     shotDone: row.shot_done ?? false,
     editedDone: row.edited_done ?? false,
     createdAt: row.created_at,
@@ -65,6 +71,9 @@ function toRow(input: PostInput) {
     posted_tiktok: input.postedTiktok,
     posted_youtube: input.postedYoutube,
     posted_instagram: input.postedInstagram,
+    target_tiktok: input.targetTiktok,
+    target_youtube: input.targetYoutube,
+    target_instagram: input.targetInstagram,
     shot_done: input.shotDone,
     edited_done: input.editedDone,
   };
@@ -136,6 +145,15 @@ export async function getPostsByGroup(groupId: string | null): Promise<Post[]> {
   query = groupId === null ? query.is("group_id", null) : query.eq("group_id", groupId);
 
   const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(fromRow);
+}
+
+export async function getAllPosts(): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map(fromRow);
 }
