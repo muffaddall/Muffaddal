@@ -27,28 +27,38 @@ export default async function VaultPage() {
         }
       />
 
-      <div className="px-4 flex flex-col gap-8">
-        {isEmpty && (
+      {isEmpty ? (
+        <div className="px-4">
           <EmptyState label="No ideas yet. Tap + New Idea to start your first one." />
-        )}
-
-        {groupsData.map(({ group, scheduled, unscheduled, posted }) => {
-          const basePath = group ? `/vault/group/${group.id}` : "/vault/ungrouped";
-          return (
-            <section key={group?.id ?? "ungrouped"}>
-              <h2 className="font-display text-3xl tracking-wide leading-none mb-4 pb-2 border-b border-white/10">
-                {group ? group.name : "Ungrouped"}
-              </h2>
-              <IdeaListSections
-                scheduled={scheduled}
-                unscheduled={unscheduled}
-                posted={posted}
-                basePath={basePath}
-              />
-            </section>
-          );
-        })}
-      </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div className="flex items-start gap-4 px-4 pb-2" style={{ width: "max-content" }}>
+            {groupsData.map(({ group, scheduled, unscheduled, posted }) => {
+              const basePath = group ? `/vault/group/${group.id}` : "/vault/ungrouped";
+              return (
+                <div
+                  key={group?.id ?? "ungrouped"}
+                  className="w-[300px] shrink-0 rounded-2xl border border-white/8 bg-[var(--color-surface)] p-4"
+                >
+                  <h2
+                    className="font-display text-2xl leading-none mb-4 pb-3 border-b-2 text-white"
+                    style={{ borderColor: "var(--color-shoot)" }}
+                  >
+                    {group ? group.name : "Ungrouped"}
+                  </h2>
+                  <IdeaListSections
+                    scheduled={scheduled}
+                    unscheduled={unscheduled}
+                    posted={posted}
+                    basePath={basePath}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

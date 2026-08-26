@@ -85,76 +85,76 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
         </div>
       </div>
 
-      <div className="px-4 flex flex-col gap-3">
-        {days.map((day) => {
-          const entries = entriesByDate.get(day)!;
-          const isToday = day === today;
-          const dayNum = parseDateStr(day).getDate();
+      <div className="px-4 overflow-x-auto">
+        <div className="grid grid-cols-7 gap-2 min-w-[980px]">
+          {days.map((day) => {
+            const entries = entriesByDate.get(day)!;
+            const isToday = day === today;
+            const dayNum = parseDateStr(day).getDate();
 
-          return (
-            <div
-              key={day}
-              className={`rounded-2xl border p-3.5 ${
-                isToday
-                  ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
-                  : "border-white/8 bg-[var(--color-surface)]"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2.5">
-                <span className="text-[11px] font-medium text-white/40 uppercase">
-                  {formatWeekdayShort(day)}
-                </span>
-                <span className="font-display text-xl leading-none">{dayNum}</span>
-              </div>
-
-              {entries.length === 0 ? (
-                <p className="text-xs text-white/25">Nothing scheduled</p>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  {entries.map(({ role, post }, i) => {
-                    const meta = ROLE_META[role];
-                    return (
-                      <Link
-                        key={`${post.id}-${role}-${i}`}
-                        href={`/edit/${post.id}?from=/schedule/week`}
-                        className="flex items-center gap-2 rounded-lg py-1 -mx-1 px-1 active:bg-white/5 transition-colors"
-                      >
-                        <span
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ background: meta.color }}
-                        />
-                        <span
-                          className="text-xs font-medium shrink-0"
-                          style={{ color: meta.color }}
-                        >
-                          {meta.label}
-                        </span>
-                        <span className="text-sm text-white/85 truncate flex-1">
-                          {post.name}
-                        </span>
-                        {role === "shoot" && (
-                          <StatusTick
-                            label="S"
-                            done={post.shotDone}
-                            title={`Shot: ${post.shotDone ? "done" : "not done"}`}
-                          />
-                        )}
-                        {role === "edit" && (
-                          <StatusTick
-                            label="E"
-                            done={post.editedDone}
-                            title={`Edited: ${post.editedDone ? "done" : "not done"}`}
-                          />
-                        )}
-                        {role === "post" && <PlatformTicks post={post} />}
-                      </Link>
-                    );
-                  })}
+            return (
+              <div
+                key={day}
+                className={`rounded-2xl border flex flex-col ${
+                  isToday
+                    ? "border-[var(--color-post)]/70 bg-[var(--color-post)]/10"
+                    : "border-white/8 bg-[var(--color-surface)]"
+                }`}
+              >
+                <div className="px-3 pt-3 pb-2 border-b border-white/8 text-center">
+                  <p className="text-[11px] font-medium text-white/45 uppercase tracking-wide">
+                    {formatWeekdayShort(day)}
+                  </p>
+                  <p className="font-display text-2xl leading-none">{dayNum}</p>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                <div className="flex-1 p-2 flex flex-col gap-1.5">
+                  {entries.length === 0 ? (
+                    <p className="text-xs text-white/25 text-center py-3">—</p>
+                  ) : (
+                    entries.map(({ role, post }, i) => {
+                      const meta = ROLE_META[role];
+                      return (
+                        <Link
+                          key={`${post.id}-${role}-${i}`}
+                          href={`/edit/${post.id}?from=/schedule/week`}
+                          className="flex flex-col gap-1 rounded-xl bg-white/[0.03] border border-white/8 p-2 active:scale-[0.98] transition-transform"
+                        >
+                          <span
+                            className="text-[10px] font-semibold uppercase tracking-wide"
+                            style={{ color: meta.color }}
+                          >
+                            {meta.label}
+                          </span>
+                          <span className="text-xs font-medium leading-snug line-clamp-2">
+                            {post.name}
+                          </span>
+                          <div className="flex items-center justify-end">
+                            {role === "shoot" && (
+                              <StatusTick
+                                label="S"
+                                done={post.shotDone}
+                                title={`Shot: ${post.shotDone ? "done" : "not done"}`}
+                              />
+                            )}
+                            {role === "edit" && (
+                              <StatusTick
+                                label="E"
+                                done={post.editedDone}
+                                title={`Edited: ${post.editedDone ? "done" : "not done"}`}
+                              />
+                            )}
+                            {role === "post" && <PlatformTicks post={post} />}
+                          </div>
+                        </Link>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -15,11 +15,11 @@ export function IdeaListSections({
   basePath: string;
 }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <section>
-        <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider mb-2 text-white/45">
           Not scheduled
-        </h2>
+        </h3>
         {unscheduled.length === 0 ? (
           <EmptyState label="Nothing waiting to be scheduled" />
         ) : (
@@ -32,9 +32,12 @@ export function IdeaListSections({
       </section>
 
       <section>
-        <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
+        <h3
+          className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+          style={{ color: "var(--color-edit)" }}
+        >
           Scheduled
-        </h2>
+        </h3>
         {scheduled.length === 0 ? (
           <EmptyState label="Nothing scheduled yet" />
         ) : (
@@ -48,9 +51,12 @@ export function IdeaListSections({
 
       {posted.length > 0 && (
         <section>
-          <h2 className="font-display text-2xl tracking-wide mb-2.5 text-white/85">
+          <h3
+            className="text-[11px] font-semibold uppercase tracking-wider mb-2"
+            style={{ color: "var(--color-post)" }}
+          >
             Posted
-          </h2>
+          </h3>
           <div className="flex flex-col gap-2.5">
             {posted.map((p) => (
               <PostCard key={p.id} post={p} returnTo={basePath} />
