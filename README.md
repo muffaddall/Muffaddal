@@ -145,3 +145,29 @@ tell at a glance what's still pending for any post.
 Editing an idea (`/edit/[id]`) reopens the same form pre-filled, with a
 "Delete" option. Saving or deleting returns you to wherever you opened the
 form from.
+
+## Money section
+
+A second, unrelated set of pages (reachable from the "Money" group in the
+hamburger menu) that replaces a personal expense-tracking spreadsheet.
+Shares this app's login, session, and Supabase project — just its own
+tables (`expense_entries`, `monthly_income`, `investment_months`, `debts`,
+`savings_months`), all created by the same `supabase/schema.sql`.
+
+- **Expenses** (`/expenses`) — one month at a time (prev/next nav), with an
+  editable income figure, every expense entry color-coded by category
+  (recurring / stoppable / installment / debt / one-off), and inline
+  add/edit/delete.
+- **Investments** (`/investments`) — every logged month in one table:
+  contribution, running total invested, portfolio value, P&L %, and $ P&L,
+  with inline add/edit/delete. Leave portfolio value blank for a month you
+  don't know yet.
+- **Savings & debt** (`/savings`) — standing debts (with a running total)
+  and a month-by-month savings table (debt paydown, debt left, savings
+  kept, running total savings, account total), with inline add/edit/delete
+  on both.
+
+Optional: run [`supabase/seed.sql`](./supabase/seed.sql) after `schema.sql`
+to import the original spreadsheet's data (all logged expenses, investment
+history, debts, and savings progress) so this section starts populated
+instead of empty.

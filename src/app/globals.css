@@ -20,6 +20,16 @@
   --color-type-story: #6366f1;
   --color-type-other: #94a3b8;
 
+  /* Money section — expense category legend + P&L colors */
+  --color-accent: #34d399;
+  --color-negative: #ff6b6b;
+  --color-positive: #34d399;
+  --color-cat-recurring: #4ad9ff;
+  --color-cat-stoppable: #a78bfa;
+  --color-cat-installment: #34d399;
+  --color-cat-debt: #ff6b6b;
+  --color-cat-one_off: #ffc247;
+
   --font-display: var(--font-bebas-neue), "Arial Narrow", sans-serif;
   --font-body: var(--font-space-grotesk), system-ui, sans-serif;
 }
@@ -39,6 +49,14 @@
   --color-type-static: var(--color-type-static);
   --color-type-story: var(--color-type-story);
   --color-type-other: var(--color-type-other);
+  --color-accent: var(--color-accent);
+  --color-negative: var(--color-negative);
+  --color-positive: var(--color-positive);
+  --color-cat-recurring: var(--color-cat-recurring);
+  --color-cat-stoppable: var(--color-cat-stoppable);
+  --color-cat-installment: var(--color-cat-installment);
+  --color-cat-debt: var(--color-cat-debt);
+  --color-cat-one_off: var(--color-cat-one_off);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
 }
