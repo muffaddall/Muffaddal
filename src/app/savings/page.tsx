@@ -1,6 +1,6 @@
 import { MenuButton } from "@/components/MenuButton";
 import { getDebts, getSavingsMonths, totalDebt } from "@/lib/savings";
-import { formatMoney } from "@/lib/format";
+import { currentMonth, formatMoney } from "@/lib/format";
 import DebtRow from "./DebtRow";
 import AddDebtForm from "./AddDebtForm";
 import SavingsMonthRow from "./SavingsMonthRow";
@@ -11,7 +11,11 @@ export const dynamic = "force-dynamic";
 export default async function SavingsPage() {
   const [debts, months] = await Promise.all([getDebts(), getSavingsMonths()]);
   const debtTotal = totalDebt(debts);
-  const latest = months.at(-1);
+
+  const thisMonth = currentMonth();
+  const pastMonths = months.filter((m) => m.month <= thisMonth);
+  const futureMonths = months.filter((m) => m.month > thisMonth);
+  const current = pastMonths.at(-1);
 
   return (
     <div className="pb-10">
@@ -45,31 +49,31 @@ export default async function SavingsPage() {
           <AddDebtForm />
         </section>
 
-        {latest && (
+        {current && (
           <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs text-[var(--color-fg-dim)] mb-1">Debt left</p>
               <p
                 className="font-display text-2xl"
                 style={{
-                  color: latest.debt_left < 0 ? "var(--color-negative)" : "var(--color-positive)",
+                  color: current.debt_left < 0 ? "var(--color-negative)" : "var(--color-positive)",
                 }}
               >
-                {formatMoney(latest.debt_left)}
+                {formatMoney(current.debt_left)}
               </p>
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs text-[var(--color-fg-dim)] mb-1">Total savings</p>
-              <p className="font-display text-2xl">{formatMoney(latest.total_savings)}</p>
+              <p className="font-display text-2xl">{formatMoney(current.total_savings)}</p>
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs text-[var(--color-fg-dim)] mb-1">Account total</p>
-              <p className="font-display text-2xl">{formatMoney(latest.account_total)}</p>
+              <p className="font-display text-2xl">{formatMoney(current.account_total)}</p>
             </div>
           </div>
         )}
 
-        <section>
+        <section className="mb-10">
           <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">
             Monthly savings progress
           </h2>
@@ -88,10 +92,10 @@ export default async function SavingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {months.map((row) => (
+                {pastMonths.map((row) => (
                   <SavingsMonthRow key={row.month} row={row} />
                 ))}
-                {months.length === 0 && (
+                {pastMonths.length === 0 && (
                   <tr>
                     <td colSpan={8} className="py-6 text-center text-sm text-[var(--color-fg-dim)]">
                       No months logged yet.
@@ -103,6 +107,35 @@ export default async function SavingsPage() {
           </div>
           <AddSavingsMonthForm />
         </section>
+
+        {futureMonths.length > 0 && (
+          <section>
+            <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">
+              Future / not yet happened
+            </h2>
+            <div className="overflow-x-auto mb-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-3 opacity-70">
+              <table className="w-full min-w-[780px] border-collapse">
+                <thead>
+                  <tr className="text-left text-xs text-[var(--color-fg-dim)]">
+                    <th className="pb-2 pr-3 font-medium">Month</th>
+                    <th className="pb-2 pr-3 font-medium">Debt paydown</th>
+                    <th className="pb-2 pr-3 font-medium">Debt left</th>
+                    <th className="pb-2 pr-3 font-medium">Big payment</th>
+                    <th className="pb-2 pr-3 font-medium">Savings kept</th>
+                    <th className="pb-2 pr-3 font-medium">Total savings</th>
+                    <th className="pb-2 pr-3 font-medium">Account total</th>
+                    <th className="pb-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {futureMonths.map((row) => (
+                    <SavingsMonthRow key={row.month} row={row} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
