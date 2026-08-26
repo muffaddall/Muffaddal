@@ -1,4 +1,4 @@
-import { MenuButton } from "@/components/MenuButton";
+import { PageHeader } from "@/components/PageHeader";
 import { getBpfPurchases, getSavingsMonths, totalBpfPurchases } from "@/lib/savings";
 import { currentMonth, formatMoney } from "@/lib/format";
 import BpfPurchaseRow from "./BpfPurchaseRow";
@@ -19,13 +19,8 @@ export default async function SavingsPage() {
 
   return (
     <div className="pb-10">
-      <div className="flex items-center px-4 pt-4 pb-2">
-        <MenuButton />
-        <span className="ml-3 font-display text-2xl tracking-wide">Savings &amp; debt</span>
-      </div>
+      <PageHeader title="Savings & debt" />
       <main className="mx-auto max-w-5xl px-4 sm:px-6">
-        <h1 className="sr-only">Savings &amp; debt</h1>
-
         <section className="mb-10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-medium text-[var(--color-fg-dim)]">

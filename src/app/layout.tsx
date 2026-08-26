@@ -15,8 +15,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Content Pipeline",
-  description: "Private content planning for Reels, Shorts, and TikToks.",
+  title: "Muffaddal's Life Planner",
+  description: "Content planning, expenses, investments, and savings — all in one place.",
 };
 
 export const viewport: Viewport = {

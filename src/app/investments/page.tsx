@@ -1,4 +1,4 @@
-import { MenuButton } from "@/components/MenuButton";
+import { PageHeader } from "@/components/PageHeader";
 import { getAedPerUsdRate, getInvestmentMonths } from "@/lib/investments";
 import AddMonthForm from "./AddMonthForm";
 import InvestmentRow from "./InvestmentRow";
@@ -11,13 +11,8 @@ export default async function InvestmentsPage() {
 
   return (
     <div className="pb-10">
-      <div className="flex items-center px-4 pt-4 pb-2">
-        <MenuButton />
-        <span className="ml-3 font-display text-2xl tracking-wide">Investments</span>
-      </div>
+      <PageHeader title="Investments" />
       <main className="mx-auto max-w-4xl px-4 sm:px-6">
-        <h1 className="sr-only">Investment progress</h1>
-
         <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
           <p className="text-xs text-[var(--color-fg-dim)] max-w-md">
             Contribution comes from that month&apos;s &ldquo;Investment funding&rdquo; entries on

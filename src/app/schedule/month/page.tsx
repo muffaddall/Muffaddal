@@ -39,8 +39,8 @@ export default async function ScheduleMonthPage(
     <div className="pb-10">
       <TopBar active="month" />
 
-      <div className="px-4 mt-2 mb-4 flex items-center justify-between">
-        <h1 className="font-display text-6xl tracking-wide">
+      <div className="px-4 mt-2 mb-4 flex flex-col items-center gap-2">
+        <h1 className="font-display text-6xl tracking-wide text-center">
           {MONTH_NAMES[month - 1]} <span className="text-white/40">{year}</span>
         </h1>
         <div className="flex items-center gap-1.5">

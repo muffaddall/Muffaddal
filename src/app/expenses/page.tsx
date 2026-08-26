@@ -1,4 +1,5 @@
-import { MenuButton } from "@/components/MenuButton";
+import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
 import { getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
 import { currentMonth, formatMoney, formatSignedMoney, inputValueToMonth } from "@/lib/format";
 import MonthNav from "./MonthNav";
@@ -27,10 +28,17 @@ export default async function ExpensesPage({
 
   return (
     <div className="pb-10">
-      <div className="flex items-center px-4 pt-4 pb-2">
-        <MenuButton />
-        <span className="ml-3 font-display text-2xl tracking-wide">Expenses</span>
-      </div>
+      <PageHeader
+        title="Expenses"
+        right={
+          <Link
+            href={`/expenses/year?year=${month.slice(0, 4)}`}
+            className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
+          >
+            Year view
+          </Link>
+        }
+      />
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <MonthNav month={month} />

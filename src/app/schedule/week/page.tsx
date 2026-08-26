@@ -50,8 +50,8 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
     <div className="pb-10">
       <TopBar active="week" />
 
-      <div className="px-4 mt-2 mb-4 flex items-end justify-between gap-2">
-        <div>
+      <div className="px-4 mt-2 mb-4 flex flex-col items-center gap-2">
+        <div className="text-center">
           <p className="text-sm text-white/40 mb-0.5">
             {formatWeekRangeLabel(days)}
           </p>
@@ -59,7 +59,7 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
             This Week
           </h1>
         </div>
-        <div className="flex items-center gap-1.5 pb-1">
+        <div className="flex items-center gap-1.5">
           <Link
             href={`/schedule/week?date=${shiftWeek(anchor, -1)}`}
             aria-label="Previous week"

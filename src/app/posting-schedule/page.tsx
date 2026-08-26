@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MenuButton } from "@/components/MenuButton";
+import { PageHeader } from "@/components/PageHeader";
 import { TypeBadge } from "@/components/TypeBadge";
 import { PlatformTicks } from "@/components/PlatformTicks";
 import { getPostsByPostDateRange } from "@/lib/posts";
@@ -45,43 +45,31 @@ export default async function PostingSchedulePage(
 
   return (
     <div className="pb-10">
-      <div className="flex items-center px-4 pt-4 pb-2">
-        <MenuButton />
-      </div>
+      <PageHeader title="Posting Schedule" subtitle={formatWeekRangeLabel(days)} />
 
-      <div className="px-4 mt-3 mb-6 flex items-end justify-between gap-2">
-        <div>
-          <p className="text-sm text-white/40 mb-0.5">
-            {formatWeekRangeLabel(days)}
-          </p>
-          <h1 className="font-display text-6xl leading-none tracking-wide">
-            Posting Schedule
-          </h1>
-        </div>
-        <div className="flex items-center gap-1.5 pb-1 shrink-0">
+      <div className="px-4 mt-1 mb-6 flex items-center justify-center gap-1.5">
+        <Link
+          href={`/posting-schedule?date=${shiftWeek(anchor, -1)}`}
+          aria-label="Previous week"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/10 text-xl"
+        >
+          ‹
+        </Link>
+        {!containsToday && (
           <Link
-            href={`/posting-schedule?date=${shiftWeek(anchor, -1)}`}
-            aria-label="Previous week"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/10 text-xl"
+            href="/posting-schedule"
+            className="rounded-full bg-white/5 border border-white/10 px-3 h-10 flex items-center text-xs font-medium text-white/70"
           >
-            ‹
+            Today
           </Link>
-          {!containsToday && (
-            <Link
-              href="/posting-schedule"
-              className="rounded-full bg-white/5 border border-white/10 px-3 h-10 flex items-center text-xs font-medium text-white/70"
-            >
-              Today
-            </Link>
-          )}
-          <Link
-            href={`/posting-schedule?date=${shiftWeek(anchor, 1)}`}
-            aria-label="Next week"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/10 text-xl"
-          >
-            ›
-          </Link>
-        </div>
+        )}
+        <Link
+          href={`/posting-schedule?date=${shiftWeek(anchor, 1)}`}
+          aria-label="Next week"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/10 text-xl"
+        >
+          ›
+        </Link>
       </div>
 
       <div className="px-4 flex flex-col gap-4">

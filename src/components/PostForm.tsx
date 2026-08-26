@@ -185,7 +185,7 @@ export function PostForm(props: Props) {
           ✕
         </button>
 
-        <h1 className="font-display text-4xl tracking-wide flex-1">
+        <h1 className="font-display text-4xl tracking-wide flex-1 text-center">
           {isEdit ? "Edit idea" : "New Idea"}
         </h1>
 

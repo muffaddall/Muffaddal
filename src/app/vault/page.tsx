@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MenuButton } from "@/components/MenuButton";
+import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { getVaultOverview } from "@/lib/groups";
 
@@ -11,23 +11,19 @@ export default async function VaultPage() {
 
   return (
     <div className="pb-10">
-      <div className="flex items-center px-4 pt-4 pb-2">
-        <MenuButton />
-        <Link
-          href="/new-idea?from=/vault"
-          className="ml-auto flex items-center gap-1 rounded-full bg-[var(--color-post)] text-black text-sm font-semibold px-4 py-1.5 active:scale-95 transition-transform"
-        >
-          <span className="text-base leading-none">+</span> New Idea
-        </Link>
-      </div>
+      <PageHeader
+        title="Idea Vault"
+        right={
+          <Link
+            href="/new-idea?from=/vault"
+            className="flex items-center gap-1 rounded-full bg-[var(--color-post)] text-black text-sm font-semibold px-4 py-1.5 active:scale-95 transition-transform"
+          >
+            <span className="text-base leading-none">+</span> New Idea
+          </Link>
+        }
+      />
 
-      <div className="px-4 mt-3 mb-5">
-        <h1 className="font-display text-6xl tracking-wide leading-none">
-          Idea Vault
-        </h1>
-      </div>
-
-      <div className="px-4 flex flex-col gap-2.5">
+      <div className="px-4 mt-3 flex flex-col gap-2.5">
         {groups.length === 0 && !hasUngrouped && (
           <EmptyState label="No ideas yet. Tap + New Idea to start your first one." />
         )}

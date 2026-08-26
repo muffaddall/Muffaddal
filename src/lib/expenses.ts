@@ -140,5 +140,33 @@ export async function getAllMonthSummaries(): Promise<MonthSummary[]> {
   return summaries;
 }
 
+export type YearMonth = {
+  month: string;
+  entries: ExpenseEntry[];
+  income: number;
+  total: number;
+  leftover: number;
+};
+
+// All 12 months of a calendar year, for the yearly grid view — regardless
+// of whether a given month has any data yet.
+export async function getExpensesForYear(year: number): Promise<YearMonth[]> {
+  const months = Array.from(
+    { length: 12 },
+    (_, i) => `${year}-${String(i + 1).padStart(2, "0")}-01`
+  );
+
+  return Promise.all(
+    months.map(async (month) => {
+      const [entries, income] = await Promise.all([
+        getExpensesForMonth(month),
+        getIncomeForMonth(month),
+      ]);
+      const total = totalForMonth(entries);
+      return { month, entries, income, total, leftover: income - total };
+    })
+  );
+}
+
 export { CATEGORY_LABELS, EXPENSE_CATEGORIES } from "@/lib/types";
 export type { MonthlyIncome };

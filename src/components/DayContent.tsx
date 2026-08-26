@@ -18,12 +18,12 @@ export async function DayContent({
   return (
     <div>
       <div className="px-4 mt-2 mb-5">
-        <p className="text-sm text-white/40 mb-0.5">{formatMonthYear(date)}</p>
-        <div className="flex items-end justify-between gap-2">
-          <h1 className="font-display text-7xl leading-none tracking-wide">
+        <p className="text-sm text-white/40 mb-0.5 text-center">{formatMonthYear(date)}</p>
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="font-display text-7xl leading-none tracking-wide text-center">
             {formatDayHeading(date)}
           </h1>
-          <div className="flex items-center gap-1.5 pb-1">
+          <div className="flex items-center gap-1.5">
             <Link
               href={`${basePath}?date=${shiftDate(date, -1)}`}
               aria-label="Previous day"
