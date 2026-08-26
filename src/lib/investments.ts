@@ -1,38 +1,75 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
+import { getExpenseAmountByMonthForCategory } from "@/lib/expenses";
 import type { InvestmentMonth, InvestmentMonthComputed } from "@/lib/types";
 
-export async function getInvestmentMonths(): Promise<InvestmentMonthComputed[]> {
-  const { data, error } = await supabase
-    .from("investment_months")
-    .select("*")
-    .order("month", { ascending: true });
-  if (error) throw error;
+const DEFAULT_AED_PER_USD = 3.6725;
 
-  const rows = (data ?? []) as InvestmentMonth[];
+export async function getAedPerUsdRate(): Promise<number> {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "aed_per_usd")
+    .maybeSingle();
+  if (error) throw error;
+  return data?.value ?? DEFAULT_AED_PER_USD;
+}
+
+export async function setAedPerUsdRate(rate: number): Promise<void> {
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ key: "aed_per_usd", value: rate }, { onConflict: "key" });
+  if (error) throw error;
+}
+
+// Contribution isn't entered here — it's that month's "Investment funding"
+// expense entries (in AED), converted to USD with the rate above. Months
+// from before this automation existed keep whatever was manually saved.
+export async function getInvestmentMonths(): Promise<InvestmentMonthComputed[]> {
+  const [monthsRes, aedFundedByMonth, rate] = await Promise.all([
+    supabase.from("investment_months").select("*").order("month", { ascending: true }),
+    getExpenseAmountByMonthForCategory("investment"),
+    getAedPerUsdRate(),
+  ]);
+  if (monthsRes.error) throw monthsRes.error;
+
+  const rowsByMonth = new Map(
+    ((monthsRes.data ?? []) as InvestmentMonth[]).map((row) => [row.month, row])
+  );
+
+  const allMonths = Array.from(
+    new Set([...rowsByMonth.keys(), ...aedFundedByMonth.keys()])
+  ).sort();
+
   let totalInvested = 0;
   let prevPortfolioValue: number | null = null;
 
-  return rows.map((row) => {
-    totalInvested += row.contribution;
-    const portfolioValue = row.portfolio_value_eom;
+  return allMonths.map((month) => {
+    const stored = rowsByMonth.get(month);
+    const aedFunded = aedFundedByMonth.get(month);
+    const contribution = aedFunded !== undefined ? aedFunded / rate : (stored?.contribution ?? 0);
+    const portfolio_value_eom = stored?.portfolio_value_eom ?? null;
+
+    totalInvested += contribution;
 
     const growth_pct =
-      portfolioValue !== null && prevPortfolioValue !== null && prevPortfolioValue !== 0
-        ? (portfolioValue - prevPortfolioValue) / prevPortfolioValue
+      portfolio_value_eom !== null && prevPortfolioValue !== null && prevPortfolioValue !== 0
+        ? (portfolio_value_eom - prevPortfolioValue) / prevPortfolioValue
         : null;
 
     const pnl_pct =
-      portfolioValue !== null && totalInvested !== 0
-        ? (portfolioValue - totalInvested) / totalInvested
+      portfolio_value_eom !== null && totalInvested !== 0
+        ? (portfolio_value_eom - totalInvested) / totalInvested
         : null;
 
-    const dollar_pl = portfolioValue !== null ? portfolioValue - totalInvested : null;
+    const dollar_pl = portfolio_value_eom !== null ? portfolio_value_eom - totalInvested : null;
 
-    if (portfolioValue !== null) prevPortfolioValue = portfolioValue;
+    if (portfolio_value_eom !== null) prevPortfolioValue = portfolio_value_eom;
 
     return {
-      ...row,
+      month,
+      contribution,
+      portfolio_value_eom,
       total_invested: totalInvested,
       growth_pct,
       pnl_pct,
@@ -43,7 +80,6 @@ export async function getInvestmentMonths(): Promise<InvestmentMonthComputed[]> 
 
 export async function upsertInvestmentMonth(input: {
   month: string;
-  contribution: number;
   portfolio_value_eom: number | null;
 }): Promise<void> {
   const { error } = await supabase

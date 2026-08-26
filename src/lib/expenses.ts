@@ -97,6 +97,24 @@ export function totalForMonth(entries: ExpenseEntry[]): number {
   return entries.reduce((sum, e) => sum + e.amount, 0);
 }
 
+// Sums a single category's expense amounts per month — used by the Savings
+// and Investments tabs to derive their figures from the Expenses tab.
+export async function getExpenseAmountByMonthForCategory(
+  category: ExpenseCategory
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("expense_entries")
+    .select("month, amount")
+    .eq("category", category);
+  if (error) throw error;
+
+  const byMonth = new Map<string, number>();
+  for (const row of (data ?? []) as { month: string; amount: number }[]) {
+    byMonth.set(row.month, (byMonth.get(row.month) ?? 0) + row.amount);
+  }
+  return byMonth;
+}
+
 export type MonthSummary = {
   month: string;
   income: number;

@@ -62,6 +62,7 @@ export const EXPENSE_CATEGORIES = [
   "stoppable",
   "installment",
   "debt",
+  "investment",
   "savings",
   "one_off",
 ] as const;
@@ -73,6 +74,7 @@ export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   stoppable: "Recurring but can be stopped",
   installment: "Monthly installment",
   debt: "Big Purchase Fund",
+  investment: "Investment funding (AED)",
   savings: "Savings contribution",
   one_off: "One-off",
 };

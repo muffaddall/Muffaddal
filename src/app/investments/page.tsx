@@ -1,12 +1,13 @@
 import { MenuButton } from "@/components/MenuButton";
-import { getInvestmentMonths } from "@/lib/investments";
+import { getAedPerUsdRate, getInvestmentMonths } from "@/lib/investments";
 import AddMonthForm from "./AddMonthForm";
 import InvestmentRow from "./InvestmentRow";
+import AedRateEditor from "./AedRateEditor";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvestmentsPage() {
-  const rows = await getInvestmentMonths();
+  const [rows, rate] = await Promise.all([getInvestmentMonths(), getAedPerUsdRate()]);
 
   return (
     <div className="pb-10">
@@ -17,7 +18,15 @@ export default async function InvestmentsPage() {
       <main className="mx-auto max-w-4xl px-4 sm:px-6">
         <h1 className="sr-only">Investment progress</h1>
 
-        <div className="overflow-x-auto mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+          <p className="text-xs text-[var(--color-fg-dim)] max-w-md">
+            Contribution comes from that month&apos;s &ldquo;Investment funding&rdquo; entries on
+            the Expenses tab (in AED), converted to USD using the rate below.
+          </p>
+          <AedRateEditor rate={rate} />
+        </div>
+
+        <div className="overflow-x-auto mt-3 mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
               <tr className="text-left text-xs text-[var(--color-fg-dim)]">

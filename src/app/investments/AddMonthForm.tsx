@@ -19,21 +19,13 @@ export default function AddMonthForm() {
     <form
       ref={formRef}
       action={formAction}
-      className="grid grid-cols-2 gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3 sm:grid-cols-[10rem_10rem_10rem_auto]"
+      className="grid grid-cols-2 gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3 sm:grid-cols-[10rem_10rem_auto]"
     >
       <input
         name="month"
         type="month"
         required
         defaultValue={monthToInputValue(currentMonth())}
-        className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
-      />
-      <input
-        name="contribution"
-        type="number"
-        step="any"
-        placeholder="Contribution"
-        required
         className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
       <input

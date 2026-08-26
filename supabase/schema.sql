@@ -71,7 +71,7 @@ create table if not exists expense_entries (
   name text not null,
   amount numeric not null default 0,
   category text not null default 'recurring'
-    check (category in ('recurring', 'stoppable', 'installment', 'debt', 'savings', 'one_off')),
+    check (category in ('recurring', 'stoppable', 'installment', 'debt', 'investment', 'savings', 'one_off')),
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -85,7 +85,7 @@ alter table expense_entries enable row level security;
 -- list grows.
 alter table expense_entries drop constraint if exists expense_entries_category_check;
 alter table expense_entries add constraint expense_entries_category_check
-  check (category in ('recurring', 'stoppable', 'installment', 'debt', 'savings', 'one_off'));
+  check (category in ('recurring', 'stoppable', 'installment', 'debt', 'investment', 'savings', 'one_off'));
 
 -- Declared monthly income, one row per month (defaults to 15000 like the sheet).
 create table if not exists monthly_income (
@@ -105,6 +105,21 @@ create table if not exists investment_months (
 );
 
 alter table investment_months enable row level security;
+
+-- Small key/value store for app-wide settings — currently just the AED-per-USD
+-- rate used to convert "Investment funding" expense entries (in AED) into the
+-- USD contribution figures on the Investments tab. AED is pegged to USD at
+-- 3.6725, but this stays editable in case you want to reflect the slightly
+-- different rate your broker actually applies.
+create table if not exists app_settings (
+  key text primary key,
+  value numeric not null
+);
+
+alter table app_settings enable row level security;
+
+insert into app_settings (key, value) values ('aed_per_usd', 3.6725)
+on conflict (key) do nothing;
 
 -- Purchases made using money from the Big Purchase Fund. Their total is
 -- subtracted from the fund's running balance. (Replaces the old "debts"

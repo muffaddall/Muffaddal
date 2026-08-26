@@ -1,5 +1,6 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
+import { getExpenseAmountByMonthForCategory } from "@/lib/expenses";
 import type { BpfPurchase, SavingsMonth, SavingsMonthComputed } from "@/lib/types";
 
 // Purchases made using money from the Big Purchase Fund. Their total is
@@ -40,26 +41,12 @@ export async function deleteBpfPurchase(id: string): Promise<void> {
 // sum of that month's "Big Purchase Fund" expense entries minus standing
 // BPF purchases (below); savings kept is the sum of "Savings contribution"
 // expense entries. The Expenses tab is the single source of truth for both.
-async function getAmountByMonthForCategory(category: string): Promise<Map<string, number>> {
-  const { data, error } = await supabase
-    .from("expense_entries")
-    .select("month, amount")
-    .eq("category", category);
-  if (error) throw error;
-
-  const byMonth = new Map<string, number>();
-  for (const row of (data ?? []) as { month: string; amount: number }[]) {
-    byMonth.set(row.month, (byMonth.get(row.month) ?? 0) + row.amount);
-  }
-  return byMonth;
-}
-
 export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
   const [purchases, monthsRes, debtPaydownByMonth, savingsKeptByMonth] = await Promise.all([
     getBpfPurchases(),
     supabase.from("savings_months").select("*").order("month", { ascending: true }),
-    getAmountByMonthForCategory("debt"),
-    getAmountByMonthForCategory("savings"),
+    getExpenseAmountByMonthForCategory("debt"),
+    getExpenseAmountByMonthForCategory("savings"),
   ]);
   if (monthsRes.error) throw monthsRes.error;
 

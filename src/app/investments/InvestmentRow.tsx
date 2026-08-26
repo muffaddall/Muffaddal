@@ -26,14 +26,10 @@ export default function InvestmentRow({ row }: { row: InvestmentMonthComputed })
             <span className="flex items-center text-sm text-[var(--color-fg-dim)]">
               {formatMonth(row.month)}
             </span>
-            <input
-              name="contribution"
-              type="number"
-              step="any"
-              defaultValue={row.contribution}
-              required
-              className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
-            />
+            <span className="flex flex-col justify-center rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm text-[var(--color-fg-dim)]">
+              {formatMoney(row.contribution, "USD")}
+              <span className="text-[10px] leading-tight">from Expenses</span>
+            </span>
             <input
               name="portfolio_value_eom"
               type="number"
@@ -66,9 +62,9 @@ export default function InvestmentRow({ row }: { row: InvestmentMonthComputed })
   return (
     <tr className="border-b border-[var(--color-border)] last:border-0">
       <td className="py-2 pr-3 text-sm whitespace-nowrap">{formatMonth(row.month)}</td>
-      <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.contribution)}</td>
-      <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.total_invested)}</td>
-      <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.portfolio_value_eom)}</td>
+      <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.contribution, "USD")}</td>
+      <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.total_invested, "USD")}</td>
+      <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.portfolio_value_eom, "USD")}</td>
       <td
         className="py-2 pr-3 text-sm tabular-nums"
         style={{
@@ -93,7 +89,7 @@ export default function InvestmentRow({ row }: { row: InvestmentMonthComputed })
                 : "var(--color-negative)",
         }}
       >
-        {formatSignedMoney(row.dollar_pl)}
+        {formatSignedMoney(row.dollar_pl, "USD")}
       </td>
       <td className="py-2 pl-2 text-right whitespace-nowrap">
         <button

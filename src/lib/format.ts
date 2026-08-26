@@ -1,19 +1,33 @@
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "AED",
-  currencyDisplay: "code",
-  maximumFractionDigits: 0,
-});
+const formatters = {
+  AED: new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "AED",
+    currencyDisplay: "code",
+    maximumFractionDigits: 0,
+  }),
+  USD: new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    currencyDisplay: "code",
+    maximumFractionDigits: 0,
+  }),
+};
 
-export function formatMoney(value: number | null | undefined): string {
+export function formatMoney(
+  value: number | null | undefined,
+  currency: "AED" | "USD" = "AED"
+): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
-  return currencyFormatter.format(value);
+  return formatters[currency].format(value);
 }
 
-export function formatSignedMoney(value: number | null | undefined): string {
+export function formatSignedMoney(
+  value: number | null | undefined,
+  currency: "AED" | "USD" = "AED"
+): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const sign = value > 0 ? "+" : "";
-  return `${sign}${currencyFormatter.format(value)}`;
+  return `${sign}${formatters[currency].format(value)}`;
 }
 
 export function formatPercent(value: number | null | undefined): string {
