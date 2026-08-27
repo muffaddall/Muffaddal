@@ -6,7 +6,7 @@
   --color-surface-2: #171c27;
   --color-border: rgba(255, 255, 255, 0.08);
   --color-fg: #f4f6fb;
-  --color-fg-dim: rgba(244, 246, 251, 0.55);
+  --color-fg-dim: rgba(244, 246, 251, 0.75);
 
   /* Role colors — where a post sits in the workflow */
   --color-shoot: #ff6b4a;

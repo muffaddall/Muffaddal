@@ -131,7 +131,7 @@ function VolumeCard({
         {title}
       </p>
       <p className="font-display text-2xl mb-2">{formatDistance(period.current, discipline)}</p>
-      <div className="flex flex-col gap-0.5 text-xs text-[var(--color-fg-dim)]">
+      <div className="flex flex-col gap-0.5 text-xs text-white/80">
         <span>
           vs previous ({formatDistance(period.previous, discipline)}):{" "}
           {vsPrevious > 0 ? "+" : ""}
