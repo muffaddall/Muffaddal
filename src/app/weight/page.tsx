@@ -17,7 +17,9 @@ export default async function WeightPage() {
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
         {latest && (
           <div className="mb-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">Latest weight</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+              Latest weight
+            </p>
             <p className="font-display text-4xl">{latest.weight} kg</p>
             <p className="text-xs text-white/40 mt-1">{formatDateShort(latest.date)}</p>
           </div>
@@ -26,7 +28,9 @@ export default async function WeightPage() {
         <AddWeightForm />
 
         <section className="mt-8 mb-8">
-          <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">Entries</h2>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>
+            Entries
+          </h2>
           <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <table className="w-full min-w-[420px] border-collapse">
               <thead>
@@ -55,7 +59,9 @@ export default async function WeightPage() {
 
         {logs.length > 1 && (
           <section>
-            <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">Trend</h2>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>
+              Trend
+            </h2>
             <WeightChart logs={logs} />
           </section>
         )}

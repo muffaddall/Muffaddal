@@ -74,9 +74,12 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
+  const labelColor = color ?? "var(--color-fitness)";
   return (
     <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-      <p className="text-xs text-[var(--color-fg-dim)] mb-1">{label}</p>
+      <p className="text-xs mb-1" style={{ color: labelColor }}>
+        {label}
+      </p>
       <p className="font-display text-xl" style={color ? { color } : undefined}>
         {value}
       </p>

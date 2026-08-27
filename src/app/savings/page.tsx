@@ -23,7 +23,7 @@ export default async function SavingsPage() {
       <main className="mx-auto max-w-5xl px-4 sm:px-6">
         <section className="mb-10">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-[var(--color-fg-dim)]">
+            <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               Big Purchase Fund purchases
             </h2>
             <span className="text-sm tabular-nums text-[var(--color-negative)]">
@@ -46,7 +46,9 @@ export default async function SavingsPage() {
         {current && (
           <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-              <p className="text-xs text-[var(--color-fg-dim)] mb-1">Debt left</p>
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Debt left
+              </p>
               <p
                 className="font-display text-2xl"
                 style={{
@@ -57,18 +59,22 @@ export default async function SavingsPage() {
               </p>
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-              <p className="text-xs text-[var(--color-fg-dim)] mb-1">Total savings</p>
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Total savings
+              </p>
               <p className="font-display text-2xl">{formatMoney(current.total_savings)}</p>
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-              <p className="text-xs text-[var(--color-fg-dim)] mb-1">Account total</p>
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Account total
+              </p>
               <p className="font-display text-2xl">{formatMoney(current.account_total)}</p>
             </div>
           </div>
         )}
 
         <section className="mb-10">
-          <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-1">
+          <h2 className="text-sm font-semibold mb-1" style={{ color: "var(--color-accent)" }}>
             Monthly savings progress
           </h2>
           <p className="text-xs text-[var(--color-fg-dim)] mb-3">
@@ -109,7 +115,7 @@ export default async function SavingsPage() {
 
         {futureMonths.length > 0 && (
           <section>
-            <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
               Future / not yet happened
             </h2>
             <div className="overflow-x-auto mb-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-3 opacity-70">

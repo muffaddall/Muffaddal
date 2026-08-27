@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
+import { WorkoutDisciplineTabs } from "@/components/WorkoutDisciplineTabs";
 import { getWorkoutLogs } from "@/lib/workouts";
 import {
   WORKOUT_DISCIPLINE_LABELS,
@@ -21,25 +22,41 @@ export default async function WorkoutDisciplinePage(
   const discipline = disciplineParam;
 
   const logs = await getWorkoutLogs(discipline);
-  const { personalBestPace, personalBestDistance, averagePace } = computeWorkoutStats(logs);
+  const { personalBestDistance, personalBestPace, averageDistance, averagePace } =
+    computeWorkoutStats(logs);
 
   return (
     <div className="pb-10">
       <PageHeader title={WORKOUT_DISCIPLINE_LABELS[discipline]} subtitle="Workout Tracker" />
+      <div className="flex justify-center mb-4">
+        <WorkoutDisciplineTabs active={discipline} />
+      </div>
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">PB Distance</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+              PB Distance
+            </p>
             <p className="font-display text-xl">
               {formatDistance(personalBestDistance, discipline)}
             </p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">PB Pace</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+              PB Pace
+            </p>
             <p className="font-display text-xl">{formatPace(personalBestPace, discipline)}</p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">Average pace</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+              Average Distance
+            </p>
+            <p className="font-display text-xl">{formatDistance(averageDistance, discipline)}</p>
+          </div>
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+              Average Pace
+            </p>
             <p className="font-display text-xl">{formatPace(averagePace, discipline)}</p>
           </div>
         </div>
@@ -47,7 +64,9 @@ export default async function WorkoutDisciplinePage(
         <AddWorkoutForm discipline={discipline} />
 
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-[var(--color-fg-dim)] mb-3">Entries</h2>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>
+            Entries
+          </h2>
           <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <table className="w-full min-w-[520px] border-collapse">
               <thead>

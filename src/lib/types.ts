@@ -238,31 +238,40 @@ export function formatPace(
 }
 
 export type WorkoutStats = {
-  personalBestPace: number | null;
   personalBestDistance: number | null;
+  personalBestPace: number | null;
+  averageDistance: number | null;
   averagePace: number | null;
 };
 
 /**
- * PB pace = fastest (lowest) pace. PB distance = longest single workout.
- * Average pace = total duration / total distance (segment-weighted, not a
- * naive average of per-entry paces).
+ * PB distance = longest single workout. PB pace = fastest (lowest) pace.
+ * Average distance is a plain mean. Average pace is total duration / total
+ * distance (segment-weighted, not a naive average of per-entry paces).
  */
 export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
   if (logs.length === 0) {
-    return { personalBestPace: null, personalBestDistance: null, averagePace: null };
+    return {
+      personalBestDistance: null,
+      personalBestPace: null,
+      averageDistance: null,
+      averagePace: null,
+    };
   }
 
   const paces = logs.map(computeWorkoutPace);
   const personalBestPace = Math.min(...paces);
   const personalBestDistance = Math.max(...logs.map((l) => l.distance));
 
+  const totalDistance = logs.reduce((sum, l) => sum + l.distance, 0);
+  const averageDistance = Math.round((totalDistance / logs.length) * 10) / 10;
+
   const { paceSegment } = WORKOUT_DISCIPLINE_UNITS[logs[0].discipline];
   const totalSegments = logs.reduce((sum, l) => sum + l.distance / paceSegment, 0);
   const totalDuration = logs.reduce((sum, l) => sum + l.durationMin, 0);
   const averagePace = totalSegments > 0 ? totalDuration / totalSegments : null;
 
-  return { personalBestPace, personalBestDistance, averagePace };
+  return { personalBestDistance, personalBestPace, averageDistance, averagePace };
 }
 
 export type PostInput = {

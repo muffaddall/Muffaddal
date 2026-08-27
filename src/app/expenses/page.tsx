@@ -47,15 +47,21 @@ export default async function ExpensesPage({
 
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">Income</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              Income
+            </p>
             <p className="font-display text-2xl">{formatMoney(income)}</p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">Spent</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              Spent
+            </p>
             <p className="font-display text-2xl">{formatMoney(total)}</p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs text-[var(--color-fg-dim)] mb-1">Left over</p>
+            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              Left over
+            </p>
             <p
               className="font-display text-2xl"
               style={{ color: leftover < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
