@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
 import { currentMonth, formatMoney, formatSignedMoney, inputValueToMonth } from "@/lib/format";
 import MonthNav from "./MonthNav";
@@ -39,6 +40,9 @@ export default async function ExpensesPage({
           </Link>
         }
       />
+      <div className="flex justify-center mb-4">
+        <FinanceSectionTabs active="expenses" />
+      </div>
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <MonthNav month={month} />

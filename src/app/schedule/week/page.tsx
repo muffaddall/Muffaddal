@@ -10,6 +10,7 @@ import {
   weekDays,
 } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
+import { ContentSectionTabs } from "@/components/ContentSectionTabs";
 import { StatusTick } from "@/components/StatusTick";
 
 type Role = "shoot" | "edit";
@@ -40,6 +41,9 @@ export default async function ScheduleWeekPage(props: PageProps<"/schedule/week"
   return (
     <div className="pb-10">
       <TopBar active="week" />
+      <div className="flex justify-center px-4">
+        <ContentSectionTabs active="schedule" />
+      </div>
 
       <div className="px-4 mt-2 mb-4 flex flex-col items-center gap-2">
         <div className="text-center">

@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
+import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getAedPerUsdRate, getInvestmentMonths } from "@/lib/investments";
 import AddMonthForm from "./AddMonthForm";
 import InvestmentRow from "./InvestmentRow";
@@ -12,6 +13,9 @@ export default async function InvestmentsPage() {
   return (
     <div className="pb-10">
       <PageHeader title="Investments" />
+      <div className="flex justify-center mb-4">
+        <FinanceSectionTabs active="investments" />
+      </div>
       <main className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
           <p className="text-xs text-[var(--color-fg-dim)] max-w-md">

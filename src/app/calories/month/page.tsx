@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
 import { getCalorieLogsForRange } from "@/lib/calories";
 import { computeCalorieLog } from "@/lib/types";
@@ -31,6 +32,9 @@ export default async function CaloriesMonthPage(props: PageProps<"/calories/mont
   return (
     <div className="pb-6">
       <PageHeader title="Calorie Tracker" />
+      <div className="flex justify-center mb-2">
+        <FitnessSectionTabs active="calories" />
+      </div>
       <div className="flex justify-center mb-3">
         <CaloriesTabs active="month" />
       </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { ContentSectionTabs } from "@/components/ContentSectionTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { IdeaListSections } from "@/components/IdeaListSections";
 import { getVaultData } from "@/lib/groups";
@@ -26,6 +27,9 @@ export default async function VaultPage() {
           </Link>
         }
       />
+      <div className="flex justify-center px-4 mb-4">
+        <ContentSectionTabs active="vault" />
+      </div>
 
       {isEmpty ? (
         <div className="px-4">

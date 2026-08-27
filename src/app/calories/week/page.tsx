@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
 import { getCalorieLogsForRange } from "@/lib/calories";
 import { computeCalorieLog } from "@/lib/types";
@@ -37,6 +38,9 @@ export default async function CaloriesWeekPage(props: PageProps<"/calories/week"
   return (
     <div className="pb-10">
       <PageHeader title="Calorie Tracker" subtitle={formatWeekRangeLabel(days)} />
+      <div className="flex justify-center mb-2">
+        <FitnessSectionTabs active="calories" />
+      </div>
       <div className="flex justify-center mb-2">
         <CaloriesTabs active="week" />
       </div>

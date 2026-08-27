@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { ContentSectionTabs } from "@/components/ContentSectionTabs";
 import { PostingScheduleTabs } from "@/components/PostingScheduleTabs";
 import { getPostsByPostDateRange } from "@/lib/posts";
 import type { ScheduledPost } from "@/lib/types";
@@ -51,6 +52,9 @@ export default async function PostingScheduleMonthPage(
         subtitle="Posting Schedule"
         right={<PostingScheduleTabs active="month" />}
       />
+      <div className="flex justify-center px-4 mb-1">
+        <ContentSectionTabs active="posting" />
+      </div>
 
       <div className="px-4 mt-1 mb-4 flex items-center justify-center gap-1.5">
         <Link

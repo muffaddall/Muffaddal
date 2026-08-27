@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
 import { getCalorieLog } from "@/lib/calories";
 import { computeCalorieLog } from "@/lib/types";
@@ -20,6 +21,9 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   return (
     <div className="pb-10">
       <PageHeader title="Calorie Tracker" />
+      <div className="flex justify-center mb-2">
+        <FitnessSectionTabs active="calories" />
+      </div>
       <div className="flex justify-center mb-2">
         <CaloriesTabs active="day" />
       </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getExpensesForYear } from "@/lib/expenses";
 import YearMonthCard from "../YearMonthCard";
 
@@ -28,6 +29,9 @@ export default async function ExpensesYearPage({
           </Link>
         }
       />
+      <div className="flex justify-center mb-4">
+        <FinanceSectionTabs active="expenses" />
+      </div>
 
       <div className="flex items-center justify-center gap-3 mb-6">
         <Link

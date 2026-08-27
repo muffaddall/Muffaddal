@@ -3,6 +3,7 @@ import { getPostsForRange } from "@/lib/posts";
 import type { ScheduledPost } from "@/lib/types";
 import { isInMonth, monthGridDays, shiftMonth } from "@/lib/date";
 import { TopBar } from "@/components/TopBar";
+import { ContentSectionTabs } from "@/components/ContentSectionTabs";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_NAMES = [
@@ -44,6 +45,9 @@ export default async function ScheduleMonthPage(
   return (
     <div className="pb-10">
       <TopBar active="month" />
+      <div className="flex justify-center px-4">
+        <ContentSectionTabs active="schedule" />
+      </div>
 
       <div className="px-4 mt-2 mb-4 flex flex-col items-center gap-2">
         <h1 className="font-display text-6xl tracking-wide text-center">

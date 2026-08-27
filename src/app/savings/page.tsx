@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
+import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getBpfPurchases, getSavingsMonths, totalBpfPurchases } from "@/lib/savings";
 import { currentMonth, formatMoney } from "@/lib/format";
 import BpfPurchaseRow from "./BpfPurchaseRow";
@@ -20,6 +21,9 @@ export default async function SavingsPage() {
   return (
     <div className="pb-10">
       <PageHeader title="Savings & debt" />
+      <div className="flex justify-center mb-4">
+        <FinanceSectionTabs active="savings" />
+      </div>
       <main className="mx-auto max-w-5xl px-4 sm:px-6">
         <section className="mb-10">
           <div className="flex items-center justify-between mb-3">

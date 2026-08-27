@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { WORKOUT_DISCIPLINES, WORKOUT_DISCIPLINE_LABELS } from "@/lib/types";
 
 const DESCRIPTIONS: Record<string, string> = {
@@ -12,6 +13,9 @@ export default function WorkoutsPage() {
   return (
     <div className="pb-10">
       <PageHeader title="Workout Tracker" />
+      <div className="flex justify-center mb-4">
+        <FitnessSectionTabs active="workouts" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {WORKOUT_DISCIPLINES.map((discipline) => (

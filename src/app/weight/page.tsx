@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
+import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { getWeightLogs } from "@/lib/weight";
 import { formatDateShort } from "@/lib/date";
 import AddWeightForm from "./AddWeightForm";
@@ -14,6 +15,9 @@ export default async function WeightPage() {
   return (
     <div className="pb-10">
       <PageHeader title="Weight Tracker" />
+      <div className="flex justify-center mb-4">
+        <FitnessSectionTabs active="weight" />
+      </div>
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
         {latest && (
           <div className="mb-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">

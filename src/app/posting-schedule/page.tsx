@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { ContentSectionTabs } from "@/components/ContentSectionTabs";
 import { TypeBadge } from "@/components/TypeBadge";
 import { PlatformTicks } from "@/components/PlatformTicks";
 import { PostingScheduleTabs } from "@/components/PostingScheduleTabs";
@@ -46,11 +47,13 @@ export default async function PostingSchedulePage(
 
   return (
     <div className="pb-10">
-      <PageHeader
-        title="Posting Schedule"
-        subtitle={formatWeekRangeLabel(days)}
-        right={<PostingScheduleTabs active="week" />}
-      />
+      <PageHeader title="Posting Schedule" subtitle={formatWeekRangeLabel(days)} />
+      <div className="flex justify-center px-4 mb-2">
+        <ContentSectionTabs active="posting" />
+      </div>
+      <div className="flex justify-center px-4 mb-2">
+        <PostingScheduleTabs active="week" />
+      </div>
 
       <div className="px-4 mt-1 mb-6 flex items-center justify-center gap-1.5">
         <Link

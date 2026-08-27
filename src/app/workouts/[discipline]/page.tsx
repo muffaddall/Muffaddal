@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
+import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { WorkoutDisciplineTabs } from "@/components/WorkoutDisciplineTabs";
 import { getWorkoutLogs } from "@/lib/workouts";
 import {
@@ -28,6 +29,9 @@ export default async function WorkoutDisciplinePage(
   return (
     <div className="pb-10">
       <PageHeader title={WORKOUT_DISCIPLINE_LABELS[discipline]} subtitle="Workout Tracker" />
+      <div className="flex justify-center mb-2">
+        <FitnessSectionTabs active="workouts" />
+      </div>
       <div className="flex justify-center mb-4">
         <WorkoutDisciplineTabs active={discipline} />
       </div>
