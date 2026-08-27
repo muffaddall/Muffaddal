@@ -2,8 +2,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
-import { getCalorieLog } from "@/lib/calories";
-import { computeCalorieLog } from "@/lib/types";
+import { getAllCalorieLogs, getCalorieLog } from "@/lib/calories";
+import { computeCalorieAverages, computeCalorieLog } from "@/lib/types";
 import { formatDayHeading, formatMonthYear, shiftDate, todayStr } from "@/lib/date";
 import CalorieLogForm from "./CalorieLogForm";
 
@@ -15,8 +15,9 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   const date = typeof dateParam === "string" ? dateParam : todayStr();
   const isToday = date === todayStr();
 
-  const log = await getCalorieLog(date);
+  const [log, allLogs] = await Promise.all([getCalorieLog(date), getAllCalorieLogs()]);
   const computed = log ? computeCalorieLog(log) : null;
+  const { avgIntake, avgBurned } = computeCalorieAverages(allLogs);
 
   return (
     <div className="pb-10">
@@ -72,6 +73,22 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
         )}
 
         <CalorieLogForm key={date} date={date} log={log} />
+
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>
+            All-time averages
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Stat
+              label="Avg Intake/day"
+              value={avgIntake !== null ? `${avgIntake} kcal` : "—"}
+            />
+            <Stat
+              label="Avg Burned/day"
+              value={avgBurned !== null ? `${avgBurned} kcal` : "—"}
+            />
+          </div>
+        </section>
       </main>
     </div>
   );

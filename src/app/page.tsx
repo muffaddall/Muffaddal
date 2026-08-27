@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { QuickAddMenu } from "@/components/QuickAddMenu";
 import { quoteOfTheDay } from "@/lib/quotes";
 
 type Section = { href: string; label: string; description: string };
@@ -40,14 +41,7 @@ export default function HomePage() {
       <PageHeader
         title="Muffaddal's Life Planner"
         showHome={false}
-        right={
-          <Link
-            href="/new-idea?from=/"
-            className="flex items-center gap-1 rounded-full bg-[var(--color-post)] text-black text-sm font-semibold px-4 py-1.5 active:scale-95 transition-transform"
-          >
-            <span className="text-base leading-none">+</span> New Idea
-          </Link>
-        }
+        right={<QuickAddMenu />}
       />
 
       <p className="text-center text-sm text-white/45 italic px-4 mb-8">

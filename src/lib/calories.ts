@@ -45,6 +45,12 @@ export async function getCalorieLogsForRange(
   return (data ?? []).map(fromRow);
 }
 
+export async function getAllCalorieLogs(): Promise<CalorieLog[]> {
+  const { data, error } = await supabase.from("calorie_logs").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(fromRow);
+}
+
 export async function upsertCalorieLog(input: CalorieLog): Promise<void> {
   const { error } = await supabase
     .from("calorie_logs")

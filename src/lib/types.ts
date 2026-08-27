@@ -166,6 +166,27 @@ export function computeCalorieLog(log: CalorieLog): CalorieLogComputed {
   return { ...log, intake, net, isDeficit: net <= 0 };
 }
 
+export type CalorieAverages = {
+  avgIntake: number | null;
+  avgBurned: number | null;
+};
+
+/** Plain per-day averages across every logged day. */
+export function computeCalorieAverages(logs: CalorieLog[]): CalorieAverages {
+  if (logs.length === 0) return { avgIntake: null, avgBurned: null };
+
+  const totalIntake = logs.reduce(
+    (sum, l) => sum + l.breakfast + l.lunch + l.dinner + l.snacks,
+    0
+  );
+  const totalBurned = logs.reduce((sum, l) => sum + l.burned, 0);
+
+  return {
+    avgIntake: Math.round(totalIntake / logs.length),
+    avgBurned: Math.round(totalBurned / logs.length),
+  };
+}
+
 export type WeightLog = {
   id: string;
   date: string; // YYYY-MM-DD
@@ -272,6 +293,81 @@ export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
   const averagePace = totalSegments > 0 ? totalDuration / totalSegments : null;
 
   return { personalBestDistance, personalBestPace, averageDistance, averagePace };
+}
+
+// Self-contained (no lib/date.ts dependency) Monday-start week key, so this
+// stays consistent with the rest of the app's Monday-start weeks without
+// pulling in date-fns here.
+function mondayOfWeek(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function shiftWeekKey(mondayKey: string, deltaWeeks: number): string {
+  const [y, m, d] = mondayKey.split("-").map(Number);
+  const date = new Date(y, m - 1, d + deltaWeeks * 7);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function shiftMonthKey(monthKey: string, deltaMonths: number): string {
+  const [y, m] = monthKey.split("-").map(Number);
+  const date = new Date(y, m - 1 + deltaMonths, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export type VolumePeriod = {
+  current: number;
+  previous: number;
+  best: number;
+};
+
+export type WorkoutVolume = {
+  week: VolumePeriod;
+  month: VolumePeriod;
+};
+
+/**
+ * Weekly (Monday-start) and monthly volume: total distance logged, compared
+ * to the previous period and to the best period ever recorded.
+ */
+export function computeWorkoutVolume(logs: WorkoutLog[], todayDate: string): WorkoutVolume {
+  const weekTotals = new Map<string, number>();
+  const monthTotals = new Map<string, number>();
+
+  for (const log of logs) {
+    const wk = mondayOfWeek(log.date);
+    weekTotals.set(wk, (weekTotals.get(wk) ?? 0) + log.distance);
+
+    const mk = log.date.slice(0, 7);
+    monthTotals.set(mk, (monthTotals.get(mk) ?? 0) + log.distance);
+  }
+
+  const round = (n: number) => Math.round(n * 10) / 10;
+
+  const thisWeekKey = mondayOfWeek(todayDate);
+  const prevWeekKey = shiftWeekKey(thisWeekKey, -1);
+  const weekValues = [...weekTotals.values()];
+
+  const thisMonthKey = todayDate.slice(0, 7);
+  const prevMonthKey = shiftMonthKey(thisMonthKey, -1);
+  const monthValues = [...monthTotals.values()];
+
+  return {
+    week: {
+      current: round(weekTotals.get(thisWeekKey) ?? 0),
+      previous: round(weekTotals.get(prevWeekKey) ?? 0),
+      best: round(weekValues.length > 0 ? Math.max(...weekValues) : 0),
+    },
+    month: {
+      current: round(monthTotals.get(thisMonthKey) ?? 0),
+      previous: round(monthTotals.get(prevMonthKey) ?? 0),
+      best: round(monthValues.length > 0 ? Math.max(...monthValues) : 0),
+    },
+  };
 }
 
 export type PostInput = {

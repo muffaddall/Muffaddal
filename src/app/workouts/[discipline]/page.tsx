@@ -6,10 +6,14 @@ import { getWorkoutLogs } from "@/lib/workouts";
 import {
   WORKOUT_DISCIPLINE_LABELS,
   computeWorkoutStats,
+  computeWorkoutVolume,
   formatDistance,
   formatPace,
   isWorkoutDiscipline,
+  type VolumePeriod,
+  type WorkoutDiscipline,
 } from "@/lib/types";
+import { todayStr } from "@/lib/date";
 import AddWorkoutForm from "./AddWorkoutForm";
 import WorkoutRow from "./WorkoutRow";
 
@@ -25,6 +29,7 @@ export default async function WorkoutDisciplinePage(
   const logs = await getWorkoutLogs(discipline);
   const { personalBestDistance, personalBestPace, averageDistance, averagePace } =
     computeWorkoutStats(logs);
+  const volume = computeWorkoutVolume(logs, todayStr());
 
   return (
     <div className="pb-10">
@@ -65,6 +70,11 @@ export default async function WorkoutDisciplinePage(
           </div>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          <VolumeCard title="This Week" period={volume.week} discipline={discipline} />
+          <VolumeCard title="This Month" period={volume.month} discipline={discipline} />
+        </div>
+
         <AddWorkoutForm discipline={discipline} />
 
         <section className="mt-6">
@@ -99,6 +109,39 @@ export default async function WorkoutDisciplinePage(
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function VolumeCard({
+  title,
+  period,
+  discipline,
+}: {
+  title: string;
+  period: VolumePeriod;
+  discipline: WorkoutDiscipline;
+}) {
+  const vsPrevious = Math.round((period.current - period.previous) * 10) / 10;
+  const vsBest = Math.round((period.current - period.best) * 10) / 10;
+
+  return (
+    <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+      <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+        {title}
+      </p>
+      <p className="font-display text-2xl mb-2">{formatDistance(period.current, discipline)}</p>
+      <div className="flex flex-col gap-0.5 text-xs text-[var(--color-fg-dim)]">
+        <span>
+          vs previous ({formatDistance(period.previous, discipline)}):{" "}
+          {vsPrevious > 0 ? "+" : ""}
+          {formatDistance(vsPrevious, discipline)}
+        </span>
+        <span>
+          vs best ({formatDistance(period.best, discipline)}): {vsBest > 0 ? "+" : ""}
+          {formatDistance(vsBest, discipline)}
+        </span>
+      </div>
     </div>
   );
 }
