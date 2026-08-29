@@ -370,6 +370,128 @@ export function computeWorkoutVolume(logs: WorkoutLog[], todayDate: string): Wor
   };
 }
 
+// ---- Day-to-day expenses (separate from the "Planned Expenses" tab) ----
+
+export const CURRENCIES = ["AED", "GBP", "INR", "USD"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+export const CURRENCY_LABELS: Record<Currency, string> = {
+  AED: "AED (Dirham)",
+  GBP: "GBP (Pound)",
+  INR: "INR (Rupee)",
+  USD: "USD (Dollar)",
+};
+
+export type Account = {
+  id: string;
+  name: string;
+  currency: Currency;
+  sortOrder: number;
+};
+
+export type DdCategoryKind = "expense" | "income";
+
+export function isDdCategoryKind(value: string): value is DdCategoryKind {
+  return value === "expense" || value === "income";
+}
+
+export type DdCategory = {
+  id: string;
+  parentId: string | null;
+  kind: DdCategoryKind;
+  name: string;
+  sortOrder: number;
+};
+
+export type DdCategoryNode = DdCategory & { children: DdCategoryNode[] };
+
+export function buildCategoryTree(categories: DdCategory[]): DdCategoryNode[] {
+  const byId = new Map<string, DdCategoryNode>();
+  for (const c of categories) byId.set(c.id, { ...c, children: [] });
+
+  const roots: DdCategoryNode[] = [];
+  for (const c of categories) {
+    const node = byId.get(c.id)!;
+    if (c.parentId && byId.has(c.parentId)) {
+      byId.get(c.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
+/** Full "Parent › Child › Grandchild" label for a category, or "—". */
+export function categoryPath(
+  categoryId: string | null,
+  categoriesById: Map<string, DdCategory>
+): string {
+  if (!categoryId) return "—";
+  const parts: string[] = [];
+  let current: DdCategory | undefined = categoriesById.get(categoryId);
+  while (current) {
+    parts.unshift(current.name);
+    current = current.parentId ? categoriesById.get(current.parentId) : undefined;
+  }
+  return parts.length > 0 ? parts.join(" › ") : "—";
+}
+
+/** Walks up to the top-level ancestor — used to group the pie chart. */
+export function topLevelCategoryId(
+  categoryId: string,
+  categoriesById: Map<string, DdCategory>
+): string | null {
+  let current = categoriesById.get(categoryId);
+  if (!current) return null;
+  while (current.parentId && categoriesById.has(current.parentId)) {
+    current = categoriesById.get(current.parentId)!;
+  }
+  return current.id;
+}
+
+export type TransactionType = "income" | "expense" | "transfer";
+
+export function isTransactionType(value: string): value is TransactionType {
+  return value === "income" || value === "expense" || value === "transfer";
+}
+
+export type Transaction = {
+  id: string;
+  type: TransactionType;
+  date: string; // YYYY-MM-DD
+  amount: number;
+  accountId: string;
+  toAccountId: string | null; // only set for transfers
+  categoryId: string | null; // only set for income/expense
+  note: string;
+  createdAt: string;
+};
+
+export type TransactionInput = {
+  type: TransactionType;
+  date: string;
+  amount: number;
+  accountId: string;
+  toAccountId: string | null;
+  categoryId: string | null;
+  note: string;
+};
+
+/** Net change to one account's balance from a single transaction. */
+export function transactionAccountDelta(tx: Transaction, accountId: string): number {
+  if (tx.type === "income" && tx.accountId === accountId) return tx.amount;
+  if (tx.type === "expense" && tx.accountId === accountId) return -tx.amount;
+  if (tx.type === "transfer") {
+    if (tx.accountId === accountId) return -tx.amount;
+    if (tx.toAccountId === accountId) return tx.amount;
+  }
+  return 0;
+}
+
+export function computeAccountBalance(transactions: Transaction[], accountId: string): number {
+  return transactions.reduce((sum, tx) => sum + transactionAccountDelta(tx, accountId), 0);
+}
+
 export type PostInput = {
   name: string;
   shootDate: string | null;

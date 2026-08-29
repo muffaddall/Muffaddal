@@ -30,7 +30,7 @@ export default async function ExpensesPage({
   return (
     <div className="pb-10">
       <PageHeader
-        title="Expenses"
+        title="Planned Expenses"
         right={
           <Link
             href={`/expenses/year?year=${month.slice(0, 4)}`}

@@ -19,7 +19,7 @@ export default async function ExpensesYearPage({
     <div className="pb-10">
       <PageHeader
         title={String(year)}
-        subtitle="Expenses"
+        subtitle="Planned Expenses"
         right={
           <Link
             href={`/expenses`}

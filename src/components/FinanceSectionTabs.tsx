@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 const ITEMS = [
-  { key: "expenses", href: "/expenses", label: "Expenses" },
+  { key: "expenses", href: "/expenses", label: "Planned" },
+  { key: "day-to-day", href: "/day-to-day", label: "Day-to-Day" },
   { key: "investments", href: "/investments", label: "Investments" },
   { key: "savings", href: "/savings", label: "Savings" },
 ] as const;
@@ -9,10 +10,10 @@ const ITEMS = [
 export function FinanceSectionTabs({
   active,
 }: {
-  active: "expenses" | "investments" | "savings";
+  active: "expenses" | "day-to-day" | "investments" | "savings";
 }) {
   return (
-    <nav className="flex items-center gap-1 rounded-full bg-white/5 p-1 border border-white/10">
+    <nav className="flex items-center gap-1 rounded-full bg-white/5 p-1 border border-white/10 flex-wrap justify-center">
       {ITEMS.map((item) => (
         <Link
           key={item.key}

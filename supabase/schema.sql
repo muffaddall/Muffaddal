@@ -213,3 +213,53 @@ create index if not exists workout_logs_discipline_idx on workout_logs (discipli
 create index if not exists workout_logs_date_idx on workout_logs (date);
 
 alter table workout_logs enable row level security;
+
+-- ---- Day-to-day expenses (separate from the "Planned Expenses" tab) ----
+
+-- One row per bank account you actually hold money in. Balances are never
+-- stored — always computed on read from transactions.
+create table if not exists accounts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  currency text not null default 'AED' check (currency in ('AED', 'GBP', 'INR', 'USD')),
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table accounts enable row level security;
+
+-- Self-referencing tree so categories can nest arbitrarily deep (most are
+-- Category > Subcategory, a couple like Padel/Triathlon go one level
+-- deeper). Any node — leaf or not — can be picked on a transaction.
+create table if not exists dd_categories (
+  id uuid primary key default gen_random_uuid(),
+  parent_id uuid references dd_categories(id) on delete cascade,
+  kind text not null check (kind in ('expense', 'income')),
+  name text not null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists dd_categories_parent_idx on dd_categories (parent_id);
+
+alter table dd_categories enable row level security;
+
+-- A single row covers a transfer between two accounts — no double entry.
+-- account_id is the source (expense) or destination (income); for a
+-- transfer it's the "from" account and to_account_id is the "to" account.
+create table if not exists dd_transactions (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in ('income', 'expense', 'transfer')),
+  date date not null,
+  amount numeric not null,
+  account_id uuid not null references accounts(id) on delete cascade,
+  to_account_id uuid references accounts(id) on delete cascade,
+  category_id uuid references dd_categories(id) on delete set null,
+  note text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists dd_transactions_date_idx on dd_transactions (date);
+create index if not exists dd_transactions_account_idx on dd_transactions (account_id);
+
+alter table dd_transactions enable row level security;

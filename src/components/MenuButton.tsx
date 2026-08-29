@@ -61,7 +61,10 @@ export function MenuButton() {
                 Finance
               </span>
               <MenuLink href="/expenses" onNavigate={() => setOpen(false)}>
-                Expenses
+                Planned Expenses
+              </MenuLink>
+              <MenuLink href="/day-to-day" onNavigate={() => setOpen(false)}>
+                Day-to-Day Expenses
               </MenuLink>
               <MenuLink href="/investments" onNavigate={() => setOpen(false)}>
                 Investments

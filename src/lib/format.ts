@@ -11,11 +11,23 @@ const formatters = {
     currencyDisplay: "code",
     maximumFractionDigits: 0,
   }),
+  GBP: new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    currencyDisplay: "code",
+    maximumFractionDigits: 0,
+  }),
+  INR: new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    currencyDisplay: "code",
+    maximumFractionDigits: 0,
+  }),
 };
 
 export function formatMoney(
   value: number | null | undefined,
-  currency: "AED" | "USD" = "AED"
+  currency: keyof typeof formatters = "AED"
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   return formatters[currency].format(value);
@@ -23,7 +35,7 @@ export function formatMoney(
 
 export function formatSignedMoney(
   value: number | null | undefined,
-  currency: "AED" | "USD" = "AED"
+  currency: keyof typeof formatters = "AED"
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const sign = value > 0 ? "+" : "";
@@ -71,4 +83,13 @@ export function addMonths(month: string, delta: number): string {
   const date = new Date(`${month}T00:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() + delta);
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+/** [first day, last day] of a "yyyy-mm-01" month, both "yyyy-mm-dd". */
+export function monthDateRange(month: string): [string, string] {
+  const start = new Date(`${month}T00:00:00Z`);
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  return [fmt(start), fmt(end)];
 }
