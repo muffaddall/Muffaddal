@@ -14,6 +14,11 @@ const GROUPS: {
     items: [{ href: "/new-idea?from=/", label: "New Idea" }],
   },
   {
+    title: "Finance",
+    color: "var(--color-accent)",
+    items: [{ href: "/day-to-day/new", label: "Log Expense / Income" }],
+  },
+  {
     title: "Fitness",
     color: "var(--color-fitness)",
     items: [
