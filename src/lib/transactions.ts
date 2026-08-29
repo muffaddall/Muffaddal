@@ -81,3 +81,23 @@ export async function deleteTransaction(id: string): Promise<void> {
   const { error } = await supabase.from("dd_transactions").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+// Net day-to-day money movement per month ("YYYY-MM" keys): income minus
+// expense transactions. Transfers are excluded since they don't change how
+// much money is available overall. Used to carry day-to-day surplus/deficit
+// forward into later months' budgets.
+export async function getDayToDayNetByMonth(): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("dd_transactions")
+    .select("date, amount, type")
+    .in("type", ["income", "expense"]);
+  if (error) throw new Error(error.message);
+
+  const byMonth = new Map<string, number>();
+  for (const row of (data ?? []) as { date: string; amount: number; type: TransactionType }[]) {
+    const key = row.date.slice(0, 7);
+    const delta = row.type === "income" ? row.amount : -row.amount;
+    byMonth.set(key, (byMonth.get(key) ?? 0) + delta);
+  }
+  return byMonth;
+}
