@@ -29,20 +29,23 @@ export default async function AccountDetailPage(
   const balance = computeAccountBalance(transactions, id);
 
   const monthPrefix = currentMonth().slice(0, 7);
-  const monthExpenses = transactions.filter(
-    (tx) => tx.type === "expense" && tx.accountId === id && tx.date.slice(0, 7) === monthPrefix
-  );
 
-  const byTopCategory = new Map<string, number>();
-  for (const tx of monthExpenses) {
-    if (!tx.categoryId) continue;
-    const topId = topLevelCategoryId(tx.categoryId, categoriesById);
-    if (!topId) continue;
-    byTopCategory.set(topId, (byTopCategory.get(topId) ?? 0) + tx.amount);
+  function pieDataFor(type: "expense" | "income") {
+    const byTopCategory = new Map<string, number>();
+    for (const tx of transactions) {
+      if (tx.type !== type || tx.accountId !== id || tx.date.slice(0, 7) !== monthPrefix) continue;
+      if (!tx.categoryId) continue;
+      const topId = topLevelCategoryId(tx.categoryId, categoriesById);
+      if (!topId) continue;
+      byTopCategory.set(topId, (byTopCategory.get(topId) ?? 0) + tx.amount);
+    }
+    return Array.from(byTopCategory.entries())
+      .map(([catId, amount]) => ({ label: categoriesById.get(catId)?.name ?? "Other", value: amount }))
+      .sort((a, b) => b.value - a.value);
   }
-  const pieData = Array.from(byTopCategory.entries())
-    .map(([catId, amount]) => ({ label: categoriesById.get(catId)?.name ?? "Other", value: amount }))
-    .sort((a, b) => b.value - a.value);
+
+  const expensePieData = pieDataFor("expense");
+  const incomePieData = pieDataFor("income");
 
   return (
     <div className="pb-10">
@@ -63,12 +66,21 @@ export default async function AccountDetailPage(
           </p>
         </div>
 
-        {pieData.length > 0 && (
+        {expensePieData.length > 0 && (
           <section className="mb-6">
             <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-              This month by category
+              This month&apos;s spending by category
             </h2>
-            <CategoryPieChart data={pieData} currency={account.currency} />
+            <CategoryPieChart data={expensePieData} currency={account.currency} />
+          </section>
+        )}
+
+        {incomePieData.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+              This month&apos;s income by category
+            </h2>
+            <CategoryPieChart data={incomePieData} currency={account.currency} />
           </section>
         )}
 

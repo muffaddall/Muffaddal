@@ -22,6 +22,7 @@ const DEFAULT_ACCOUNTS: { name: string; currency: Currency }[] = [
   { name: "UAE", currency: "AED" },
   { name: "UK", currency: "GBP" },
   { name: "India", currency: "INR" },
+  { name: "Physical Cash", currency: "AED" },
 ];
 
 export async function getAccounts(): Promise<Account[]> {
@@ -31,21 +32,32 @@ export async function getAccounts(): Promise<Account[]> {
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
 
-  if ((data ?? []).length === 0) {
+  let accounts = data ?? [];
+
+  if (accounts.length === 0) {
     const { error: seedError } = await supabase.from("accounts").insert(
       DEFAULT_ACCOUNTS.map((a, i) => ({ ...a, sort_order: i }))
     );
     if (seedError) throw new Error(seedError.message);
-
-    const { data: seeded, error: reErr } = await supabase
+  } else if (!accounts.some((a) => a.name === "Physical Cash")) {
+    // Added after the initial seed — top up existing installs on next load
+    // instead of requiring a manual DB step.
+    const { error: topUpError } = await supabase
       .from("accounts")
-      .select("*")
-      .order("sort_order", { ascending: true });
-    if (reErr) throw new Error(reErr.message);
-    return (seeded ?? []).map(fromRow);
+      .insert({ name: "Physical Cash", currency: "AED", sort_order: accounts.length });
+    if (topUpError) throw new Error(topUpError.message);
+  } else {
+    return accounts.map(fromRow);
   }
 
-  return (data ?? []).map(fromRow);
+  const { data: refreshed, error: reErr } = await supabase
+    .from("accounts")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (reErr) throw new Error(reErr.message);
+  accounts = refreshed ?? [];
+
+  return accounts.map(fromRow);
 }
 
 export async function getAccount(id: string): Promise<Account | null> {
