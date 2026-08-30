@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
@@ -54,6 +55,13 @@ export default async function AccountDetailPage(
         <FinanceSectionTabs active="day-to-day" />
       </div>
       <main className="mx-auto max-w-2xl px-4 sm:px-6">
+        <Link
+          href="/day-to-day/accounts"
+          className="inline-flex items-center gap-1 text-sm text-[var(--color-fg-dim)] hover:text-white/80 transition-colors mb-4"
+        >
+          ← Back to Accounts
+        </Link>
+
         <div className="mb-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
           <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
             Balance

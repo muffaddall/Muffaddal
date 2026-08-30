@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getDdCategories } from "@/lib/ddCategories";
@@ -8,14 +9,21 @@ import AddCategoryForm from "./AddCategoryForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function DdCategoriesPage(
-  props: PageProps<"/day-to-day/categories">
-) {
-  const searchParams = await props.searchParams;
-  const kind: DdCategoryKind = searchParams.kind === "income" ? "income" : "expense";
+export default async function DdCategoriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string; month?: string; account?: string }>;
+}) {
+  const params = await searchParams;
+  const kind: DdCategoryKind = params.kind === "income" ? "income" : "expense";
 
   const categories = await getDdCategories(kind);
   const tree = buildCategoryTree(categories);
+
+  const backQuery = new URLSearchParams();
+  if (params.month) backQuery.set("month", params.month);
+  if (params.account) backQuery.set("account", params.account);
+  const backHref = `/day-to-day${backQuery.size > 0 ? `?${backQuery.toString()}` : ""}`;
 
   return (
     <div className="pb-10">
@@ -24,6 +32,13 @@ export default async function DdCategoriesPage(
         <FinanceSectionTabs active="day-to-day" />
       </div>
       <main className="mx-auto max-w-2xl px-4 sm:px-6">
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-1 text-sm text-[var(--color-fg-dim)] hover:text-white/80 transition-colors mb-4"
+        >
+          ← Back to Day-to-Day
+        </Link>
+
         <CategoryKindTabs active={kind} />
 
         <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">

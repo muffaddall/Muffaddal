@@ -161,13 +161,17 @@ export default async function DayToDayPage({
 
         <div className="flex justify-center gap-4 mb-4">
           <Link
-            href="/day-to-day/accounts"
+            href={`/day-to-day/accounts?month=${monthInputValue}${
+              selectedAccountId ? `&account=${selectedAccountId}` : ""
+            }`}
             className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
           >
             Accounts
           </Link>
           <Link
-            href="/day-to-day/categories"
+            href={`/day-to-day/categories?month=${monthInputValue}${
+              selectedAccountId ? `&account=${selectedAccountId}` : ""
+            }`}
             className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
           >
             Categories
