@@ -15,10 +15,12 @@ export default function DiaryEntryCard({
   tx,
   accountsById,
   categoriesById,
+  perspectiveAccountId,
 }: {
   tx: Transaction;
   accountsById: Map<string, Account>;
   categoriesById: Map<string, DdCategory>;
+  perspectiveAccountId?: string;
 }) {
   const [isDeleting, startDelete] = useTransition();
   const account = accountsById.get(tx.accountId);
@@ -29,10 +31,21 @@ export default function DiaryEntryCard({
   let color: string;
 
   if (tx.type === "transfer") {
+    const fromName = account?.name ?? "?";
     const toName = accountsById.get(tx.toAccountId ?? "")?.name ?? "?";
-    detail = `${account?.name ?? "?"} → ${toName}`;
-    sign = "";
-    color = "var(--color-fg-dim)";
+    if (perspectiveAccountId === tx.toAccountId) {
+      detail = `← ${fromName}`;
+      sign = "+";
+      color = "var(--color-positive)";
+    } else if (perspectiveAccountId === tx.accountId) {
+      detail = `→ ${toName}`;
+      sign = "-";
+      color = "var(--color-negative)";
+    } else {
+      detail = `${fromName} → ${toName}`;
+      sign = "";
+      color = "var(--color-fg-dim)";
+    }
   } else {
     detail = `${categoryPath(tx.categoryId, categoriesById)} · ${account?.name ?? "?"}`;
     sign = tx.type === "income" ? "+" : "-";

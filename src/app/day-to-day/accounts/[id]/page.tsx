@@ -7,7 +7,7 @@ import { getAllDdCategories } from "@/lib/ddCategories";
 import { computeAccountBalance, topLevelCategoryId } from "@/lib/types";
 import { currentMonth, formatMoney } from "@/lib/format";
 import TransactionRow from "../../TransactionRow";
-import CategoryPieChart from "./CategoryPieChart";
+import CategoryPieChart from "@/components/CategoryPieChart";
 
 export const dynamic = "force-dynamic";
 

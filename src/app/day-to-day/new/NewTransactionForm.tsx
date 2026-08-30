@@ -21,10 +21,12 @@ export default function NewTransactionForm({
   accounts,
   expenseTree,
   incomeTree,
+  defaultAccountId,
 }: {
   accounts: Account[];
   expenseTree: DdCategoryNode[];
   incomeTree: DdCategoryNode[];
+  defaultAccountId?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [type, setType] = useState<TransactionType>("expense");
@@ -108,7 +110,7 @@ export default function NewTransactionForm({
       </Field>
 
       <Field label={type === "transfer" ? "From account" : "Account"}>
-        <select name="accountId" required defaultValue="" className={inputClass}>
+        <select name="accountId" required defaultValue={defaultAccountId ?? ""} className={inputClass}>
           <option value="" disabled>
             Select account
           </option>

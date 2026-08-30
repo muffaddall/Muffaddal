@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
+import CategoryPieChart from "@/components/CategoryPieChart";
 import { getAccounts } from "@/lib/accounts";
 import { getAllDdCategories } from "@/lib/ddCategories";
-import { getDayToDayNetByPeriod, getTransactionsForRange } from "@/lib/transactions";
+import {
+  getDayToDayNetByPeriod,
+  getTransactionsForAccount,
+  getTransactionsForRange,
+} from "@/lib/transactions";
 import { getAllMonthSummaries, getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
 import { buildPeriodChain } from "@/lib/periods";
-import { CATEGORY_LABELS } from "@/lib/types";
+import { CATEGORY_LABELS, computeAccountBalance, topLevelCategoryId } from "@/lib/types";
 import {
   addMonths,
   currentMonth,
@@ -19,17 +24,19 @@ import {
 } from "@/lib/format";
 import { todayStr } from "@/lib/date";
 import DiaryEntryCard from "./DiaryEntryCard";
+import AccountQuickTabs from "./AccountQuickTabs";
 
 export const dynamic = "force-dynamic";
 
 export default async function DayToDayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; account?: string }>;
 }) {
   const params = await searchParams;
   const month = params.month ? inputValueToMonth(params.month) : currentMonth();
   const [monthStart, monthEnd] = monthDateRange(month);
+  const monthInputValue = monthToInputValue(month);
 
   const [accounts, categories, transactions, plannedExpenses, income, monthSummaries, netByPeriod] =
     await Promise.all([
@@ -45,7 +52,43 @@ export default async function DayToDayPage({
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
 
+  const selectedAccountId =
+    params.account && accountsById.has(params.account) ? params.account : (accounts[0]?.id ?? null);
+  const selectedAccount = selectedAccountId ? (accountsById.get(selectedAccountId) ?? null) : null;
+
+  const accountTransactions = selectedAccountId
+    ? await getTransactionsForAccount(selectedAccountId)
+    : [];
+  const accountBalance = selectedAccountId
+    ? computeAccountBalance(accountTransactions, selectedAccountId)
+    : 0;
+
   const monthKey = month.slice(0, 7);
+
+  function pieDataFor(type: "expense" | "income") {
+    const byTopCategory = new Map<string, number>();
+    for (const tx of accountTransactions) {
+      if (tx.type !== type || tx.accountId !== selectedAccountId || tx.date.slice(0, 7) !== monthKey) {
+        continue;
+      }
+      if (!tx.categoryId) continue;
+      const topId = topLevelCategoryId(tx.categoryId, categoriesById);
+      if (!topId) continue;
+      byTopCategory.set(topId, (byTopCategory.get(topId) ?? 0) + tx.amount);
+    }
+    return Array.from(byTopCategory.entries())
+      .map(([catId, amount]) => ({ label: categoriesById.get(catId)?.name ?? "Other", value: amount }))
+      .sort((a, b) => b.value - a.value);
+  }
+  const expensePieData = pieDataFor("expense");
+  const incomePieData = pieDataFor("income");
+
+  const accountDiaryTransactions = selectedAccountId
+    ? transactions.filter(
+        (tx) => tx.accountId === selectedAccountId || tx.toAccountId === selectedAccountId
+      )
+    : transactions;
+
   const monthlyLeftover = income - totalForMonth(plannedExpenses);
 
   // Chain every 10-day period (resetting on the 1st/11th/21st) from the
@@ -70,8 +113,8 @@ export default async function DayToDayPage({
   const currentPeriodIndex = todayDay <= 10 ? 0 : todayDay <= 20 ? 1 : 2;
   const periodLabels = ["1–10", "11–20", `21–${monthEnd.slice(8, 10)}`];
 
-  const byDate = new Map<string, typeof transactions>();
-  for (const tx of transactions) {
+  const byDate = new Map<string, typeof accountDiaryTransactions>();
+  for (const tx of accountDiaryTransactions) {
     const list = byDate.get(tx.date);
     if (list) list.push(tx);
     else byDate.set(tx.date, [tx]);
@@ -87,7 +130,9 @@ export default async function DayToDayPage({
         title="Day-to-Day Expenses"
         right={
           <Link
-            href="/day-to-day/new"
+            href={`/day-to-day/new?month=${monthInputValue}${
+              selectedAccountId ? `&account=${selectedAccountId}` : ""
+            }`}
             className="flex items-center gap-1 rounded-full bg-[var(--color-post)] text-black text-sm font-semibold px-4 py-1.5 active:scale-95 transition-transform"
           >
             <span className="text-base leading-none">+</span> Add
@@ -119,7 +164,7 @@ export default async function DayToDayPage({
           </Link>
         </div>
 
-        <div className="flex justify-center gap-4 mb-6">
+        <div className="flex justify-center gap-4 mb-4">
           <Link
             href="/day-to-day/accounts"
             className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
@@ -133,6 +178,28 @@ export default async function DayToDayPage({
             Categories
           </Link>
         </div>
+
+        <div className="flex justify-center mb-3">
+          <AccountQuickTabs
+            accounts={accounts}
+            selectedAccountId={selectedAccountId}
+            month={monthInputValue}
+          />
+        </div>
+
+        {selectedAccount && (
+          <div className="mb-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              {selectedAccount.name} Balance
+            </p>
+            <p
+              className="font-display text-4xl"
+              style={{ color: accountBalance < 0 ? "var(--color-negative)" : undefined }}
+            >
+              {formatMoney(accountBalance, selectedAccount.currency)}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="col-span-2 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
@@ -212,6 +279,24 @@ export default async function DayToDayPage({
           </div>
         </section>
 
+        {selectedAccount && expensePieData.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+              {selectedAccount.name}: spending by category
+            </h2>
+            <CategoryPieChart data={expensePieData} currency={selectedAccount.currency} />
+          </section>
+        )}
+
+        {selectedAccount && incomePieData.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+              {selectedAccount.name}: income by category
+            </h2>
+            <CategoryPieChart data={incomePieData} currency={selectedAccount.currency} />
+          </section>
+        )}
+
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
@@ -256,7 +341,7 @@ export default async function DayToDayPage({
 
         <section>
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-            Diary
+            Diary{selectedAccount ? ` — ${selectedAccount.name}` : ""}
           </h2>
           <div className="flex flex-col gap-4">
             {dates.map((date) => (
@@ -269,6 +354,7 @@ export default async function DayToDayPage({
                       tx={tx}
                       accountsById={accountsById}
                       categoriesById={categoriesById}
+                      perspectiveAccountId={selectedAccountId ?? undefined}
                     />
                   ))}
                 </div>
