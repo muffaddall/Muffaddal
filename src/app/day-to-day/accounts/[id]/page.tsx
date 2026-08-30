@@ -5,7 +5,8 @@ import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getAccount, getAccounts } from "@/lib/accounts";
 import { getTransactionsForAccount } from "@/lib/transactions";
 import { getAllDdCategories } from "@/lib/ddCategories";
-import { computeAccountBalance, topLevelCategoryId } from "@/lib/types";
+import { getReconciledAccountBalance } from "@/lib/accountBalance";
+import { topLevelCategoryId } from "@/lib/types";
 import { currentMonth, formatMoney } from "@/lib/format";
 import TransactionRow from "../../TransactionRow";
 import CategoryPieChart from "@/components/CategoryPieChart";
@@ -17,17 +18,17 @@ export default async function AccountDetailPage(
 ) {
   const { id } = await props.params;
 
-  const [account, accounts, transactions, categories] = await Promise.all([
+  const [account, accounts, transactions, categories, balance] = await Promise.all([
     getAccount(id),
     getAccounts(),
     getTransactionsForAccount(id),
     getAllDdCategories(),
+    getReconciledAccountBalance(id),
   ]);
   if (!account) notFound();
 
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
-  const balance = computeAccountBalance(transactions, id);
 
   const monthPrefix = currentMonth().slice(0, 7);
 

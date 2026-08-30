@@ -2,8 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getAccounts } from "@/lib/accounts";
-import { getAllTransactions } from "@/lib/transactions";
-import { computeAccountBalance } from "@/lib/types";
+import { getReconciledAccountBalance } from "@/lib/accountBalance";
 import AddAccountForm from "./AddAccountForm";
 import AccountRow from "./AccountRow";
 
@@ -15,10 +14,10 @@ export default async function DdAccountsPage({
   searchParams: Promise<{ month?: string; account?: string }>;
 }) {
   const params = await searchParams;
-  const [accounts, transactions] = await Promise.all([
-    getAccounts(),
-    getAllTransactions(),
-  ]);
+  const accounts = await getAccounts();
+  const balances = await Promise.all(
+    accounts.map((account) => getReconciledAccountBalance(account.id))
+  );
 
   const backQuery = new URLSearchParams();
   if (params.month) backQuery.set("month", params.month);
@@ -40,12 +39,8 @@ export default async function DdAccountsPage({
         </Link>
 
         <ul className="flex flex-col gap-2 mb-4">
-          {accounts.map((account) => (
-            <AccountRow
-              key={account.id}
-              account={account}
-              balance={computeAccountBalance(transactions, account.id)}
-            />
+          {accounts.map((account, i) => (
+            <AccountRow key={account.id} account={account} balance={balances[i]} />
           ))}
           {accounts.length === 0 && (
             <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
