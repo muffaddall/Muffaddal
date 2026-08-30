@@ -423,6 +423,16 @@ export function buildCategoryTree(categories: DdCategory[]): DdCategoryNode[] {
   return roots;
 }
 
+/** Path of ids from the top-level node down to `targetId` (inclusive), or [] if not found. */
+export function findCategoryTreePath(nodes: DdCategoryNode[], targetId: string): string[] {
+  for (const node of nodes) {
+    if (node.id === targetId) return [node.id];
+    const childPath = findCategoryTreePath(node.children, targetId);
+    if (childPath.length > 0) return [node.id, ...childPath];
+  }
+  return [];
+}
+
 /** Full "Parent › Child › Grandchild" label for a category, or "—". */
 export function categoryPath(
   categoryId: string | null,

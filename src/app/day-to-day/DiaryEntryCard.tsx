@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { removeTransaction } from "./transactionActions";
 import { formatMoney } from "@/lib/format";
@@ -16,11 +17,14 @@ export default function DiaryEntryCard({
   accountsById,
   categoriesById,
   perspectiveAccountId,
+  month,
 }: {
   tx: Transaction;
   accountsById: Map<string, Account>;
   categoriesById: Map<string, DdCategory>;
   perspectiveAccountId?: string;
+  /** "yyyy-mm" input value, carried into the edit page's back link. */
+  month?: string;
 }) {
   const [isDeleting, startDelete] = useTransition();
   const account = accountsById.get(tx.accountId);
@@ -68,6 +72,19 @@ export default function DiaryEntryCard({
           {sign}
           {formatMoney(tx.amount, currency)}
         </span>
+        <Link
+          href={`/day-to-day/edit/${tx.id}${
+            month || perspectiveAccountId
+              ? `?${new URLSearchParams({
+                  ...(month ? { month } : {}),
+                  ...(perspectiveAccountId ? { account: perspectiveAccountId } : {}),
+                }).toString()}`
+              : ""
+          }`}
+          className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors"
+        >
+          Edit
+        </Link>
         <button
           type="button"
           disabled={isDeleting}

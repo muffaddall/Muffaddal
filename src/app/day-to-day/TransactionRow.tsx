@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { removeTransaction } from "./transactionActions";
 import { formatMoney } from "@/lib/format";
@@ -72,7 +73,15 @@ export default function TransactionRow({
         {sign}
         {formatMoney(tx.amount, currency)}
       </td>
-      <td className="py-2 text-right">
+      <td className="py-2 text-right whitespace-nowrap">
+        <Link
+          href={`/day-to-day/edit/${tx.id}${
+            perspectiveAccountId ? `?account=${perspectiveAccountId}` : ""
+          }`}
+          className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors mr-3"
+        >
+          Edit
+        </Link>
         <button
           type="button"
           disabled={isDeleting}

@@ -204,37 +204,48 @@ export default async function DayToDayPage({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              From Planned Expenses
-            </p>
-            <p className="font-display text-xl">{formatMoney(monthlyLeftover, selectedAccount?.currency)}</p>
+        <details className="mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              Planned Expenses Breakdown
+            </span>
+            <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+          </summary>
+          <div className="grid grid-cols-2 gap-3 px-4 pb-4">
+            <div className="rounded-xl bg-white/5 p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                From Planned Expenses
+              </p>
+              <p className="font-display text-xl">{formatMoney(monthlyLeftover, selectedAccount?.currency)}</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Carried over
+              </p>
+              <p
+                className="font-display text-xl"
+                style={{ color: carryIn < 0 ? "var(--color-negative)" : carryIn > 0 ? "var(--color-positive)" : undefined }}
+              >
+                {formatSignedMoney(carryIn, selectedAccount?.currency)}
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              Carried over
-            </p>
-            <p
-              className="font-display text-xl"
-              style={{ color: carryIn < 0 ? "var(--color-negative)" : carryIn > 0 ? "var(--color-positive)" : undefined }}
-            >
-              {formatSignedMoney(carryIn, selectedAccount?.currency)}
-            </p>
-          </div>
-        </div>
+        </details>
 
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-            10-Day Periods
-          </h2>
-          <div className="flex flex-col gap-2">
+        <details className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              10-Day Periods
+            </span>
+            <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+          </summary>
+          <div className="flex flex-col gap-2 px-4 pb-4">
             {monthPeriods.map((p, i) => {
               const active = isCurrentMonth && i === currentPeriodIndex;
               return (
                 <div
                   key={p.key}
-                  className="rounded-xl bg-[var(--color-surface)] p-4"
+                  className="rounded-xl bg-white/5 p-4"
                   style={{
                     border: `1px solid ${active ? "var(--color-accent)" : "var(--color-border)"}`,
                   }}
@@ -269,7 +280,7 @@ export default async function DayToDayPage({
               );
             })}
           </div>
-        </section>
+        </details>
 
         {selectedAccount && expensePieData.length > 0 && (
           <section className="mb-6">
@@ -290,6 +301,38 @@ export default async function DayToDayPage({
         )}
 
         <section className="mb-6">
+          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+            Diary{selectedAccount ? ` — ${selectedAccount.name}` : ""}
+          </h2>
+          <div className="flex flex-col gap-4">
+            {dates.map((date) => (
+              <div key={date}>
+                <p className="text-xs font-medium text-[var(--color-fg-dim)] mb-1.5">{date}</p>
+                <div className="flex flex-col gap-2">
+                  {byDate.get(date)!.map((tx) => (
+                    <DiaryEntryCard
+                      key={tx.id}
+                      tx={tx}
+                      accountsById={accountsById}
+                      categoriesById={categoriesById}
+                      perspectiveAccountId={selectedAccountId ?? undefined}
+                      month={monthInputValue}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            {dates.length === 0 && (
+              <p className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
+                No transactions logged this month yet.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <div className="border-t border-[var(--color-border)] mb-6" />
+
+        <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               Planned Expenses{selectedAccount ? ` — ${selectedAccount.name}` : ""}
@@ -324,37 +367,6 @@ export default async function DayToDayPage({
             {plannedExpenses.length === 0 && (
               <p className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
                 No planned expenses set for this account this month.
-              </p>
-            )}
-          </div>
-        </section>
-
-        <div className="border-t border-[var(--color-border)] mb-6" />
-
-        <section>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-            Diary{selectedAccount ? ` — ${selectedAccount.name}` : ""}
-          </h2>
-          <div className="flex flex-col gap-4">
-            {dates.map((date) => (
-              <div key={date}>
-                <p className="text-xs font-medium text-[var(--color-fg-dim)] mb-1.5">{date}</p>
-                <div className="flex flex-col gap-2">
-                  {byDate.get(date)!.map((tx) => (
-                    <DiaryEntryCard
-                      key={tx.id}
-                      tx={tx}
-                      accountsById={accountsById}
-                      categoriesById={categoriesById}
-                      perspectiveAccountId={selectedAccountId ?? undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-            {dates.length === 0 && (
-              <p className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
-                No transactions logged this month yet.
               </p>
             )}
           </div>

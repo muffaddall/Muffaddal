@@ -1,15 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addTransaction } from "@/lib/transactions";
+import { redirect } from "next/navigation";
+import { addTransaction, updateTransaction } from "@/lib/transactions";
 import { isTransactionType } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
 
-export async function createTransaction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
+function parseTransactionForm(formData: FormData):
+  | { error: string }
+  | {
+      type: "income" | "expense" | "transfer";
+      date: string;
+      amount: number;
+      accountId: string;
+      toAccountId: string | null;
+      categoryId: string | null;
+      note: string;
+    } {
   const type = String(formData.get("type") ?? "");
   const date = String(formData.get("date") ?? "");
   const amount = Number(formData.get("amount"));
@@ -32,7 +40,7 @@ export async function createTransaction(
     return { error: "Select a category." };
   }
 
-  await addTransaction({
+  return {
     type,
     date,
     amount,
@@ -40,11 +48,38 @@ export async function createTransaction(
     toAccountId: type === "transfer" ? toAccountId : null,
     categoryId: type === "transfer" ? null : categoryId,
     note,
-  });
+  };
+}
 
+function revalidateTransactionPaths(accountId: string, toAccountId: string | null) {
   revalidatePath("/day-to-day");
   revalidatePath("/day-to-day/accounts");
   revalidatePath(`/day-to-day/accounts/${accountId}`);
   if (toAccountId) revalidatePath(`/day-to-day/accounts/${toAccountId}`);
   revalidatePath("/");
+}
+
+export async function createTransaction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const parsed = parseTransactionForm(formData);
+  if ("error" in parsed) return parsed;
+
+  await addTransaction(parsed);
+  revalidateTransactionPaths(parsed.accountId, parsed.toAccountId);
+}
+
+export async function editTransaction(
+  id: string,
+  backHref: string | undefined,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const parsed = parseTransactionForm(formData);
+  if ("error" in parsed) return parsed;
+
+  await updateTransaction(id, parsed);
+  revalidateTransactionPaths(parsed.accountId, parsed.toAccountId);
+  redirect(backHref || "/day-to-day");
 }

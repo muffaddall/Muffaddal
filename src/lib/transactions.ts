@@ -64,6 +64,16 @@ export async function getTransactionsForAccount(accountId: string): Promise<Tran
   return (data ?? []).map(fromRow);
 }
 
+export async function getTransaction(id: string): Promise<Transaction | null> {
+  const { data, error } = await supabase
+    .from("dd_transactions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? fromRow(data) : null;
+}
+
 export async function addTransaction(input: TransactionInput): Promise<void> {
   const { error } = await supabase.from("dd_transactions").insert({
     type: input.type,
@@ -74,6 +84,22 @@ export async function addTransaction(input: TransactionInput): Promise<void> {
     category_id: input.categoryId,
     note: input.note,
   });
+  if (error) throw new Error(error.message);
+}
+
+export async function updateTransaction(id: string, input: TransactionInput): Promise<void> {
+  const { error } = await supabase
+    .from("dd_transactions")
+    .update({
+      type: input.type,
+      date: input.date,
+      amount: input.amount,
+      account_id: input.accountId,
+      to_account_id: input.toAccountId,
+      category_id: input.categoryId,
+      note: input.note,
+    })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 }
 

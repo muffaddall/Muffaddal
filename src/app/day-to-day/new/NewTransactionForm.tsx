@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useRef, useState, type ReactNode } from "react";
-import { createTransaction } from "./actions";
+import { createTransaction, editTransaction } from "./actions";
 import { todayStr } from "@/lib/date";
-import type { Account, DdCategoryNode, TransactionType } from "@/lib/types";
+import { findCategoryTreePath } from "@/lib/types";
+import type { Account, DdCategoryNode, Transaction, TransactionType } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-lg bg-white/5 border border-[var(--color-border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--color-accent)]";
@@ -22,24 +23,38 @@ export default function NewTransactionForm({
   expenseTree,
   incomeTree,
   defaultAccountId,
+  transaction,
+  backHref,
 }: {
   accounts: Account[];
   expenseTree: DdCategoryNode[];
   incomeTree: DdCategoryNode[];
   defaultAccountId?: string;
+  /** Present when editing an existing transaction instead of adding a new one. */
+  transaction?: Transaction;
+  /** Where to send the browser after a successful edit. */
+  backHref?: string;
 }) {
+  const isEditing = !!transaction;
   const formRef = useRef<HTMLFormElement>(null);
-  const [type, setType] = useState<TransactionType>("expense");
-  const [level1, setLevel1] = useState("");
-  const [level2, setLevel2] = useState("");
-  const [level3, setLevel3] = useState("");
+  const [type, setType] = useState<TransactionType>(transaction?.type ?? "expense");
+
+  const initialTree = transaction?.type === "income" ? incomeTree : expenseTree;
+  const initialPath = transaction?.categoryId
+    ? findCategoryTreePath(initialTree, transaction.categoryId)
+    : [];
+  const [level1, setLevel1] = useState(initialPath[0] ?? "");
+  const [level2, setLevel2] = useState(initialPath[1] ?? "");
+  const [level3, setLevel3] = useState(initialPath[2] ?? "");
 
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
     formData: FormData
   ) => {
-    const result = await createTransaction(prev, formData);
-    if (!result) {
+    const result = isEditing
+      ? await editTransaction(transaction.id, backHref, prev, formData)
+      : await createTransaction(prev, formData);
+    if (!result && !isEditing) {
       formRef.current?.reset();
       setLevel1("");
       setLevel2("");
@@ -92,7 +107,7 @@ export default function NewTransactionForm({
           name="date"
           type="date"
           required
-          defaultValue={todayStr()}
+          defaultValue={transaction?.date ?? todayStr()}
           className={inputClass}
         />
       </Field>
@@ -105,12 +120,18 @@ export default function NewTransactionForm({
           min="0"
           required
           placeholder="0.00"
+          defaultValue={transaction?.amount ?? ""}
           className={inputClass}
         />
       </Field>
 
       <Field label={type === "transfer" ? "From account" : "Account"}>
-        <select name="accountId" required defaultValue={defaultAccountId ?? ""} className={inputClass}>
+        <select
+          name="accountId"
+          required
+          defaultValue={transaction?.accountId ?? defaultAccountId ?? ""}
+          className={inputClass}
+        >
           <option value="" disabled>
             Select account
           </option>
@@ -124,7 +145,12 @@ export default function NewTransactionForm({
 
       {type === "transfer" && (
         <Field label="To account">
-          <select name="toAccountId" required defaultValue="" className={inputClass}>
+          <select
+            name="toAccountId"
+            required
+            defaultValue={transaction?.toAccountId ?? ""}
+            className={inputClass}
+          >
             <option value="" disabled>
               Select account
             </option>
@@ -198,7 +224,13 @@ export default function NewTransactionForm({
       )}
 
       <Field label="Note (optional)">
-        <input name="note" type="text" placeholder="What was this for?" className={inputClass} />
+        <input
+          name="note"
+          type="text"
+          placeholder="What was this for?"
+          defaultValue={transaction?.note ?? ""}
+          className={inputClass}
+        />
       </Field>
 
       <button
@@ -206,7 +238,7 @@ export default function NewTransactionForm({
         disabled={pending}
         className="rounded-lg bg-[var(--color-accent)] text-black font-semibold px-4 py-3 text-sm disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Add transaction"}
+        {pending ? "Saving…" : isEditing ? "Save changes" : "Add transaction"}
       </button>
       {state?.error && <p className="text-xs text-[var(--color-negative)]">{state.error}</p>}
     </form>
