@@ -1,6 +1,5 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
-import { periodKeyForDate } from "@/lib/format";
 import type { Transaction, TransactionInput, TransactionType } from "@/lib/types";
 
 type TransactionRow = {
@@ -81,28 +80,4 @@ export async function addTransaction(input: TransactionInput): Promise<void> {
 export async function deleteTransaction(id: string): Promise<void> {
   const { error } = await supabase.from("dd_transactions").delete().eq("id", id);
   if (error) throw new Error(error.message);
-}
-
-export type PeriodNet = { income: number; expense: number };
-
-// Income/expense totals per 10-day budget period (keyed by that period's
-// start date, e.g. "2026-08-11"). Transfers are excluded since they don't
-// change how much money is available overall. Used to carry day-to-day
-// surplus/deficit forward from one 10-day period into the next.
-export async function getDayToDayNetByPeriod(): Promise<Map<string, PeriodNet>> {
-  const { data, error } = await supabase
-    .from("dd_transactions")
-    .select("date, amount, type")
-    .in("type", ["income", "expense"]);
-  if (error) throw new Error(error.message);
-
-  const byPeriod = new Map<string, PeriodNet>();
-  for (const row of (data ?? []) as { date: string; amount: number; type: TransactionType }[]) {
-    const key = periodKeyForDate(row.date);
-    const entry = byPeriod.get(key) ?? { income: 0, expense: 0 };
-    if (row.type === "income") entry.income += row.amount;
-    else entry.expense += row.amount;
-    byPeriod.set(key, entry);
-  }
-  return byPeriod;
 }

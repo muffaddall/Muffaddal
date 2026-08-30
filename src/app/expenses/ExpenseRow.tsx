@@ -2,11 +2,17 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { editExpense, removeExpense } from "./actions";
-import { CATEGORY_LABELS, EXPENSE_CATEGORIES, type ExpenseEntry } from "@/lib/types";
+import { CATEGORY_LABELS, EXPENSE_CATEGORIES, type Currency, type ExpenseEntry } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import CategoryBadge from "@/components/CategoryBadge";
 
-export default function ExpenseRow({ entry }: { entry: ExpenseEntry }) {
+export default function ExpenseRow({
+  entry,
+  currency,
+}: {
+  entry: ExpenseEntry;
+  currency?: Currency;
+}) {
   const [editing, setEditing] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [state, formAction, pending] = useActionState(async (
@@ -90,7 +96,7 @@ export default function ExpenseRow({ entry }: { entry: ExpenseEntry }) {
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm tabular-nums">{formatMoney(entry.amount)}</span>
+        <span className="text-sm tabular-nums">{formatMoney(entry.amount, currency)}</span>
         <button
           type="button"
           onClick={() => setEditing(true)}

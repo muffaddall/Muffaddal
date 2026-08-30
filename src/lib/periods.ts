@@ -1,5 +1,7 @@
-import { addMonths, monthToInputValue } from "@/lib/format";
-import type { PeriodNet } from "@/lib/transactions";
+import { addMonths, monthToInputValue, periodKeyForDate } from "@/lib/format";
+import { transactionAccountDelta, type Transaction } from "@/lib/types";
+
+export type PeriodNet = { income: number; expense: number };
 
 export type Period = {
   key: string; // start date "yyyy-mm-01/11/21"
@@ -55,4 +57,28 @@ export function buildPeriodChain(
   }
 
   return periods;
+}
+
+/**
+ * Buckets one account's own transactions into per-period income/expense
+ * totals, from that account's perspective — a transfer out counts as an
+ * expense, a transfer in counts as income, alongside ordinary income/
+ * expense transactions. Feeds `buildPeriodChain` so an account's 10-day
+ * periods reflect only money that actually moved through that account.
+ */
+export function accountNetByPeriod(
+  transactions: Transaction[],
+  accountId: string
+): Map<string, PeriodNet> {
+  const byPeriod = new Map<string, PeriodNet>();
+  for (const tx of transactions) {
+    const delta = transactionAccountDelta(tx, accountId);
+    if (delta === 0) continue;
+    const key = periodKeyForDate(tx.date);
+    const entry = byPeriod.get(key) ?? { income: 0, expense: 0 };
+    if (delta > 0) entry.income += delta;
+    else entry.expense += -delta;
+    byPeriod.set(key, entry);
+  }
+  return byPeriod;
 }

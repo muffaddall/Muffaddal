@@ -2,10 +2,10 @@ import "server-only";
 import { supabase } from "@/lib/supabase";
 import type { ExpenseCategory, ExpenseEntry, MonthlyIncome } from "@/lib/types";
 
-export async function getExpenseMonths(): Promise<string[]> {
+export async function getExpenseMonths(accountId: string): Promise<string[]> {
   const [entries, incomes] = await Promise.all([
-    supabase.from("expense_entries").select("month"),
-    supabase.from("monthly_income").select("month"),
+    supabase.from("expense_entries").select("month").eq("account_id", accountId),
+    supabase.from("monthly_income").select("month").eq("account_id", accountId),
   ]);
   if (entries.error) throw entries.error;
   if (incomes.error) throw incomes.error;
@@ -16,31 +16,33 @@ export async function getExpenseMonths(): Promise<string[]> {
   return Array.from(months).sort();
 }
 
-export async function getExpensesForMonth(month: string): Promise<ExpenseEntry[]> {
+export async function getExpensesForMonth(month: string, accountId: string): Promise<ExpenseEntry[]> {
   const { data, error } = await supabase
     .from("expense_entries")
     .select("*")
     .eq("month", month)
+    .eq("account_id", accountId)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data ?? [];
 }
 
-export async function getIncomeForMonth(month: string): Promise<number> {
+export async function getIncomeForMonth(month: string, accountId: string): Promise<number> {
   const { data, error } = await supabase
     .from("monthly_income")
     .select("income")
     .eq("month", month)
+    .eq("account_id", accountId)
     .maybeSingle();
   if (error) throw error;
   return data?.income ?? 15000;
 }
 
-export async function setIncomeForMonth(month: string, income: number): Promise<void> {
+export async function setIncomeForMonth(month: string, accountId: string, income: number): Promise<void> {
   const { error } = await supabase
     .from("monthly_income")
-    .upsert({ month, income }, { onConflict: "month" });
+    .upsert({ month, account_id: accountId, income }, { onConflict: "month,account_id" });
   if (error) throw error;
 }
 
@@ -50,8 +52,16 @@ export async function addExpenseEntry(input: {
   name: string;
   amount: number;
   category: ExpenseCategory;
+  accountId: string;
 }): Promise<void> {
-  const { error } = await supabase.from("expense_entries").insert(input);
+  const { error } = await supabase.from("expense_entries").insert({
+    month: input.month,
+    date_label: input.date_label,
+    name: input.name,
+    amount: input.amount,
+    category: input.category,
+    account_id: input.accountId,
+  });
   if (error) throw error;
 }
 
@@ -74,9 +84,14 @@ export async function deleteExpenseEntry(id: string): Promise<void> {
 }
 
 // Copies every entry from one month into another as new rows (new ids),
-// so editing a copy never touches the original month's entry.
-export async function copyExpensesToMonth(fromMonth: string, toMonth: string): Promise<number> {
-  const source = await getExpensesForMonth(fromMonth);
+// so editing a copy never touches the original month's entry. Scoped to
+// one account — each account keeps its own Planned Expenses list.
+export async function copyExpensesToMonth(
+  fromMonth: string,
+  toMonth: string,
+  accountId: string
+): Promise<number> {
+  const source = await getExpensesForMonth(fromMonth, accountId);
   if (source.length === 0) return 0;
 
   const copies = source.map((entry) => ({
@@ -86,6 +101,7 @@ export async function copyExpensesToMonth(fromMonth: string, toMonth: string): P
     amount: entry.amount,
     category: entry.category,
     sort_order: entry.sort_order,
+    account_id: accountId,
   }));
 
   const { error } = await supabase.from("expense_entries").insert(copies);
@@ -97,8 +113,10 @@ export function totalForMonth(entries: ExpenseEntry[]): number {
   return entries.reduce((sum, e) => sum + e.amount, 0);
 }
 
-// Sums a single category's expense amounts per month — used by the Savings
-// and Investments tabs to derive their figures from the Expenses tab.
+// Sums a single category's expense amounts per month, across every
+// account — used by the Savings and Investments tabs, which track
+// household-wide funding/debt/savings regardless of which account the
+// money moved from.
 export async function getExpenseAmountByMonthForCategory(
   category: ExpenseCategory
 ): Promise<Map<string, number>> {
@@ -122,13 +140,13 @@ export type MonthSummary = {
   leftover: number;
 };
 
-export async function getAllMonthSummaries(): Promise<MonthSummary[]> {
-  const months = await getExpenseMonths();
+export async function getAllMonthSummaries(accountId: string): Promise<MonthSummary[]> {
+  const months = await getExpenseMonths(accountId);
   const summaries: MonthSummary[] = [];
   for (const month of months) {
     const [entries, income] = await Promise.all([
-      getExpensesForMonth(month),
-      getIncomeForMonth(month),
+      getExpensesForMonth(month, accountId),
+      getIncomeForMonth(month, accountId),
     ]);
     summaries.push({
       month,
@@ -149,8 +167,8 @@ export type YearMonth = {
 };
 
 // All 12 months of a calendar year, for the yearly grid view — regardless
-// of whether a given month has any data yet.
-export async function getExpensesForYear(year: number): Promise<YearMonth[]> {
+// of whether a given month has any data yet. Scoped to one account.
+export async function getExpensesForYear(year: number, accountId: string): Promise<YearMonth[]> {
   const months = Array.from(
     { length: 12 },
     (_, i) => `${year}-${String(i + 1).padStart(2, "0")}-01`
@@ -159,8 +177,8 @@ export async function getExpensesForYear(year: number): Promise<YearMonth[]> {
   return Promise.all(
     months.map(async (month) => {
       const [entries, income] = await Promise.all([
-        getExpensesForMonth(month),
-        getIncomeForMonth(month),
+        getExpensesForMonth(month, accountId),
+        getIncomeForMonth(month, accountId),
       ]);
       const total = totalForMonth(entries);
       return { month, entries, income, total, leftover: income - total };

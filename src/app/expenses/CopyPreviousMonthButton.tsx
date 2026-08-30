@@ -4,7 +4,13 @@ import { useState, useTransition } from "react";
 import { copyPreviousMonth } from "./actions";
 import { addMonths, formatMonth } from "@/lib/format";
 
-export default function CopyPreviousMonthButton({ month }: { month: string }) {
+export default function CopyPreviousMonthButton({
+  month,
+  accountId,
+}: {
+  month: string;
+  accountId: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const previousMonth = addMonths(month, -1);
@@ -17,7 +23,7 @@ export default function CopyPreviousMonthButton({ month }: { month: string }) {
 
     setMessage(null);
     startTransition(async () => {
-      const result = await copyPreviousMonth(month);
+      const result = await copyPreviousMonth(month, accountId);
       if (result.error) {
         setMessage(result.error);
       } else if (!result.copied) {

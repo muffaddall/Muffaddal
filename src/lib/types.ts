@@ -98,11 +98,13 @@ export type ExpenseEntry = {
   amount: number;
   category: ExpenseCategory;
   sort_order: number;
+  account_id: string;
 };
 
 export type MonthlyIncome = {
   month: string;
   income: number;
+  account_id: string;
 };
 
 export type InvestmentMonth = {

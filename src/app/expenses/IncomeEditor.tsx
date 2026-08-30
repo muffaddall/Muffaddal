@@ -5,9 +5,11 @@ import { saveIncome } from "./actions";
 
 export default function IncomeEditor({
   month,
+  accountId,
   income,
 }: {
   month: string;
+  accountId: string;
   income: number;
 }) {
   const [state, formAction, pending] = useActionState(saveIncome, undefined);
@@ -15,6 +17,7 @@ export default function IncomeEditor({
   return (
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name="month" value={month} />
+      <input type="hidden" name="accountId" value={accountId} />
       <label className="text-sm text-[var(--color-fg-dim)]" htmlFor="income">
         Income this month
       </label>

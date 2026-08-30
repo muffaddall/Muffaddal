@@ -25,16 +25,18 @@ export async function createExpense(
   formData: FormData
 ): Promise<FormState> {
   const month = String(formData.get("month") ?? "");
+  const accountId = String(formData.get("accountId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const dateLabel = String(formData.get("date_label") ?? "1st").trim() || "1st";
   const amount = Number(formData.get("amount"));
   const category = parseCategory(formData.get("category"));
 
   if (!month) return { error: "Missing month." };
+  if (!accountId) return { error: "Missing account." };
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
 
-  await addExpenseEntry({ month, date_label: dateLabel, name, amount, category });
+  await addExpenseEntry({ month, date_label: dateLabel, name, amount, category, accountId });
   revalidatePath("/expenses");
   revalidatePath("/");
 }
@@ -64,9 +66,12 @@ export async function removeExpense(id: string): Promise<void> {
   revalidatePath("/");
 }
 
-export async function copyPreviousMonth(month: string): Promise<{ error?: string; copied?: number }> {
+export async function copyPreviousMonth(
+  month: string,
+  accountId: string
+): Promise<{ error?: string; copied?: number }> {
   const previousMonth = addMonths(month, -1);
-  const copied = await copyExpensesToMonth(previousMonth, month);
+  const copied = await copyExpensesToMonth(previousMonth, month, accountId);
   revalidatePath("/expenses");
   revalidatePath("/");
   return { copied };
@@ -77,12 +82,14 @@ export async function saveIncome(
   formData: FormData
 ): Promise<FormState> {
   const month = String(formData.get("month") ?? "");
+  const accountId = String(formData.get("accountId") ?? "");
   const income = Number(formData.get("income"));
 
   if (!month) return { error: "Missing month." };
+  if (!accountId) return { error: "Missing account." };
   if (!Number.isFinite(income)) return { error: "Income must be a number." };
 
-  await setIncomeForMonth(month, income);
+  await setIncomeForMonth(month, accountId, income);
   revalidatePath("/expenses");
   revalidatePath("/");
 }

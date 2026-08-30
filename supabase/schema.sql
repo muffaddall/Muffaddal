@@ -96,7 +96,8 @@ alter table expense_entries drop constraint if exists expense_entries_category_c
 alter table expense_entries add constraint expense_entries_category_check
   check (category in ('recurring', 'stoppable', 'installment', 'debt', 'investment', 'savings', 'one_off'));
 
--- Declared monthly income, one row per month (defaults to 15000 like the sheet).
+-- Declared monthly income, one row per month (defaults to 15000 like the
+-- sheet). Made per-account further down, once the accounts table exists.
 create table if not exists monthly_income (
   month date primary key,
   income numeric not null default 15000
@@ -263,3 +264,42 @@ create index if not exists dd_transactions_date_idx on dd_transactions (date);
 create index if not exists dd_transactions_account_idx on dd_transactions (account_id);
 
 alter table dd_transactions enable row level security;
+
+-- Planned Expenses are per-account (each account has its own list and its
+-- own income figure) rather than one shared household list. Existing rows
+-- predate this, so they're backfilled onto the first account by sort
+-- order — reassign them by hand afterwards if that guess is wrong. Only
+-- runs the backfill when there's actually an account to assign; on a
+-- fresh install with no accounts yet, account_id is simply left null and
+-- gets filled in the moment an account is created and a plan is saved.
+alter table expense_entries add column if not exists account_id uuid references accounts(id) on delete cascade;
+update expense_entries set account_id = (select id from accounts order by sort_order limit 1)
+  where account_id is null;
+create index if not exists expense_entries_account_idx on expense_entries (account_id);
+
+-- Repoints monthly_income's primary key from "one row per month" to "one
+-- row per month per account", backfilling existing rows the same way.
+alter table monthly_income add column if not exists account_id uuid references accounts(id) on delete cascade;
+update monthly_income set account_id = (select id from accounts order by sort_order limit 1)
+  where account_id is null;
+
+-- Only repoints the primary key once every row actually has an
+-- account_id — if there were no accounts yet to backfill onto, this
+-- quietly waits and repoints itself next time the script is re-run.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.table_constraints
+    where table_name = 'monthly_income' and constraint_name = 'monthly_income_pkey'
+      and constraint_type = 'PRIMARY KEY'
+  ) and not exists (
+    select 1 from information_schema.key_column_usage
+    where table_name = 'monthly_income' and constraint_name = 'monthly_income_pkey'
+      and column_name = 'account_id'
+  ) and not exists (
+    select 1 from monthly_income where account_id is null
+  ) then
+    alter table monthly_income drop constraint monthly_income_pkey;
+    alter table monthly_income add primary key (month, account_id);
+  end if;
+end $$;

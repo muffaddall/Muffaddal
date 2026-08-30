@@ -4,7 +4,13 @@ import { useActionState, useRef } from "react";
 import { createExpense } from "./actions";
 import { CATEGORY_LABELS, EXPENSE_CATEGORIES } from "@/lib/types";
 
-export default function AddExpenseForm({ month }: { month: string }) {
+export default function AddExpenseForm({
+  month,
+  accountId,
+}: {
+  month: string;
+  accountId: string;
+}) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
@@ -22,6 +28,7 @@ export default function AddExpenseForm({ month }: { month: string }) {
       className="grid grid-cols-2 gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3 sm:grid-cols-[5rem_1fr_7rem_10rem_auto]"
     >
       <input type="hidden" name="month" value={month} />
+      <input type="hidden" name="accountId" value={accountId} />
       <input
         name="date_label"
         placeholder="1st"

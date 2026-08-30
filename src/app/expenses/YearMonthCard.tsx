@@ -1,14 +1,23 @@
 import Link from "next/link";
 import { formatMoney, formatMonthShort, formatSignedMoney, monthToInputValue } from "@/lib/format";
 import type { YearMonth } from "@/lib/expenses";
+import type { Currency } from "@/lib/types";
 
-export default function YearMonthCard({ data }: { data: YearMonth }) {
+export default function YearMonthCard({
+  data,
+  accountId,
+  currency,
+}: {
+  data: YearMonth;
+  accountId: string | null;
+  currency?: Currency;
+}) {
   const { month, entries, income, total, leftover } = data;
 
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden flex flex-col">
       <Link
-        href={`/expenses?month=${monthToInputValue(month)}`}
+        href={`/expenses?month=${monthToInputValue(month)}${accountId ? `&account=${accountId}` : ""}`}
         className="block bg-[var(--color-post)] text-black font-display text-lg tracking-wide text-center py-1.5 hover:opacity-90 transition-opacity"
       >
         {formatMonthShort(month)}
@@ -33,7 +42,7 @@ export default function YearMonthCard({ data }: { data: YearMonth }) {
                     {entry.date_label}
                   </td>
                   <td className="py-0.5 pr-1 truncate max-w-[8rem]">{entry.name}</td>
-                  <td className="py-0.5 text-right tabular-nums">{formatMoney(entry.amount)}</td>
+                  <td className="py-0.5 text-right tabular-nums">{formatMoney(entry.amount, currency)}</td>
                 </tr>
               ))}
             </tbody>
@@ -44,11 +53,11 @@ export default function YearMonthCard({ data }: { data: YearMonth }) {
       <div className="border-t border-[var(--color-border)] px-3 py-2 text-xs flex flex-col gap-0.5">
         <div className="flex justify-between">
           <span className="text-[var(--color-fg-dim)]">Spent</span>
-          <span className="tabular-nums">{formatMoney(total)}</span>
+          <span className="tabular-nums">{formatMoney(total, currency)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-[var(--color-fg-dim)]">Income</span>
-          <span className="tabular-nums">{formatMoney(income)}</span>
+          <span className="tabular-nums">{formatMoney(income, currency)}</span>
         </div>
         <div className="flex justify-between font-medium">
           <span className="text-[var(--color-fg-dim)]">Left over</span>
@@ -56,7 +65,7 @@ export default function YearMonthCard({ data }: { data: YearMonth }) {
             className="tabular-nums"
             style={{ color: leftover < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
           >
-            {formatSignedMoney(leftover)}
+            {formatSignedMoney(leftover, currency)}
           </span>
         </div>
       </div>

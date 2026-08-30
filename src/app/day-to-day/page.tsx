@@ -2,15 +2,12 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import CategoryPieChart from "@/components/CategoryPieChart";
+import AccountQuickTabs from "@/components/AccountQuickTabs";
 import { getAccounts } from "@/lib/accounts";
 import { getAllDdCategories } from "@/lib/ddCategories";
-import {
-  getDayToDayNetByPeriod,
-  getTransactionsForAccount,
-  getTransactionsForRange,
-} from "@/lib/transactions";
+import { getTransactionsForAccount } from "@/lib/transactions";
 import { getAllMonthSummaries, getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
-import { buildPeriodChain } from "@/lib/periods";
+import { accountNetByPeriod, buildPeriodChain, type PeriodNet } from "@/lib/periods";
 import { CATEGORY_LABELS, computeAccountBalance, topLevelCategoryId } from "@/lib/types";
 import {
   addMonths,
@@ -24,7 +21,6 @@ import {
 } from "@/lib/format";
 import { todayStr } from "@/lib/date";
 import DiaryEntryCard from "./DiaryEntryCard";
-import AccountQuickTabs from "./AccountQuickTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -37,18 +33,9 @@ export default async function DayToDayPage({
   const month = params.month ? inputValueToMonth(params.month) : currentMonth();
   const [monthStart, monthEnd] = monthDateRange(month);
   const monthInputValue = monthToInputValue(month);
+  const monthKey = month.slice(0, 7);
 
-  const [accounts, categories, transactions, plannedExpenses, income, monthSummaries, netByPeriod] =
-    await Promise.all([
-      getAccounts(),
-      getAllDdCategories(),
-      getTransactionsForRange(monthStart, monthEnd),
-      getExpensesForMonth(month),
-      getIncomeForMonth(month),
-      getAllMonthSummaries(),
-      getDayToDayNetByPeriod(),
-    ]);
-
+  const [accounts, categories] = await Promise.all([getAccounts(), getAllDdCategories()]);
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
 
@@ -56,21 +43,27 @@ export default async function DayToDayPage({
     params.account && accountsById.has(params.account) ? params.account : (accounts[0]?.id ?? null);
   const selectedAccount = selectedAccountId ? (accountsById.get(selectedAccountId) ?? null) : null;
 
-  const accountTransactions = selectedAccountId
-    ? await getTransactionsForAccount(selectedAccountId)
-    : [];
+  // Everything below — planned expenses, income, carry-over, 10-day
+  // periods, balance, pie charts, diary — is scoped to this one account.
+  const [accountTransactions, plannedExpenses, income, monthSummaries] = await Promise.all([
+    selectedAccountId ? getTransactionsForAccount(selectedAccountId) : Promise.resolve([]),
+    selectedAccountId ? getExpensesForMonth(month, selectedAccountId) : Promise.resolve([]),
+    selectedAccountId ? getIncomeForMonth(month, selectedAccountId) : Promise.resolve(15000),
+    selectedAccountId ? getAllMonthSummaries(selectedAccountId) : Promise.resolve([]),
+  ]);
+
   const accountBalance = selectedAccountId
     ? computeAccountBalance(accountTransactions, selectedAccountId)
     : 0;
 
-  const monthKey = month.slice(0, 7);
+  const accountDiaryTransactions = accountTransactions.filter(
+    (tx) => tx.date >= monthStart && tx.date <= monthEnd
+  );
 
   function pieDataFor(type: "expense" | "income") {
     const byTopCategory = new Map<string, number>();
-    for (const tx of accountTransactions) {
-      if (tx.type !== type || tx.accountId !== selectedAccountId || tx.date.slice(0, 7) !== monthKey) {
-        continue;
-      }
+    for (const tx of accountDiaryTransactions) {
+      if (tx.type !== type || tx.accountId !== selectedAccountId) continue;
       if (!tx.categoryId) continue;
       const topId = topLevelCategoryId(tx.categoryId, categoriesById);
       if (!topId) continue;
@@ -83,20 +76,19 @@ export default async function DayToDayPage({
   const expensePieData = pieDataFor("expense");
   const incomePieData = pieDataFor("income");
 
-  const accountDiaryTransactions = selectedAccountId
-    ? transactions.filter(
-        (tx) => tx.accountId === selectedAccountId || tx.toAccountId === selectedAccountId
-      )
-    : transactions;
-
   const monthlyLeftover = income - totalForMonth(plannedExpenses);
 
   // Chain every 10-day period (resetting on the 1st/11th/21st) from the
   // earliest month with any activity through the viewed month, so each
   // period's leftover — surplus or deficit — rolls into the next instead
-  // of resetting to a flat allowance every 10 days.
+  // of resetting to a flat allowance every 10 days. Both the planned
+  // leftover and the transaction net are this account's own, so a good or
+  // bad month in one account never bleeds into another's budget.
   const plannedLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.leftover]));
   plannedLeftoverByMonth.set(monthKey, monthlyLeftover);
+  const netByPeriod = selectedAccountId
+    ? accountNetByPeriod(accountTransactions, selectedAccountId)
+    : new Map<string, PeriodNet>();
   const activityMonthKeys = [
     ...plannedLeftoverByMonth.keys(),
     ...Array.from(netByPeriod.keys()).map((k) => k.slice(0, 7)),
@@ -123,6 +115,9 @@ export default async function DayToDayPage({
 
   const prev = addMonths(month, -1);
   const next = addMonths(month, 1);
+  const editPlannedExpensesHref = `/expenses?month=${monthInputValue}${
+    selectedAccountId ? `&account=${selectedAccountId}` : ""
+  }`;
 
   return (
     <div className="pb-10">
@@ -146,7 +141,9 @@ export default async function DayToDayPage({
       <main className="mx-auto max-w-2xl px-4 sm:px-6">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Link
-            href={`/day-to-day?month=${monthToInputValue(prev)}`}
+            href={`/day-to-day?month=${monthToInputValue(prev)}${
+              selectedAccountId ? `&account=${selectedAccountId}` : ""
+            }`}
             className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
             aria-label="Previous month"
           >
@@ -156,7 +153,9 @@ export default async function DayToDayPage({
             {formatMonth(month)}
           </span>
           <Link
-            href={`/day-to-day?month=${monthToInputValue(next)}`}
+            href={`/day-to-day?month=${monthToInputValue(next)}${
+              selectedAccountId ? `&account=${selectedAccountId}` : ""
+            }`}
             className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
             aria-label="Next month"
           >
@@ -183,7 +182,8 @@ export default async function DayToDayPage({
           <AccountQuickTabs
             accounts={accounts}
             selectedAccountId={selectedAccountId}
-            month={monthInputValue}
+            basePath="/day-to-day"
+            extraQuery={`month=${monthInputValue}`}
           />
         </div>
 
@@ -300,10 +300,10 @@ export default async function DayToDayPage({
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
-              Planned Expenses
+              Planned Expenses{selectedAccount ? ` — ${selectedAccount.name}` : ""}
             </h2>
             <Link
-              href="/expenses"
+              href={editPlannedExpensesHref}
               className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors"
             >
               Edit in Planned Expenses →
@@ -331,7 +331,7 @@ export default async function DayToDayPage({
             ))}
             {plannedExpenses.length === 0 && (
               <p className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
-                No planned expenses set for this month.
+                No planned expenses set for this account this month.
               </p>
             )}
           </div>
