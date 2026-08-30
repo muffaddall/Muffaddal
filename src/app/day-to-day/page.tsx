@@ -8,6 +8,7 @@ import { getAllDdCategories } from "@/lib/ddCategories";
 import { getTransactionsForAccount } from "@/lib/transactions";
 import { getAllMonthSummaries, getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
 import { accountNetByPeriod, buildPeriodChain, type PeriodNet } from "@/lib/periods";
+import { getOutstandingReceivablesForTransactions } from "@/lib/receivables";
 import { CATEGORY_LABELS, topLevelCategoryId } from "@/lib/types";
 import {
   addMonths,
@@ -55,6 +56,17 @@ export default async function DayToDayPage({
   const accountDiaryTransactions = accountTransactions.filter(
     (tx) => tx.date >= monthStart && tx.date <= monthEnd
   );
+
+  // Every currently-outstanding "People Owe Me" split tied to an expense
+  // paid from this account — used both for the diary's per-entry badge
+  // and for the account-wide "owed to you" total on the Balance card.
+  const expenseTransactionIds = accountTransactions.filter((tx) => tx.type === "expense").map((tx) => tx.id);
+  const outstandingReceivables = await getOutstandingReceivablesForTransactions(expenseTransactionIds);
+  const outstandingByTx = new Map<string, number>();
+  for (const r of outstandingReceivables) {
+    outstandingByTx.set(r.transactionId, (outstandingByTx.get(r.transactionId) ?? 0) + r.amount);
+  }
+  const totalOutstandingOwed = outstandingReceivables.reduce((sum, r) => sum + r.amount, 0);
 
   function pieDataFor(type: "expense" | "income") {
     const byTopCategory = new Map<string, number>();
@@ -176,6 +188,12 @@ export default async function DayToDayPage({
           >
             Categories
           </Link>
+          <Link
+            href="/day-to-day/people"
+            className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
+          >
+            People Owe Me
+          </Link>
         </div>
 
         <div className="flex justify-center mb-3">
@@ -201,6 +219,14 @@ export default async function DayToDayPage({
             <p className="text-xs text-[var(--color-fg-dim)] mt-1">
               From Planned Expenses, carry-over, and this month&apos;s activity
             </p>
+            {totalOutstandingOwed > 0 && (
+              <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
+                {formatMoney(leftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal balance
+                <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
+                  including {formatMoney(totalOutstandingOwed, selectedAccount.currency)} still owed to you
+                </span>
+              </p>
+            )}
           </div>
         )}
 
@@ -317,6 +343,7 @@ export default async function DayToDayPage({
                       categoriesById={categoriesById}
                       perspectiveAccountId={selectedAccountId ?? undefined}
                       month={monthInputValue}
+                      outstandingOwed={outstandingByTx.get(tx.id) ?? 0}
                     />
                   ))}
                 </div>

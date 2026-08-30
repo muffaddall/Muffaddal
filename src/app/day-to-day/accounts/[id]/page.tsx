@@ -5,7 +5,7 @@ import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getAccount, getAccounts } from "@/lib/accounts";
 import { getTransactionsForAccount } from "@/lib/transactions";
 import { getAllDdCategories } from "@/lib/ddCategories";
-import { getReconciledAccountBalance } from "@/lib/accountBalance";
+import { getAccountBalances } from "@/lib/accountBalance";
 import { topLevelCategoryId } from "@/lib/types";
 import { currentMonth, formatMoney } from "@/lib/format";
 import TransactionRow from "../../TransactionRow";
@@ -18,12 +18,12 @@ export default async function AccountDetailPage(
 ) {
   const { id } = await props.params;
 
-  const [account, accounts, transactions, categories, balance] = await Promise.all([
+  const [account, accounts, transactions, categories, balances] = await Promise.all([
     getAccount(id),
     getAccounts(),
     getTransactionsForAccount(id),
     getAllDdCategories(),
-    getReconciledAccountBalance(id),
+    getAccountBalances(id),
   ]);
   if (!account) notFound();
 
@@ -69,10 +69,18 @@ export default async function AccountDetailPage(
           </p>
           <p
             className="font-display text-4xl"
-            style={{ color: balance < 0 ? "var(--color-negative)" : undefined }}
+            style={{ color: balances.bank < 0 ? "var(--color-negative)" : undefined }}
           >
-            {formatMoney(balance, account.currency)}
+            {formatMoney(balances.bank, account.currency)}
           </p>
+          {balances.outstandingOwed > 0 && (
+            <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
+              {formatMoney(balances.personal, account.currency)} personal balance
+              <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
+                including {formatMoney(balances.outstandingOwed, account.currency)} still owed to you
+              </span>
+            </p>
+          )}
         </div>
 
         {expensePieData.length > 0 && (

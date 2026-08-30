@@ -504,6 +504,25 @@ export function computeAccountBalance(transactions: Transaction[], accountId: st
   return transactions.reduce((sum, tx) => sum + transactionAccountDelta(tx, accountId), 0);
 }
 
+// ---- People Owe Me (receivables) ----
+
+export type Person = {
+  id: string;
+  name: string;
+};
+
+export type ReceivableStatus = "outstanding" | "paid_back";
+
+export type Receivable = {
+  id: string;
+  transactionId: string;
+  personId: string | null;
+  amount: number;
+  status: ReceivableStatus;
+  paidTransactionId: string | null;
+  createdAt: string;
+};
+
 export type PostInput = {
   name: string;
   shootDate: string | null;

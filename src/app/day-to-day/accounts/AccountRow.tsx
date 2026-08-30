@@ -5,13 +5,14 @@ import { useTransition } from "react";
 import { removeAccount } from "./actions";
 import { formatMoney } from "@/lib/format";
 import type { Account } from "@/lib/types";
+import type { AccountBalances } from "@/lib/accountBalance";
 
 export default function AccountRow({
   account,
-  balance,
+  balances,
 }: {
   account: Account;
-  balance: number;
+  balances: AccountBalances;
 }) {
   const [isDeleting, startDelete] = useTransition();
 
@@ -22,12 +23,19 @@ export default function AccountRow({
         <p className="text-xs text-[var(--color-fg-dim)]">{account.currency}</p>
       </Link>
       <div className="flex items-center gap-3 shrink-0">
-        <span
-          className="font-display text-lg"
-          style={{ color: balance < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
-        >
-          {formatMoney(balance, account.currency)}
-        </span>
+        <div className="text-right">
+          <span
+            className="font-display text-lg block"
+            style={{ color: balances.bank < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
+          >
+            {formatMoney(balances.bank, account.currency)}
+          </span>
+          {balances.outstandingOwed > 0 && (
+            <span className="text-xs" style={{ color: "var(--color-positive)" }}>
+              +{formatMoney(balances.outstandingOwed, account.currency)} owed
+            </span>
+          )}
+        </div>
         <button
           type="button"
           disabled={isDeleting}

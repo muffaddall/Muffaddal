@@ -18,6 +18,7 @@ export default function DiaryEntryCard({
   categoriesById,
   perspectiveAccountId,
   month,
+  outstandingOwed = 0,
 }: {
   tx: Transaction;
   accountsById: Map<string, Account>;
@@ -25,6 +26,8 @@ export default function DiaryEntryCard({
   perspectiveAccountId?: string;
   /** "yyyy-mm" input value, carried into the edit page's back link. */
   month?: string;
+  /** Sum of this expense's still-outstanding "People Owe Me" splits. */
+  outstandingOwed?: number;
 }) {
   const [isDeleting, startDelete] = useTransition();
   const account = accountsById.get(tx.accountId);
@@ -58,42 +61,59 @@ export default function DiaryEntryCard({
 
   const accountIds = tx.toAccountId ? [tx.accountId, tx.toAccountId] : [tx.accountId];
 
+  const editHref = `/day-to-day/edit/${tx.id}${
+    month || perspectiveAccountId
+      ? `?${new URLSearchParams({
+          ...(month ? { month } : {}),
+          ...(perspectiveAccountId ? { account: perspectiveAccountId } : {}),
+        }).toString()}`
+      : ""
+  }`;
+
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5">
-      <div className="min-w-0">
-        <p className="text-sm font-medium truncate capitalize">{tx.type}</p>
-        <p className="text-xs text-[var(--color-fg-dim)] truncate">
-          {detail}
-          {tx.note ? ` — ${tx.note}` : ""}
-        </p>
+    <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate capitalize">{tx.type}</p>
+          <p className="text-xs text-[var(--color-fg-dim)] truncate">
+            {detail}
+            {tx.note ? ` — ${tx.note}` : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-sm font-semibold tabular-nums" style={{ color }}>
+            {sign}
+            {formatMoney(tx.amount, currency)}
+          </span>
+          <Link
+            href={editHref}
+            className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors"
+          >
+            Edit
+          </Link>
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={() => startDelete(() => removeTransaction(tx.id, accountIds))}
+            className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+          >
+            {isDeleting ? "…" : "Delete"}
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm font-semibold tabular-nums" style={{ color }}>
-          {sign}
-          {formatMoney(tx.amount, currency)}
-        </span>
-        <Link
-          href={`/day-to-day/edit/${tx.id}${
-            month || perspectiveAccountId
-              ? `?${new URLSearchParams({
-                  ...(month ? { month } : {}),
-                  ...(perspectiveAccountId ? { account: perspectiveAccountId } : {}),
-                }).toString()}`
-              : ""
-          }`}
-          className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors"
-        >
-          Edit
-        </Link>
-        <button
-          type="button"
-          disabled={isDeleting}
-          onClick={() => startDelete(() => removeTransaction(tx.id, accountIds))}
-          className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
-        >
-          {isDeleting ? "…" : "Delete"}
-        </button>
-      </div>
+      {tx.type === "expense" && (
+        <div className="flex items-center justify-between gap-3 mt-1.5 pt-1.5 border-t border-white/5">
+          <span className="text-xs" style={{ color: outstandingOwed > 0 ? "var(--color-negative)" : "var(--color-fg-dim)" }}>
+            {outstandingOwed > 0 ? `${formatMoney(outstandingOwed, currency)} owed to you` : "Nobody owes you on this"}
+          </span>
+          <Link
+            href={`/day-to-day/receivables/${tx.id}`}
+            className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors"
+          >
+            Split →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

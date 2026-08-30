@@ -303,3 +303,37 @@ begin
     alter table monthly_income add primary key (month, account_id);
   end if;
 end $$;
+
+-- People you might owe or be owed money by — a simple contact list reused
+-- across receivables so you pick a name from a dropdown instead of
+-- retyping it every time.
+create table if not exists dd_people (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table dd_people enable row level security;
+
+-- "People Owe Me": when you pay for something and part of it is someone
+-- else's share, the expense transaction stays exactly as logged (the full
+-- amount really did leave your account), and each portion owed back to
+-- you is tracked here as its own row — split across as many people as
+-- paid you back individually. Marking one "paid_back" auto-logs an income
+-- transaction for that amount (paid_transaction_id) so the account
+-- balance reflects the repayment when it actually happens.
+create table if not exists dd_receivables (
+  id uuid primary key default gen_random_uuid(),
+  transaction_id uuid not null references dd_transactions(id) on delete cascade,
+  person_id uuid references dd_people(id) on delete set null,
+  amount numeric not null,
+  status text not null default 'outstanding' check (status in ('outstanding', 'paid_back')),
+  paid_transaction_id uuid references dd_transactions(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists dd_receivables_transaction_idx on dd_receivables (transaction_id);
+create index if not exists dd_receivables_person_idx on dd_receivables (person_id);
+create index if not exists dd_receivables_status_idx on dd_receivables (status);
+
+alter table dd_receivables enable row level security;

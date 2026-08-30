@@ -64,6 +64,13 @@ export async function getTransactionsForAccount(accountId: string): Promise<Tran
   return (data ?? []).map(fromRow);
 }
 
+export async function getTransactionsByIds(ids: string[]): Promise<Transaction[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("dd_transactions").select("*").in("id", ids);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(fromRow);
+}
+
 export async function getTransaction(id: string): Promise<Transaction | null> {
   const { data, error } = await supabase
     .from("dd_transactions")

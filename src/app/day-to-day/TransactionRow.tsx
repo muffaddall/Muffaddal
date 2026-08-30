@@ -82,6 +82,14 @@ export default function TransactionRow({
         >
           Edit
         </Link>
+        {tx.type === "expense" && (
+          <Link
+            href={`/day-to-day/receivables/${tx.id}`}
+            className="text-xs text-[var(--color-fg-dim)] hover:text-white/80 transition-colors mr-3"
+          >
+            Split
+          </Link>
+        )}
         <button
           type="button"
           disabled={isDeleting}
