@@ -3,8 +3,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import { getAccounts } from "@/lib/accounts";
 import { getAllDdCategories } from "@/lib/ddCategories";
-import { getDayToDayNetByMonth, getTransactionsForRange } from "@/lib/transactions";
+import { getDayToDayNetByPeriod, getTransactionsForRange } from "@/lib/transactions";
 import { getAllMonthSummaries, getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
+import { buildPeriodChain } from "@/lib/periods";
 import { CATEGORY_LABELS } from "@/lib/types";
 import {
   addMonths,
@@ -30,7 +31,7 @@ export default async function DayToDayPage({
   const month = params.month ? inputValueToMonth(params.month) : currentMonth();
   const [monthStart, monthEnd] = monthDateRange(month);
 
-  const [accounts, categories, transactions, plannedExpenses, income, monthSummaries, dayToDayNetByMonth] =
+  const [accounts, categories, transactions, plannedExpenses, income, monthSummaries, netByPeriod] =
     await Promise.all([
       getAccounts(),
       getAllDdCategories(),
@@ -38,53 +39,36 @@ export default async function DayToDayPage({
       getExpensesForMonth(month),
       getIncomeForMonth(month),
       getAllMonthSummaries(),
-      getDayToDayNetByMonth(),
+      getDayToDayNetByPeriod(),
     ]);
 
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
 
-  // Carry every prior month's day-to-day surplus/deficit (planned-expense
-  // leftover plus net day-to-day income/expense) into this month, so a good
-  // or bad month keeps compounding forward instead of resetting monthly.
   const monthKey = month.slice(0, 7);
-  const plannedLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.leftover]));
-  const allActivityMonthKeys = new Set([...plannedLeftoverByMonth.keys(), ...dayToDayNetByMonth.keys()]);
-  let carryIn = 0;
-  for (const key of Array.from(allActivityMonthKeys).sort()) {
-    if (key >= monthKey) continue;
-    carryIn += (plannedLeftoverByMonth.get(key) ?? 0) + (dayToDayNetByMonth.get(key) ?? 0);
-  }
-
   const monthlyLeftover = income - totalForMonth(plannedExpenses);
-  const availableForMonth = monthlyLeftover + carryIn;
-  const tenDayAllowance = availableForMonth / 3;
 
-  const dayToDaySpentThisMonth = transactions
-    .filter((tx) => tx.type === "expense")
-    .reduce((sum, tx) => sum + tx.amount, 0);
-  const dayToDayIncomeThisMonth = transactions
-    .filter((tx) => tx.type === "income")
-    .reduce((sum, tx) => sum + tx.amount, 0);
-  const leftForMonth = availableForMonth + dayToDayIncomeThisMonth - dayToDaySpentThisMonth;
+  // Chain every 10-day period (resetting on the 1st/11th/21st) from the
+  // earliest month with any activity through the viewed month, so each
+  // period's leftover — surplus or deficit — rolls into the next instead
+  // of resetting to a flat allowance every 10 days.
+  const plannedLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.leftover]));
+  plannedLeftoverByMonth.set(monthKey, monthlyLeftover);
+  const activityMonthKeys = [
+    ...plannedLeftoverByMonth.keys(),
+    ...Array.from(netByPeriod.keys()).map((k) => k.slice(0, 7)),
+  ].sort();
+  const minMonthKey = activityMonthKeys[0] ?? monthKey;
+
+  const periodChain = buildPeriodChain(plannedLeftoverByMonth, netByPeriod, minMonthKey, monthKey);
+  const monthPeriods = periodChain.filter((p) => p.monthKey === monthKey);
+  const carryIn = monthPeriods[0].carryIn;
+  const leftForMonth = monthPeriods[2].remaining;
 
   const isCurrentMonth = month === currentMonth();
   const todayDay = Number(todayStr().slice(8, 10));
-  const monthPrefix = month.slice(0, 7);
-  const periods = [
-    { label: "1–10", start: `${monthPrefix}-01`, end: `${monthPrefix}-10` },
-    { label: "11–20", start: `${monthPrefix}-11`, end: `${monthPrefix}-20` },
-    { label: `21–${monthEnd.slice(8, 10)}`, start: `${monthPrefix}-21`, end: monthEnd },
-  ];
   const currentPeriodIndex = todayDay <= 10 ? 0 : todayDay <= 20 ? 1 : 2;
-  const currentPeriod = periods[currentPeriodIndex];
-  const spentInCurrentPeriod = transactions
-    .filter(
-      (tx) =>
-        tx.type === "expense" && tx.date >= currentPeriod.start && tx.date <= currentPeriod.end
-    )
-    .reduce((sum, tx) => sum + tx.amount, 0);
-  const remainingInPeriod = tenDayAllowance - spentInCurrentPeriod;
+  const periodLabels = ["1–10", "11–20", `21–${monthEnd.slice(8, 10)}`];
 
   const byDate = new Map<string, typeof transactions>();
   for (const tx of transactions) {
@@ -181,26 +165,52 @@ export default async function DayToDayPage({
           </div>
         </div>
 
-        <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 mb-6">
-          <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-            10-day allowance ({formatMoney(availableForMonth)} ÷ 3)
-          </p>
-          <p className="font-display text-2xl mb-2">{formatMoney(tenDayAllowance)}</p>
-          {isCurrentMonth ? (
-            <p className="text-sm text-white/80">
-              Days {currentPeriod.label}: spent {formatMoney(spentInCurrentPeriod)}, left{" "}
-              <span
-                style={{
-                  color: remainingInPeriod < 0 ? "var(--color-negative)" : "var(--color-positive)",
-                }}
-              >
-                {formatMoney(remainingInPeriod)}
-              </span>
-            </p>
-          ) : (
-            <p className="text-sm text-white/80">Per 10-day period this month</p>
-          )}
-        </div>
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+            10-Day Periods
+          </h2>
+          <div className="flex flex-col gap-2">
+            {monthPeriods.map((p, i) => {
+              const active = isCurrentMonth && i === currentPeriodIndex;
+              return (
+                <div
+                  key={p.key}
+                  className="rounded-xl bg-[var(--color-surface)] p-4"
+                  style={{
+                    border: `1px solid ${active ? "var(--color-accent)" : "var(--color-border)"}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <p className="text-xs" style={{ color: "var(--color-accent)" }}>
+                      Days {periodLabels[i]}
+                      {active ? " · current" : ""}
+                    </p>
+                    <p className="text-xs text-[var(--color-fg-dim)] text-right">
+                      {formatMoney(p.base)} base
+                      {p.carryIn !== 0
+                        ? ` ${p.carryIn > 0 ? "+" : "-"} ${formatMoney(Math.abs(p.carryIn))} carried`
+                        : ""}
+                    </p>
+                  </div>
+                  <p
+                    className="font-display text-2xl"
+                    style={{
+                      color: p.remaining < 0 ? "var(--color-negative)" : "var(--color-positive)",
+                    }}
+                  >
+                    {formatMoney(p.remaining)} left
+                  </p>
+                  {(p.expense > 0 || p.income > 0) && (
+                    <p className="text-sm text-white/80 mt-1">
+                      Spent {formatMoney(p.expense)}
+                      {p.income > 0 ? `, +${formatMoney(p.income)} income` : ""}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">

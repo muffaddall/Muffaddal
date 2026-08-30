@@ -93,3 +93,14 @@ export function monthDateRange(month: string): [string, string] {
     `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
   return [fmt(start), fmt(end)];
 }
+
+// The 10-day budget periods reset on the 1st, 11th, and 21st of every
+// month — this returns that period's start date ("yyyy-mm-01/11/21") for
+// a given "yyyy-mm-dd" date, used as a stable, lexically-sortable key.
+export function periodKeyForDate(date: string): string {
+  const day = Number(date.slice(8, 10));
+  const monthPrefix = date.slice(0, 7);
+  if (day <= 10) return `${monthPrefix}-01`;
+  if (day <= 20) return `${monthPrefix}-11`;
+  return `${monthPrefix}-21`;
+}
