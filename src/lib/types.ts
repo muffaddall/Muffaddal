@@ -147,6 +147,8 @@ export type SavingsMonthComputed = SavingsMonth & {
 
 // ---- Fitness section (calorie / weight tracking) ----
 
+export const WATER_GOAL_ML = 3000;
+
 export type CalorieLog = {
   date: string; // YYYY-MM-DD
   breakfast: number;
@@ -154,38 +156,43 @@ export type CalorieLog = {
   dinner: number;
   snacks: number;
   burned: number;
+  water: number; // ml
 };
 
 export type CalorieLogComputed = CalorieLog & {
   intake: number;
   net: number;
   isDeficit: boolean;
+  hitWaterGoal: boolean;
 };
 
 export function computeCalorieLog(log: CalorieLog): CalorieLogComputed {
   const intake = log.breakfast + log.lunch + log.dinner + log.snacks;
   const net = intake - log.burned;
-  return { ...log, intake, net, isDeficit: net <= 0 };
+  return { ...log, intake, net, isDeficit: net <= 0, hitWaterGoal: log.water >= WATER_GOAL_ML };
 }
 
 export type CalorieAverages = {
   avgIntake: number | null;
   avgBurned: number | null;
+  avgWater: number | null;
 };
 
 /** Plain per-day averages across every logged day. */
 export function computeCalorieAverages(logs: CalorieLog[]): CalorieAverages {
-  if (logs.length === 0) return { avgIntake: null, avgBurned: null };
+  if (logs.length === 0) return { avgIntake: null, avgBurned: null, avgWater: null };
 
   const totalIntake = logs.reduce(
     (sum, l) => sum + l.breakfast + l.lunch + l.dinner + l.snacks,
     0
   );
   const totalBurned = logs.reduce((sum, l) => sum + l.burned, 0);
+  const totalWater = logs.reduce((sum, l) => sum + l.water, 0);
 
   return {
     avgIntake: Math.round(totalIntake / logs.length),
     avgBurned: Math.round(totalBurned / logs.length),
+    avgWater: Math.round(totalWater / logs.length),
   };
 }
 

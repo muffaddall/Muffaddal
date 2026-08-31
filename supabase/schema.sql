@@ -170,6 +170,10 @@ create table if not exists calorie_logs (
   created_at timestamptz not null default now()
 );
 
+-- Water intake in ml, tracked alongside the meals (goal is 3000ml/day —
+-- see WATER_GOAL_ML in src/lib/types.ts).
+alter table calorie_logs add column if not exists water numeric not null default 0;
+
 alter table calorie_logs enable row level security;
 
 -- Manually logged weight entries — as many or as few per day as you like.

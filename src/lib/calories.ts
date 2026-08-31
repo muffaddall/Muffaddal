@@ -9,6 +9,7 @@ type CalorieLogRow = {
   dinner: number;
   snacks: number;
   burned: number;
+  water: number;
 };
 
 function fromRow(row: CalorieLogRow): CalorieLog {
@@ -19,6 +20,7 @@ function fromRow(row: CalorieLogRow): CalorieLog {
     dinner: row.dinner,
     snacks: row.snacks,
     burned: row.burned,
+    water: row.water,
   };
 }
 

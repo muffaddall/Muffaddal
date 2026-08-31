@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
 import { getAllCalorieLogs, getCalorieLog } from "@/lib/calories";
-import { computeCalorieAverages, computeCalorieLog } from "@/lib/types";
+import { computeCalorieAverages, computeCalorieLog, WATER_GOAL_ML } from "@/lib/types";
 import { formatDayHeading, formatMonthYear, shiftDate, todayStr } from "@/lib/date";
 import CalorieLogForm from "./CalorieLogForm";
 
@@ -17,7 +17,7 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
 
   const [log, allLogs] = await Promise.all([getCalorieLog(date), getAllCalorieLogs()]);
   const computed = log ? computeCalorieLog(log) : null;
-  const { avgIntake, avgBurned } = computeCalorieAverages(allLogs);
+  const { avgIntake, avgBurned, avgWater } = computeCalorieAverages(allLogs);
 
   return (
     <div className="pb-10">
@@ -61,7 +61,7 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
         </div>
 
         {computed && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-3 mb-3">
             <Stat label="Intake" value={`${computed.intake} kcal`} />
             <Stat label="Burned" value={`${computed.burned} kcal`} />
             <Stat
@@ -72,13 +72,23 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
           </div>
         )}
 
+        {computed && (
+          <div className="mb-6">
+            <Stat
+              label="Water"
+              value={`${computed.water} / ${WATER_GOAL_ML} ml`}
+              color={computed.hitWaterGoal ? "var(--color-positive)" : "var(--color-negative)"}
+            />
+          </div>
+        )}
+
         <CalorieLogForm key={date} date={date} log={log} />
 
         <section className="mt-8">
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>
             All-time averages
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Stat
               label="Avg Intake/day"
               value={avgIntake !== null ? `${avgIntake} kcal` : "—"}
@@ -86,6 +96,10 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
             <Stat
               label="Avg Burned/day"
               value={avgBurned !== null ? `${avgBurned} kcal` : "—"}
+            />
+            <Stat
+              label="Avg Water/day"
+              value={avgWater !== null ? `${avgWater} ml` : "—"}
             />
           </div>
         </section>

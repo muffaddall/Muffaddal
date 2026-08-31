@@ -23,6 +23,7 @@ export default function CalorieLogForm({
       <Field label="Lunch" name="lunch" defaultValue={log?.lunch ?? 0} />
       <Field label="Dinner" name="dinner" defaultValue={log?.dinner ?? 0} />
       <Field label="Snacks" name="snacks" defaultValue={log?.snacks ?? 0} />
+      <Field label="Water (ml)" name="water" defaultValue={log?.water ?? 0} />
       <div className="border-t border-[var(--color-border)] pt-3">
         <Field label="Calories burned" name="burned" defaultValue={log?.burned ?? 0} />
       </div>

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
 import { getCalorieLogsForRange } from "@/lib/calories";
-import { computeCalorieLog } from "@/lib/types";
+import { computeCalorieLog, WATER_GOAL_ML } from "@/lib/types";
 import {
   formatWeekdayShort,
   formatWeekRangeLabel,
@@ -32,6 +32,7 @@ export default async function CaloriesWeekPage(props: PageProps<"/calories/week"
     .filter((c): c is NonNullable<typeof c> => c !== undefined);
   const totalIntake = loggedDays.reduce((sum, c) => sum + c.intake, 0);
   const totalBurned = loggedDays.reduce((sum, c) => sum + c.burned, 0);
+  const totalWater = loggedDays.reduce((sum, c) => sum + c.water, 0);
   const weeklyNet = totalIntake - totalBurned;
   const weekIsDeficit = weeklyNet <= 0;
 
@@ -125,6 +126,36 @@ export default async function CaloriesWeekPage(props: PageProps<"/calories/week"
         </div>
       </div>
 
+      <div className="px-4 mt-4 overflow-x-auto">
+        <p className="text-xs text-white/45 mb-2 text-center">
+          Water (goal {WATER_GOAL_ML}ml/day)
+        </p>
+        <div className="grid grid-cols-7 gap-2 min-w-[980px]">
+          {days.map((day) => {
+            const computed = logByDate.get(day);
+            const stateClass = computed
+              ? computed.hitWaterGoal
+                ? "border-[var(--color-positive)]/60 bg-[var(--color-positive)]/10"
+                : "border-[var(--color-negative)]/60 bg-[var(--color-negative)]/10"
+              : "border-white/8 bg-[var(--color-surface)]";
+
+            return (
+              <div
+                key={day}
+                className={`rounded-xl border px-2 py-2 text-center ${stateClass}`}
+              >
+                <p className="text-[11px] font-medium text-white/45 uppercase tracking-wide">
+                  {formatWeekdayShort(day)}
+                </p>
+                <p className="text-sm font-semibold">
+                  {computed ? `${computed.water}ml` : "—"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="px-4 mt-4">
         <div
           className={`rounded-2xl border p-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 ${
@@ -135,6 +166,7 @@ export default async function CaloriesWeekPage(props: PageProps<"/calories/week"
         >
           <SummaryStat label="Total intake" value={`${totalIntake} kcal`} />
           <SummaryStat label="Total burned" value={`${totalBurned} kcal`} />
+          <SummaryStat label="Total water" value={`${totalWater} ml`} />
           <SummaryStat label="Weekly net" value={`${weeklyNet > 0 ? "+" : ""}${weeklyNet} kcal`} />
           <span
             className="font-display text-2xl tracking-wide leading-none"
