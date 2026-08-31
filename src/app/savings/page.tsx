@@ -1,17 +1,31 @@
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
-import { getBpfPurchases, getSavingsMonths, totalBpfPurchases } from "@/lib/savings";
+import {
+  getBpfPurchases,
+  getMoneyInfluxes,
+  getSavingsMonths,
+  totalBpfPurchases,
+  totalMoneyInfluxes,
+} from "@/lib/savings";
 import { currentMonth, formatMoney } from "@/lib/format";
 import BpfPurchaseRow from "./BpfPurchaseRow";
 import AddBpfPurchaseForm from "./AddBpfPurchaseForm";
 import SavingsMonthRow from "./SavingsMonthRow";
 import AddSavingsMonthForm from "./AddSavingsMonthForm";
+import MoneyInfluxRow from "./MoneyInfluxRow";
+import AddMoneyInfluxForm from "./AddMoneyInfluxForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function SavingsPage() {
-  const [purchases, months] = await Promise.all([getBpfPurchases(), getSavingsMonths()]);
+  const [purchases, influxes, months] = await Promise.all([
+    getBpfPurchases(),
+    getMoneyInfluxes(),
+    getSavingsMonths(),
+  ]);
   const purchaseTotal = totalBpfPurchases(purchases);
+  const influxSavingsTotal = totalMoneyInfluxes(influxes, "savings");
+  const influxBpfTotal = totalMoneyInfluxes(influxes, "bpf");
 
   const thisMonth = currentMonth();
   const pastMonths = months.filter((m) => m.month <= thisMonth);
@@ -45,6 +59,34 @@ export default async function SavingsPage() {
             )}
           </ul>
           <AddBpfPurchaseForm />
+        </section>
+
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              Extra money
+            </h2>
+            {(influxSavingsTotal > 0 || influxBpfTotal > 0) && (
+              <span className="text-sm tabular-nums text-[var(--color-positive)]">
+                +{formatMoney(influxSavingsTotal)} savings · +{formatMoney(influxBpfTotal)} BPF
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+            Got money from anywhere unplanned — a gift, a refund, side income — and want to add
+            it straight to Savings or the Big Purchase Fund? Log it here.
+          </p>
+          <ul className="flex flex-col gap-1 mb-3">
+            {influxes.map((influx) => (
+              <MoneyInfluxRow key={influx.id} influx={influx} />
+            ))}
+            {influxes.length === 0 && (
+              <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
+                No extra money logged.
+              </li>
+            )}
+          </ul>
+          <AddMoneyInfluxForm />
         </section>
 
         {current && (

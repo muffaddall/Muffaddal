@@ -143,6 +143,20 @@ create table if not exists bpf_purchases (
 
 alter table bpf_purchases enable row level security;
 
+-- Impromptu / one-off money from anywhere, added straight to Savings or
+-- the Big Purchase Fund on your own call — not tied to a month, unlike
+-- the recurring Planned Expenses categories that normally feed these
+-- totals.
+create table if not exists money_influxes (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default '',
+  amount numeric not null default 0,
+  destination text not null default 'savings' check (destination in ('savings', 'bpf')),
+  created_at timestamptz not null default now()
+);
+
+alter table money_influxes enable row level security;
+
 -- Monthly debt paydown + savings progress. Running balances (debt left, total
 -- savings, account total) are computed from these month-over-month, not stored.
 create table if not exists savings_months (

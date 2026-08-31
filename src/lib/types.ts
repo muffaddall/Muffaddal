@@ -130,6 +130,24 @@ export type BpfPurchase = {
   created_at: string;
 };
 
+// Impromptu / one-off money you receive from anywhere and choose to add
+// straight to Savings or the Big Purchase Fund — not tied to a month,
+// unlike the recurring Planned Expenses categories that normally feed
+// these totals.
+export type MoneyInfluxDestination = "savings" | "bpf";
+
+export type MoneyInflux = {
+  id: string;
+  name: string;
+  amount: number;
+  destination: MoneyInfluxDestination;
+  created_at: string;
+};
+
+export function isMoneyInfluxDestination(value: string): value is MoneyInfluxDestination {
+  return value === "savings" || value === "bpf";
+}
+
 export type SavingsMonth = {
   month: string;
   debt_paydown: number;
