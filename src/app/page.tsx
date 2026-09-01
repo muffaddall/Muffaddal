@@ -23,6 +23,7 @@ const GROUPS: { title: string; color: string; sections: Section[] }[] = [
       { href: "/day-to-day", label: "Day-to-Day Expenses", description: "Daily diary, accounts and transfers" },
       { href: "/investments", label: "Investments", description: "Etoro contributions and P&L" },
       { href: "/savings", label: "Savings & debt", description: "Big Purchase Fund and savings progress" },
+      { href: "/networth", label: "Net Worth", description: "Cash, investments, savings and BPF, combined" },
     ],
   },
   {

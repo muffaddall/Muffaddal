@@ -1,9 +1,51 @@
 import "server-only";
 import { getTransactionsForAccount } from "@/lib/transactions";
-import { getAllMonthSummaries, getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
+import {
+  getAllMonthSummaries,
+  getExpensesForMonth,
+  getIncomeForMonth,
+  totalForMonth,
+  totalPaidForMonth,
+  type MonthSummary,
+} from "@/lib/expenses";
 import { accountNetByPeriod, buildPeriodChain } from "@/lib/periods";
 import { getOutstandingReceivablesForTransactions } from "@/lib/receivables";
 import { currentMonth } from "@/lib/format";
+
+// Shared by both balance flavors below: chains every 10-day period from
+// the earliest month with any activity through today, using
+// `leftoverForMonth` to decide each past month's contribution (planned
+// vs. actually-paid) and `currentLeftover` for the real current month.
+async function chainBalanceToToday(
+  accountId: string,
+  leftoverForMonth: (summary: MonthSummary, isPast: boolean) => number,
+  currentLeftover: number
+): Promise<number> {
+  const todayMonthKey = currentMonth().slice(0, 7);
+
+  const [transactions, monthSummaries] = await Promise.all([
+    getTransactionsForAccount(accountId),
+    getAllMonthSummaries(accountId),
+  ]);
+
+  const leftoverByMonth = new Map(
+    monthSummaries.map((s) => {
+      const key = s.month.slice(0, 7);
+      return [key, leftoverForMonth(s, key < todayMonthKey)];
+    })
+  );
+  leftoverByMonth.set(todayMonthKey, currentLeftover);
+
+  const netByPeriod = accountNetByPeriod(transactions, accountId);
+  const activityMonthKeys = [
+    ...leftoverByMonth.keys(),
+    ...Array.from(netByPeriod.keys()).map((k) => k.slice(0, 7)),
+  ].sort();
+  const minMonthKey = activityMonthKeys[0] ?? todayMonthKey;
+
+  const chain = buildPeriodChain(leftoverByMonth, netByPeriod, minMonthKey, todayMonthKey);
+  return chain[chain.length - 1]?.remaining ?? 0;
+}
 
 export type AccountBalances = {
   /** Planned Expenses leftover + carry-over + logged transactions, chained to today. */
@@ -27,27 +69,14 @@ export type AccountBalances = {
  */
 export async function getAccountBalances(accountId: string): Promise<AccountBalances> {
   const todayMonth = currentMonth();
-  const todayMonthKey = todayMonth.slice(0, 7);
-
-  const [transactions, monthSummaries, currentExpenses, currentIncome] = await Promise.all([
+  const [transactions, currentExpenses, currentIncome] = await Promise.all([
     getTransactionsForAccount(accountId),
-    getAllMonthSummaries(accountId),
     getExpensesForMonth(todayMonth, accountId),
     getIncomeForMonth(todayMonth, accountId),
   ]);
 
-  const plannedLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.leftover]));
-  plannedLeftoverByMonth.set(todayMonthKey, currentIncome - totalForMonth(currentExpenses));
-
-  const netByPeriod = accountNetByPeriod(transactions, accountId);
-  const activityMonthKeys = [
-    ...plannedLeftoverByMonth.keys(),
-    ...Array.from(netByPeriod.keys()).map((k) => k.slice(0, 7)),
-  ].sort();
-  const minMonthKey = activityMonthKeys[0] ?? todayMonthKey;
-
-  const chain = buildPeriodChain(plannedLeftoverByMonth, netByPeriod, minMonthKey, todayMonthKey);
-  const bank = chain[chain.length - 1]?.remaining ?? 0;
+  const currentLeftover = currentIncome - totalForMonth(currentExpenses);
+  const bank = await chainBalanceToToday(accountId, (s) => s.leftover, currentLeftover);
 
   const expenseTransactionIds = transactions.filter((tx) => tx.type === "expense").map((tx) => tx.id);
   const outstanding = await getOutstandingReceivablesForTransactions(expenseTransactionIds);
@@ -59,4 +88,26 @@ export async function getAccountBalances(accountId: string): Promise<AccountBala
 /** Backwards-compatible single-number accessor — the plain bank balance. */
 export async function getReconciledAccountBalance(accountId: string): Promise<number> {
   return (await getAccountBalances(accountId)).bank;
+}
+
+/**
+ * Same chain as `bank`, but seeded with only what's actually been marked
+ * paid for the current month onward — past months are treated as fully
+ * settled (same as `bank`), since by now those bills have obviously gone
+ * out regardless of whether anyone went back and ticked them. This is the
+ * figure that should match what's really sitting in the account today.
+ */
+export async function getActualAccountBalance(accountId: string): Promise<number> {
+  const todayMonth = currentMonth();
+  const [currentExpenses, currentIncome] = await Promise.all([
+    getExpensesForMonth(todayMonth, accountId),
+    getIncomeForMonth(todayMonth, accountId),
+  ]);
+  const currentPaidLeftover = currentIncome - totalPaidForMonth(currentExpenses);
+
+  return chainBalanceToToday(
+    accountId,
+    (s, isPast) => (isPast ? s.leftover : s.paidLeftover),
+    currentPaidLeftover
+  );
 }

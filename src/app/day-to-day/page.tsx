@@ -103,9 +103,22 @@ export default async function DayToDayPage({
   plannedLeftoverByMonth.set(monthKey, monthlyLeftover);
   // Same chain, but seeded with only what's actually been paid — mirrors
   // the real bank balance instead of the optimistic "everything planned
-  // gets paid" projection above.
-  const paidLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.paidLeftover]));
-  paidLeftoverByMonth.set(monthKey, monthlyPaidLeftover);
+  // gets paid" projection above. Only the real current month (and any
+  // future one) is judged by what's actually been ticked paid — a month
+  // that's already in the past is treated as fully settled, same as
+  // Planned, since by now those bills have obviously gone out. Without
+  // this, every already-closed month (where nothing was ever marked paid
+  // because the feature didn't exist yet, or you simply never went back
+  // to tick old months) would look like untouched income and that
+  // phantom surplus would compound forward indefinitely.
+  const realCurrentMonthKey = currentMonth().slice(0, 7);
+  const paidLeftoverByMonth = new Map(
+    monthSummaries.map((s) => {
+      const key = s.month.slice(0, 7);
+      return [key, key < realCurrentMonthKey ? s.leftover : s.paidLeftover];
+    })
+  );
+  paidLeftoverByMonth.set(monthKey, monthKey < realCurrentMonthKey ? monthlyLeftover : monthlyPaidLeftover);
   const netByPeriod = selectedAccountId
     ? accountNetByPeriod(accountTransactions, selectedAccountId)
     : new Map<string, PeriodNet>();

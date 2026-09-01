@@ -121,11 +121,12 @@ create table if not exists investment_months (
 
 alter table investment_months enable row level security;
 
--- Small key/value store for app-wide settings — currently just the AED-per-USD
--- rate used to convert "Investment funding" expense entries (in AED) into the
--- USD contribution figures on the Investments tab. AED is pegged to USD at
--- 3.6725, but this stays editable in case you want to reflect the slightly
--- different rate your broker actually applies.
+-- Small key/value store for app-wide settings — the AED-per-USD rate used to
+-- convert "Investment funding" expense entries (in AED) into the USD
+-- contribution figures on the Investments tab, plus AED-per-GBP and
+-- AED-per-INR used on the Net Worth tab to combine UK/India account
+-- balances into one AED total. All editable in case you want to reflect the
+-- slightly different rate your bank/broker actually applies.
 create table if not exists app_settings (
   key text primary key,
   value numeric not null
@@ -134,6 +135,12 @@ create table if not exists app_settings (
 alter table app_settings enable row level security;
 
 insert into app_settings (key, value) values ('aed_per_usd', 3.6725)
+on conflict (key) do nothing;
+
+insert into app_settings (key, value) values ('aed_per_gbp', 4.65)
+on conflict (key) do nothing;
+
+insert into app_settings (key, value) values ('aed_per_inr', 0.044)
 on conflict (key) do nothing;
 
 -- Purchases made using money from the Big Purchase Fund. Their total is
