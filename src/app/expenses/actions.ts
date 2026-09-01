@@ -5,6 +5,7 @@ import {
   addExpenseEntry,
   copyExpensesToMonth,
   deleteExpenseEntry,
+  setExpenseEntryPaid,
   setIncomeForMonth,
   updateExpenseEntry,
 } from "@/lib/expenses";
@@ -62,6 +63,12 @@ export async function editExpense(
 
 export async function removeExpense(id: string): Promise<void> {
   await deleteExpenseEntry(id);
+  revalidatePath("/expenses");
+  revalidatePath("/");
+}
+
+export async function toggleExpensePaid(id: string, paid: boolean): Promise<void> {
+  await setExpenseEntryPaid(id, paid);
   revalidatePath("/expenses");
   revalidatePath("/");
 }

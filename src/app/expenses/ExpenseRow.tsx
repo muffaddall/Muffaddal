@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { editExpense, removeExpense } from "./actions";
+import { editExpense, removeExpense, toggleExpensePaid } from "./actions";
 import { CATEGORY_LABELS, EXPENSE_CATEGORIES, type Currency, type ExpenseEntry } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import CategoryBadge from "@/components/CategoryBadge";
@@ -15,6 +15,7 @@ export default function ExpenseRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [isDeleting, startDelete] = useTransition();
+  const [isTogglingPaid, startTogglePaid] = useTransition();
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
     formData: FormData
@@ -87,6 +88,18 @@ export default function ExpenseRow({
   return (
     <li className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-white/5 transition-colors">
       <div className="flex min-w-0 items-center gap-3">
+        <label className="flex shrink-0 items-center" title="Paid">
+          <input
+            type="checkbox"
+            checked={!!entry.paid}
+            disabled={isTogglingPaid}
+            onChange={(e) => {
+              const paid = e.target.checked;
+              startTogglePaid(() => toggleExpensePaid(entry.id, paid));
+            }}
+            className="h-4 w-4 accent-[var(--color-accent)]"
+          />
+        </label>
         <span className="w-10 shrink-0 text-xs text-[var(--color-fg-dim)]">
           {entry.date_label}
         </span>

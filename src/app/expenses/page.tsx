@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import AccountQuickTabs from "@/components/AccountQuickTabs";
 import { getAccounts } from "@/lib/accounts";
-import { getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
+import { getExpensesForMonth, getIncomeForMonth, totalForMonth, totalPaidForMonth } from "@/lib/expenses";
 import type { ExpenseEntry } from "@/lib/types";
 import {
   currentMonth,
@@ -47,6 +47,7 @@ export default async function ExpensesPage({
 
   const total = totalForMonth(entries);
   const leftover = income - total;
+  const paidTotal = totalPaidForMonth(entries);
 
   return (
     <div className="pb-10">
@@ -83,7 +84,7 @@ export default async function ExpensesPage({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-3 sm:grid-cols-4">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
             <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
               Income
@@ -107,7 +108,17 @@ export default async function ExpensesPage({
               {formatSignedMoney(leftover, selectedAccount?.currency)}
             </p>
           </div>
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              Paid so far
+            </p>
+            <p className="font-display text-2xl">{formatMoney(paidTotal, selectedAccount?.currency)}</p>
+          </div>
         </div>
+        <p className="text-xs text-[var(--color-fg-dim)] mb-6">
+          Tick a planned expense off as &quot;Paid&quot; once it&apos;s actually left your account — that
+          feeds the Actual Balance on the Day-to-Day page.
+        </p>
 
         {selectedAccountId && (
           <div className="flex justify-end mb-3">

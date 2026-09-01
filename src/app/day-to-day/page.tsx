@@ -6,7 +6,13 @@ import AccountQuickTabs from "@/components/AccountQuickTabs";
 import { getAccounts } from "@/lib/accounts";
 import { getAllDdCategories } from "@/lib/ddCategories";
 import { getTransactionsForAccount } from "@/lib/transactions";
-import { getAllMonthSummaries, getExpensesForMonth, getIncomeForMonth, totalForMonth } from "@/lib/expenses";
+import {
+  getAllMonthSummaries,
+  getExpensesForMonth,
+  getIncomeForMonth,
+  totalForMonth,
+  totalPaidForMonth,
+} from "@/lib/expenses";
 import { accountNetByPeriod, buildPeriodChain, type PeriodNet } from "@/lib/periods";
 import { getOutstandingReceivablesForTransactions } from "@/lib/receivables";
 import { CATEGORY_LABELS, topLevelCategoryId } from "@/lib/types";
@@ -85,6 +91,7 @@ export default async function DayToDayPage({
   const incomePieData = pieDataFor("income");
 
   const monthlyLeftover = income - totalForMonth(plannedExpenses);
+  const monthlyPaidLeftover = income - totalPaidForMonth(plannedExpenses);
 
   // Chain every 10-day period (resetting on the 1st/11th/21st) from the
   // earliest month with any activity through the viewed month, so each
@@ -94,6 +101,11 @@ export default async function DayToDayPage({
   // bad month in one account never bleeds into another's budget.
   const plannedLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.leftover]));
   plannedLeftoverByMonth.set(monthKey, monthlyLeftover);
+  // Same chain, but seeded with only what's actually been paid — mirrors
+  // the real bank balance instead of the optimistic "everything planned
+  // gets paid" projection above.
+  const paidLeftoverByMonth = new Map(monthSummaries.map((s) => [s.month.slice(0, 7), s.paidLeftover]));
+  paidLeftoverByMonth.set(monthKey, monthlyPaidLeftover);
   const netByPeriod = selectedAccountId
     ? accountNetByPeriod(accountTransactions, selectedAccountId)
     : new Map<string, PeriodNet>();
@@ -107,6 +119,10 @@ export default async function DayToDayPage({
   const monthPeriods = periodChain.filter((p) => p.monthKey === monthKey);
   const carryIn = monthPeriods[0].carryIn;
   const leftForMonth = monthPeriods[2].remaining;
+
+  const paidPeriodChain = buildPeriodChain(paidLeftoverByMonth, netByPeriod, minMonthKey, monthKey);
+  const paidMonthPeriods = paidPeriodChain.filter((p) => p.monthKey === monthKey);
+  const actualLeftForMonth = paidMonthPeriods[2].remaining;
 
   const isCurrentMonth = month === currentMonth();
   const todayDay = Number(todayStr().slice(8, 10));
@@ -206,27 +222,51 @@ export default async function DayToDayPage({
         </div>
 
         {selectedAccount && (
-          <div className="mb-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              {selectedAccount.name} Balance
-            </p>
-            <p
-              className="font-display text-4xl"
-              style={{ color: leftForMonth < 0 ? "var(--color-negative)" : undefined }}
-            >
-              {formatMoney(leftForMonth, selectedAccount.currency)}
-            </p>
-            <p className="text-xs text-[var(--color-fg-dim)] mt-1">
-              From Planned Expenses, carry-over, and this month&apos;s activity
-            </p>
-            {totalOutstandingOwed > 0 && (
-              <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
-                {formatMoney(leftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal balance
-                <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
-                  including {formatMoney(totalOutstandingOwed, selectedAccount.currency)} still owed to you
-                </span>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Planned Balance
               </p>
-            )}
+              <p
+                className="font-display text-3xl"
+                style={{ color: leftForMonth < 0 ? "var(--color-negative)" : undefined }}
+              >
+                {formatMoney(leftForMonth, selectedAccount.currency)}
+              </p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
+                If every planned expense gets paid
+              </p>
+              {totalOutstandingOwed > 0 && (
+                <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
+                  {formatMoney(leftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
+                  <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
+                    incl. {formatMoney(totalOutstandingOwed, selectedAccount.currency)} owed to you
+                  </span>
+                </p>
+              )}
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Actual Balance
+              </p>
+              <p
+                className="font-display text-3xl"
+                style={{ color: actualLeftForMonth < 0 ? "var(--color-negative)" : undefined }}
+              >
+                {formatMoney(actualLeftForMonth, selectedAccount.currency)}
+              </p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
+                Only what you&apos;ve marked paid — matches your bank
+              </p>
+              {totalOutstandingOwed > 0 && (
+                <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
+                  {formatMoney(actualLeftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
+                  <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
+                    incl. {formatMoney(totalOutstandingOwed, selectedAccount.currency)} owed to you
+                  </span>
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -378,7 +418,17 @@ export default async function DayToDayPage({
                 className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-[var(--color-border)] px-3 py-2.5"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{entry.name}</p>
+                  <p className="text-sm font-medium truncate">
+                    {entry.name}
+                    {entry.paid && (
+                      <span
+                        className="ml-2 text-xs align-middle"
+                        style={{ color: "var(--color-positive)" }}
+                      >
+                        ✓ paid
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-[var(--color-fg-dim)] truncate">
                     {entry.date_label} · {CATEGORY_LABELS[entry.category]}
                   </p>

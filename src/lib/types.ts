@@ -99,6 +99,7 @@ export type ExpenseEntry = {
   category: ExpenseCategory;
   sort_order: number;
   account_id: string;
+  paid: boolean;
 };
 
 export type MonthlyIncome = {

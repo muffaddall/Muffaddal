@@ -61,6 +61,7 @@ export async function addExpenseEntry(input: {
     amount: input.amount,
     category: input.category,
     account_id: input.accountId,
+    paid: false,
   });
   if (error) throw error;
 }
@@ -75,6 +76,11 @@ export async function updateExpenseEntry(
   }
 ): Promise<void> {
   const { error } = await supabase.from("expense_entries").update(input).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setExpenseEntryPaid(id: string, paid: boolean): Promise<void> {
+  const { error } = await supabase.from("expense_entries").update({ paid }).eq("id", id);
   if (error) throw error;
 }
 
@@ -102,6 +108,7 @@ export async function copyExpensesToMonth(
     category: entry.category,
     sort_order: entry.sort_order,
     account_id: accountId,
+    paid: false,
   }));
 
   const { error } = await supabase.from("expense_entries").insert(copies);
@@ -111,6 +118,13 @@ export async function copyExpensesToMonth(
 
 export function totalForMonth(entries: ExpenseEntry[]): number {
   return entries.reduce((sum, e) => sum + e.amount, 0);
+}
+
+// Sum of only the entries actually marked paid — what's really left your
+// account so far, as opposed to totalForMonth's optimistic "everything
+// gets paid" projection.
+export function totalPaidForMonth(entries: ExpenseEntry[]): number {
+  return entries.reduce((sum, e) => (e.paid ? sum + e.amount : sum), 0);
 }
 
 // Sums a single category's expense amounts per month, across every
@@ -138,6 +152,8 @@ export type MonthSummary = {
   income: number;
   total: number;
   leftover: number;
+  paidTotal: number;
+  paidLeftover: number;
 };
 
 export async function getAllMonthSummaries(accountId: string): Promise<MonthSummary[]> {
@@ -148,11 +164,15 @@ export async function getAllMonthSummaries(accountId: string): Promise<MonthSumm
       getExpensesForMonth(month, accountId),
       getIncomeForMonth(month, accountId),
     ]);
+    const total = totalForMonth(entries);
+    const paidTotal = totalPaidForMonth(entries);
     summaries.push({
       month,
       income,
-      total: totalForMonth(entries),
-      leftover: income - totalForMonth(entries),
+      total,
+      leftover: income - total,
+      paidTotal,
+      paidLeftover: income - paidTotal,
     });
   }
   return summaries;

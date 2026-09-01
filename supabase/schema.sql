@@ -96,6 +96,11 @@ alter table expense_entries drop constraint if exists expense_entries_category_c
 alter table expense_entries add constraint expense_entries_category_check
   check (category in ('recurring', 'stoppable', 'installment', 'debt', 'investment', 'savings', 'one_off'));
 
+-- Whether this planned expense has actually been paid yet — lets the
+-- Day-to-Day page show an "Actual Balance" (only paid entries deducted)
+-- alongside the optimistic "Planned Balance" (every entry deducted).
+alter table expense_entries add column if not exists paid boolean not null default false;
+
 -- Declared monthly income, one row per month (defaults to 15000 like the
 -- sheet). Made per-account further down, once the accounts table exists.
 create table if not exists monthly_income (
