@@ -334,6 +334,18 @@ begin
   end if;
 end $$;
 
+-- Per-account default income, applied automatically to any month that
+-- doesn't already have its own explicit monthly_income row — set your
+-- income once per account instead of re-entering it every future month.
+-- Starts unset (0) for every account until you save one; a month you've
+-- already saved an explicit income for is never touched by this.
+create table if not exists default_income (
+  account_id uuid primary key references accounts(id) on delete cascade,
+  income numeric not null default 0
+);
+
+alter table default_income enable row level security;
+
 -- People you might owe or be owed money by — a simple contact list reused
 -- across receivables so you pick a name from a dropdown instead of
 -- retyping it every time.

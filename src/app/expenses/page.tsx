@@ -3,7 +3,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import AccountQuickTabs from "@/components/AccountQuickTabs";
 import { getAccounts } from "@/lib/accounts";
-import { getExpensesForMonth, getIncomeForMonth, totalForMonth, totalPaidForMonth } from "@/lib/expenses";
+import {
+  getDefaultIncome,
+  getExpensesForMonth,
+  getIncomeForMonth,
+  totalForMonth,
+  totalPaidForMonth,
+} from "@/lib/expenses";
 import type { ExpenseEntry } from "@/lib/types";
 import {
   currentMonth,
@@ -14,6 +20,7 @@ import {
 } from "@/lib/format";
 import MonthNav from "./MonthNav";
 import IncomeEditor from "./IncomeEditor";
+import DefaultIncomeEditor from "./DefaultIncomeEditor";
 import AddExpenseForm from "./AddExpenseForm";
 import ExpenseRow from "./ExpenseRow";
 import CopyPreviousMonthButton from "./CopyPreviousMonthButton";
@@ -38,12 +45,13 @@ export default async function ExpensesPage({
     ? (accounts.find((a) => a.id === selectedAccountId) ?? null)
     : null;
 
-  const [entries, income]: [ExpenseEntry[], number] = selectedAccountId
+  const [entries, income, defaultIncome]: [ExpenseEntry[], number, number] = selectedAccountId
     ? await Promise.all([
         getExpensesForMonth(month, selectedAccountId),
         getIncomeForMonth(month, selectedAccountId),
+        getDefaultIncome(selectedAccountId),
       ])
-    : [[], 15000];
+    : [[], 0, 0];
 
   const total = totalForMonth(entries);
   const leftover = income - total;
@@ -77,12 +85,17 @@ export default async function ExpensesPage({
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
           <MonthNav month={month} accountId={selectedAccountId} />
           {selectedAccountId && (
             <IncomeEditor month={month} accountId={selectedAccountId} income={income} />
           )}
         </div>
+        {selectedAccountId && (
+          <div className="flex justify-end mb-6">
+            <DefaultIncomeEditor accountId={selectedAccountId} defaultIncome={defaultIncome} />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mb-3 sm:grid-cols-4">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">

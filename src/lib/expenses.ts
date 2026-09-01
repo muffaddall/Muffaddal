@@ -28,6 +28,10 @@ export async function getExpensesForMonth(month: string, accountId: string): Pro
   return data ?? [];
 }
 
+// Falls back to this account's default income (see getDefaultIncome) when
+// this exact month has no explicit monthly_income row of its own yet —
+// that's what makes a saved default automatically apply to every future
+// month without needing a row for each one.
 export async function getIncomeForMonth(month: string, accountId: string): Promise<number> {
   const { data, error } = await supabase
     .from("monthly_income")
@@ -36,13 +40,31 @@ export async function getIncomeForMonth(month: string, accountId: string): Promi
     .eq("account_id", accountId)
     .maybeSingle();
   if (error) throw error;
-  return data?.income ?? 15000;
+  if (data) return data.income;
+  return getDefaultIncome(accountId);
 }
 
 export async function setIncomeForMonth(month: string, accountId: string, income: number): Promise<void> {
   const { error } = await supabase
     .from("monthly_income")
     .upsert({ month, account_id: accountId, income }, { onConflict: "month,account_id" });
+  if (error) throw error;
+}
+
+export async function getDefaultIncome(accountId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("default_income")
+    .select("income")
+    .eq("account_id", accountId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.income ?? 0;
+}
+
+export async function setDefaultIncome(accountId: string, income: number): Promise<void> {
+  const { error } = await supabase
+    .from("default_income")
+    .upsert({ account_id: accountId, income }, { onConflict: "account_id" });
   if (error) throw error;
 }
 

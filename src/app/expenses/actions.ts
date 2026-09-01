@@ -5,6 +5,7 @@ import {
   addExpenseEntry,
   copyExpensesToMonth,
   deleteExpenseEntry,
+  setDefaultIncome,
   setExpenseEntryPaid,
   setIncomeForMonth,
   updateExpenseEntry,
@@ -98,5 +99,22 @@ export async function saveIncome(
 
   await setIncomeForMonth(month, accountId, income);
   revalidatePath("/expenses");
+  revalidatePath("/");
+}
+
+export async function saveDefaultIncome(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const accountId = String(formData.get("accountId") ?? "");
+  const income = Number(formData.get("income"));
+
+  if (!accountId) return { error: "Missing account." };
+  if (!Number.isFinite(income)) return { error: "Income must be a number." };
+
+  await setDefaultIncome(accountId, income);
+  revalidatePath("/expenses");
+  revalidatePath("/day-to-day");
+  revalidatePath("/networth");
   revalidatePath("/");
 }
