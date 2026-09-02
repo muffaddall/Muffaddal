@@ -379,3 +379,45 @@ create index if not exists dd_receivables_person_idx on dd_receivables (person_i
 create index if not exists dd_receivables_status_idx on dd_receivables (status);
 
 alter table dd_receivables enable row level security;
+
+-- ---- Padel Tracker (under Workout Tracker) ----
+
+-- Lifetime totals from before this page existed, when padel spending was
+-- logged as ordinary Day-to-Day "Working out > Padel" transactions but
+-- games/tournaments weren't individually itemized or datable. A singleton
+-- row (the boolean-true trick guarantees at most one) added on top of the
+-- real, dated Day-to-Day Padel transactions logged from here on — so
+-- lifetime totals are accurate while month/year breakdowns only reflect
+-- what's actually dated. Editable from the page if a number needs fixing.
+create table if not exists padel_baseline (
+  id boolean primary key default true check (id),
+  games integer not null default 0,
+  spent numeric not null default 0,
+  income numeric not null default 0,
+  tournaments integer not null default 0,
+  wins integer not null default 0,
+  runners_up integer not null default 0,
+  knockouts integer not null default 0
+);
+
+alter table padel_baseline enable row level security;
+
+-- Seeded once with the real history as of when this feature was built:
+-- 220 games at ~70 AED average (15,400) + 7 tournament entries (6 at 250,
+-- 1 at 150 = 1,650) = 17,050 spent; 3 tournament wins paid 500 + 300 + 0 =
+-- 800; 2 runner-up finishes and 6/7 reaching the knockouts. Adjust freely
+-- from the page — this is just a starting point.
+insert into padel_baseline (id, games, spent, income, tournaments, wins, runners_up, knockouts)
+values (true, 220, 17050, 800, 7, 3, 2, 6)
+on conflict (id) do nothing;
+
+-- Cash prizes won from padel tournaments, logged on the Padel Tracker page
+-- itself (not a Day-to-Day category) — these add straight to Padel Income.
+create table if not exists padel_winnings (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default '',
+  amount numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table padel_winnings enable row level security;

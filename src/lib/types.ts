@@ -323,6 +323,30 @@ export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
   return { personalBestDistance, personalBestPace, averageDistance, averagePace };
 }
 
+// ---- Padel Tracker ----
+
+// Lifetime totals from before the Padel Tracker page existed — see the
+// padel_baseline table comment in schema.sql. Added on top of the real,
+// dated "Working out > Padel" Day-to-Day transactions logged from here on.
+export type PadelBaseline = {
+  games: number;
+  spent: number;
+  income: number;
+  tournaments: number;
+  wins: number;
+  runnersUp: number;
+  knockouts: number;
+};
+
+// A cash prize won from a padel tournament, logged on the Padel Tracker
+// page itself rather than as a Day-to-Day transaction.
+export type PadelWinning = {
+  id: string;
+  name: string;
+  amount: number;
+  created_at: string;
+};
+
 // Self-contained (no lib/date.ts dependency) Monday-start week key, so this
 // stays consistent with the rest of the app's Monday-start weeks without
 // pulling in date-fns here.

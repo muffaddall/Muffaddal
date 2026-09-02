@@ -30,6 +30,13 @@ export default function WorkoutsPage() {
               <p className="text-xs text-white/45">{DESCRIPTIONS[discipline]}</p>
             </Link>
           ))}
+          <Link
+            href="/workouts/padel"
+            className="rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+          >
+            <p className="font-semibold text-base mb-1">Padel</p>
+            <p className="text-xs text-white/45">Money spent/won and games played</p>
+          </Link>
         </div>
       </main>
     </div>
