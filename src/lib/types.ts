@@ -66,6 +66,27 @@ export function isFullyPosted(post: Post): boolean {
   return targeted.every(({ key }) => post[key]);
 }
 
+// A podcast episode — a self-contained idea-to-post pipeline mirroring
+// Post's shoot/edit/post stages, but scoped to its own dedicated Podcast
+// page instead of the shared vault/schedule used by other content types.
+export type PodcastEpisode = {
+  id: string;
+  name: string;
+  idea: string;
+  shootDate: string | null; // YYYY-MM-DD
+  editDate: string | null; // YYYY-MM-DD
+  postDate: string | null; // YYYY-MM-DD
+  shotDone: boolean;
+  editedDone: boolean;
+  posted: boolean;
+  createdAt: string;
+};
+
+/** An episode with a shoot date set has moved from "idea" to "scheduled". */
+export function isPodcastScheduled(episode: PodcastEpisode): boolean {
+  return episode.shootDate !== null;
+}
+
 // ---- Money section (expenses / investments / savings) ----
 
 export const EXPENSE_CATEGORIES = [
@@ -214,6 +235,33 @@ export function computeCalorieAverages(logs: CalorieLog[]): CalorieAverages {
     avgWater: Math.round(totalWater / logs.length),
   };
 }
+
+export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
+export type MealType = (typeof MEAL_TYPES)[number];
+
+export function isMealType(value: string): value is MealType {
+  return (MEAL_TYPES as readonly string[]).includes(value);
+}
+
+export const MEAL_TYPE_LABELS: Record<MealType, string> = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+  snack: "Snack",
+};
+
+// A saved food/meal you can quick-add to a day's log instead of retyping
+// its calories every time — e.g. "Apple" (95 kcal, snack) or "Turkey and
+// Eggs Breakfast" (3 turkey slices + 3 eggs, 306 kcal, breakfast). A snack
+// item shows up in every meal's quick-add dropdown, not just Snacks.
+export type FoodItem = {
+  id: string;
+  name: string;
+  ingredients: string;
+  calories: number;
+  mealType: MealType;
+  created_at: string;
+};
 
 export type WeightLog = {
   id: string;

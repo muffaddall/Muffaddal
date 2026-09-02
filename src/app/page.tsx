@@ -13,6 +13,7 @@ const GROUPS: { title: string; color: string; sections: Section[] }[] = [
       { href: "/schedule/day", label: "Shooting / Editing Schedule", description: "Shoot and edit — day/week/month" },
       { href: "/posting-schedule", label: "Posting Schedule", description: "This week's posts by time" },
       { href: "/vault", label: "Idea Vault", description: "Every idea, scheduled or not" },
+      { href: "/podcast", label: "Podcast", description: "Podcast ideas and shoot/edit/post schedule" },
     ],
   },
   {

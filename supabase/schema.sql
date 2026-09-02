@@ -70,6 +70,28 @@ create index if not exists posts_group_id_idx on posts (group_id);
 -- protects access to that server code.
 alter table posts enable row level security;
 
+-- A podcast episode's own idea-to-post pipeline (shoot/edit/post, same
+-- shape as posts' three stages), kept on its own dedicated Podcast page
+-- instead of mixed into the shared vault/schedule/posting-schedule used
+-- by Reels/Carousels/etc. An episode with no shoot_date is still just an
+-- idea; setting one moves it into the schedule.
+create table if not exists podcast_episodes (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  idea text not null default '',
+  shoot_date date,
+  edit_date date,
+  post_date date,
+  shot_done boolean not null default false,
+  edited_done boolean not null default false,
+  posted boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists podcast_episodes_shoot_date_idx on podcast_episodes (shoot_date);
+
+alter table podcast_episodes enable row level security;
+
 -- ---- Money section (expenses / investments / savings) ----
 
 -- One row per expense line item, scoped to the first-of-month it belongs to.
@@ -201,6 +223,34 @@ create table if not exists calorie_logs (
 alter table calorie_logs add column if not exists water numeric not null default 0;
 
 alter table calorie_logs enable row level security;
+
+-- Saved foods/meals you can quick-add to a day's log on the Calorie
+-- Tracker instead of retyping calories every time (e.g. "Apple", or a
+-- multi-ingredient combo like "Turkey and Eggs Breakfast"). A "snack"
+-- item is offered in every meal's quick-add dropdown, not just Snacks.
+create table if not exists food_items (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  ingredients text not null default '',
+  calories numeric not null default 0,
+  meal_type text not null default 'snack' check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
+  created_at timestamptz not null default now()
+);
+
+alter table food_items enable row level security;
+
+-- Seeded once with a handful of common items — edit or delete freely from
+-- the Foods page; new ones you add there stick around the same way.
+insert into food_items (name, ingredients, calories, meal_type)
+select v.name, v.ingredients, v.calories, v.meal_type
+from (values
+  ('Apple', '', 95, 'snack'),
+  ('Orange', '', 62, 'snack'),
+  ('Grapes (handful)', '', 55, 'snack'),
+  ('Mango slices', '', 99, 'snack'),
+  ('Turkey and Eggs Breakfast', '3 turkey slices, 3 eggs', 306, 'breakfast')
+) as v(name, ingredients, calories, meal_type)
+where not exists (select 1 from food_items);
 
 -- Manually logged weight entries — as many or as few per day as you like.
 create table if not exists weight_logs (
