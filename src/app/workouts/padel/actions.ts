@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import {
   addPadelWinning,
   deletePadelWinning,
+  deletePadelYearlyGames,
   setPadelBaseline,
   updatePadelWinning,
+  upsertPadelYearlyGames,
 } from "@/lib/padel";
 
 export type FormState = { error: string } | undefined;
@@ -49,7 +51,6 @@ export async function saveBaseline(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const games = Number(formData.get("games"));
   const spent = Number(formData.get("spent"));
   const income = Number(formData.get("income"));
   const tournaments = Number(formData.get("tournaments"));
@@ -57,10 +58,33 @@ export async function saveBaseline(
   const runnersUp = Number(formData.get("runnersUp"));
   const knockouts = Number(formData.get("knockouts"));
 
-  if (![games, spent, income, tournaments, wins, runnersUp, knockouts].every(Number.isFinite)) {
+  if (![spent, income, tournaments, wins, runnersUp, knockouts].every(Number.isFinite)) {
     return { error: "All fields must be numbers." };
   }
 
-  await setPadelBaseline({ games, spent, income, tournaments, wins, runnersUp, knockouts });
+  await setPadelBaseline({ spent, income, tournaments, wins, runnersUp, knockouts });
+  revalidatePath("/workouts/padel");
+}
+
+export async function saveYearlyGames(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const year = Number(formData.get("year"));
+  const games = Number(formData.get("games"));
+
+  if (!Number.isInteger(year) || year < 2000 || year > 3000) {
+    return { error: "Year must be a valid year." };
+  }
+  if (!Number.isFinite(games) || games < 0) {
+    return { error: "Games must be a non-negative number." };
+  }
+
+  await upsertPadelYearlyGames(year, games);
+  revalidatePath("/workouts/padel");
+}
+
+export async function removeYearlyGames(year: number): Promise<void> {
+  await deletePadelYearlyGames(year);
   revalidatePath("/workouts/padel");
 }

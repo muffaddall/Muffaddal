@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PadelTrackerPage() {
   const stats = await getPadelStats();
-  const { baseline, winnings, totalIncome, totalSpent, net, breakdown, games } = stats;
+  const { baseline, yearlyGames, winnings, totalIncome, totalSpent, net, breakdown, games } = stats;
 
   return (
     <div className="pb-10">
@@ -159,7 +159,7 @@ export default async function PadelTrackerPage() {
           <AddPadelWinningForm />
         </section>
 
-        <PadelBaselineEditor baseline={baseline} />
+        <PadelBaselineEditor baseline={baseline} yearlyGames={yearlyGames} />
       </main>
     </div>
   );

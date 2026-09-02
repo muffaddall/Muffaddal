@@ -2,9 +2,17 @@
 
 import { useActionState } from "react";
 import { saveBaseline } from "./actions";
-import type { PadelBaseline } from "@/lib/types";
+import type { PadelBaseline, PadelYearlyGames } from "@/lib/types";
+import PadelYearlyGamesRow from "./PadelYearlyGamesRow";
+import AddPadelYearForm from "./AddPadelYearForm";
 
-export default function PadelBaselineEditor({ baseline }: { baseline: PadelBaseline }) {
+export default function PadelBaselineEditor({
+  baseline,
+  yearlyGames,
+}: {
+  baseline: PadelBaseline;
+  yearlyGames: PadelYearlyGames[];
+}) {
   const [state, formAction, pending] = useActionState(saveBaseline, undefined);
 
   return (
@@ -15,31 +23,50 @@ export default function PadelBaselineEditor({ baseline }: { baseline: PadelBasel
         </span>
         <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
       </summary>
-      <form action={formAction} className="flex flex-col gap-3 px-4 pb-4">
-        <p className="text-xs text-[var(--color-fg-dim)]">
-          Lump totals from before games/tournaments were logged individually — added on top of
-          whatever&apos;s actually logged in Day-to-Day from here on.
-        </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Field label="Games played" name="games" defaultValue={baseline.games} />
-          <Field label="Spent (AED)" name="spent" defaultValue={baseline.spent} />
-          <Field label="Winnings (AED)" name="income" defaultValue={baseline.income} />
-          <Field label="Tournaments" name="tournaments" defaultValue={baseline.tournaments} />
-          <Field label="Wins" name="wins" defaultValue={baseline.wins} />
-          <Field label="Runner-up" name="runnersUp" defaultValue={baseline.runnersUp} />
-          <Field label="Reached knockouts" name="knockouts" defaultValue={baseline.knockouts} />
+
+      <div className="px-4 pb-4 flex flex-col gap-4">
+        <div>
+          <p className="text-xs text-[var(--color-fg-dim)] mb-2">
+            Games played per year before they were logged individually — combined with
+            whatever&apos;s actually logged in Day-to-Day that year for the &ldquo;this
+            year&rdquo;/&ldquo;last year&rdquo;/&ldquo;best year&rdquo; figures above.
+          </p>
+          <ul className="flex flex-col gap-1.5 mb-2">
+            {yearlyGames.map((row) => (
+              <PadelYearlyGamesRow key={row.year} row={row} />
+            ))}
+            {yearlyGames.length === 0 && (
+              <li className="text-sm text-[var(--color-fg-dim)] py-2">No years recorded yet.</li>
+            )}
+          </ul>
+          <AddPadelYearForm />
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-lg bg-[var(--color-accent)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
-          >
-            {pending ? "Saving…" : "Save"}
-          </button>
-          {state?.error && <span className="text-xs text-[var(--color-negative)]">{state.error}</span>}
-        </div>
-      </form>
+
+        <form action={formAction} className="flex flex-col gap-3 border-t border-white/10 pt-4">
+          <p className="text-xs text-[var(--color-fg-dim)]">
+            Lump totals from before spending/tournaments were logged individually — added on top of
+            whatever&apos;s actually logged in Day-to-Day from here on.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Field label="Spent (AED)" name="spent" defaultValue={baseline.spent} />
+            <Field label="Winnings (AED)" name="income" defaultValue={baseline.income} />
+            <Field label="Tournaments" name="tournaments" defaultValue={baseline.tournaments} />
+            <Field label="Wins" name="wins" defaultValue={baseline.wins} />
+            <Field label="Runner-up" name="runnersUp" defaultValue={baseline.runnersUp} />
+            <Field label="Reached knockouts" name="knockouts" defaultValue={baseline.knockouts} />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-lg bg-[var(--color-accent)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
+            >
+              {pending ? "Saving…" : "Save"}
+            </button>
+            {state?.error && <span className="text-xs text-[var(--color-negative)]">{state.error}</span>}
+          </div>
+        </form>
+      </div>
     </details>
   );
 }

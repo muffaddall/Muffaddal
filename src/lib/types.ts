@@ -329,13 +329,20 @@ export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
 // padel_baseline table comment in schema.sql. Added on top of the real,
 // dated "Working out > Padel" Day-to-Day transactions logged from here on.
 export type PadelBaseline = {
-  games: number;
   spent: number;
   income: number;
   tournaments: number;
   wins: number;
   runnersUp: number;
   knockouts: number;
+};
+
+// Games played in a given calendar year, from before individual games
+// were logged as dated Day-to-Day transactions — see the
+// padel_yearly_games table comment in schema.sql.
+export type PadelYearlyGames = {
+  year: number;
+  games: number;
 };
 
 // A cash prize won from a padel tournament, logged on the Padel Tracker

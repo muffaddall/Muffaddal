@@ -384,14 +384,15 @@ alter table dd_receivables enable row level security;
 
 -- Lifetime totals from before this page existed, when padel spending was
 -- logged as ordinary Day-to-Day "Working out > Padel" transactions but
--- games/tournaments weren't individually itemized or datable. A singleton
--- row (the boolean-true trick guarantees at most one) added on top of the
+-- tournaments weren't individually itemized or datable. A singleton row
+-- (the boolean-true trick guarantees at most one) added on top of the
 -- real, dated Day-to-Day Padel transactions logged from here on — so
--- lifetime totals are accurate while month/year breakdowns only reflect
--- what's actually dated. Editable from the page if a number needs fixing.
+-- lifetime totals are accurate while month breakdowns only reflect what's
+-- actually dated. Editable from the page if a number needs fixing. Games
+-- played get their own per-year table below instead of a lump count here,
+-- since those can actually be dated (roughly) from known milestones.
 create table if not exists padel_baseline (
   id boolean primary key default true check (id),
-  games integer not null default 0,
   spent numeric not null default 0,
   income numeric not null default 0,
   tournaments integer not null default 0,
@@ -402,14 +403,43 @@ create table if not exists padel_baseline (
 
 alter table padel_baseline enable row level security;
 
--- Seeded once with the real history as of when this feature was built:
--- 220 games at ~70 AED average (15,400) + 7 tournament entries (6 at 250,
--- 1 at 150 = 1,650) = 17,050 spent; 3 tournament wins paid 500 + 300 + 0 =
--- 800; 2 runner-up finishes and 6/7 reaching the knockouts. Adjust freely
--- from the page — this is just a starting point.
-insert into padel_baseline (id, games, spent, income, tournaments, wins, runners_up, knockouts)
-values (true, 220, 17050, 800, 7, 3, 2, 6)
+-- Older installs of this table had a "games" column (a flat lifetime
+-- count) before per-year tracking existed below — drop it now that
+-- padel_yearly_games replaces it.
+alter table padel_baseline drop column if exists games;
+
+-- Seeded once with the real history as of when this feature was built: 7
+-- tournament entries (6 at 250, 1 at 150 = 1,650) plus ~15,400 in games
+-- (220 games at ~70 AED average, tracked below by year) = 17,050 spent;
+-- 3 tournament wins paid 500 + 300 + 0 = 800; 2 runner-up finishes and 6/7
+-- reaching the knockouts. Adjust freely from the page — this is just a
+-- starting point.
+insert into padel_baseline (id, spent, income, tournaments, wins, runners_up, knockouts)
+values (true, 17050, 800, 7, 3, 2, 6)
 on conflict (id) do nothing;
+
+-- Games played per calendar year, from before individual games were
+-- logged as dated Day-to-Day transactions — combined with real "Games"
+-- transactions dated in that same year to get each year's total. Unlike
+-- the single padel_baseline row, this lets "this year" / "last year" /
+-- "best year" actually reflect known history instead of only lumping
+-- everything pre-tracking into one all-time figure.
+create table if not exists padel_yearly_games (
+  year integer primary key,
+  games integer not null default 0
+);
+
+alter table padel_yearly_games enable row level security;
+
+-- Derived from cumulative milestones (5 games by Sep 17 '24, 10 by Oct 1
+-- '24, 25 by Nov 22 '24, 50 by Mar 13 '25, 100 by Sep 13 '25, 150 by Jan
+-- 20 '26, 200 by Aug 2 '26, ~220 total): 25 in 2024, 75 in 2025, 120 in
+-- 2026 so far.
+insert into padel_yearly_games (year, games) values
+  (2024, 25),
+  (2025, 75),
+  (2026, 120)
+on conflict (year) do nothing;
 
 -- Cash prizes won from padel tournaments, logged on the Padel Tracker page
 -- itself (not a Day-to-Day category) — these add straight to Padel Income.

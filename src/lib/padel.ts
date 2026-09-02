@@ -4,7 +4,7 @@ import { getAllTransactions } from "@/lib/transactions";
 import { getAllDdCategories } from "@/lib/ddCategories";
 import { addMonths } from "@/lib/format";
 import { todayStr } from "@/lib/date";
-import type { DdCategory, PadelBaseline, PadelWinning } from "@/lib/types";
+import type { DdCategory, PadelBaseline, PadelWinning, PadelYearlyGames } from "@/lib/types";
 
 export async function getPadelBaseline(): Promise<PadelBaseline> {
   const { data, error } = await supabase
@@ -14,7 +14,6 @@ export async function getPadelBaseline(): Promise<PadelBaseline> {
     .maybeSingle();
   if (error) throw error;
   return {
-    games: data?.games ?? 0,
     spent: data?.spent ?? 0,
     income: data?.income ?? 0,
     tournaments: data?.tournaments ?? 0,
@@ -28,7 +27,6 @@ export async function setPadelBaseline(input: PadelBaseline): Promise<void> {
   const { error } = await supabase.from("padel_baseline").upsert(
     {
       id: true,
-      games: input.games,
       spent: input.spent,
       income: input.income,
       tournaments: input.tournaments,
@@ -38,6 +36,27 @@ export async function setPadelBaseline(input: PadelBaseline): Promise<void> {
     },
     { onConflict: "id" }
   );
+  if (error) throw error;
+}
+
+export async function getPadelYearlyGames(): Promise<PadelYearlyGames[]> {
+  const { data, error } = await supabase
+    .from("padel_yearly_games")
+    .select("*")
+    .order("year", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertPadelYearlyGames(year: number, games: number): Promise<void> {
+  const { error } = await supabase
+    .from("padel_yearly_games")
+    .upsert({ year, games }, { onConflict: "year" });
+  if (error) throw error;
+}
+
+export async function deletePadelYearlyGames(year: number): Promise<void> {
+  const { error } = await supabase.from("padel_yearly_games").delete().eq("year", year);
   if (error) throw error;
 }
 
@@ -115,6 +134,7 @@ export type PadelGameCounts = {
 
 export type PadelStats = {
   baseline: PadelBaseline;
+  yearlyGames: PadelYearlyGames[];
   winnings: PadelWinning[];
   totalIncome: number;
   totalSpent: number;
@@ -136,12 +156,15 @@ function bestPeriod(counts: Map<string, number>): PadelPeriodBest | null {
  * account, any subcategory — Games, Tournaments, Balls, Racket, Clothes,
  * and anything added later) and combines it with the lifetime baseline and
  * logged tournament winnings into one set of Padel Tracker figures. Game
- * counts by month/year come only from real, dated "Games" transactions —
- * the baseline's lump total has no date breakdown to draw on.
+ * counts by year combine each year's historical baseline (padel_yearly_
+ * games, from known milestones) with real, dated "Games" transactions in
+ * that same year — but month counts come only from real transactions,
+ * since there's no month-level breakdown for the historical years.
  */
 export async function getPadelStats(): Promise<PadelStats> {
-  const [baseline, winnings, transactions, categories] = await Promise.all([
+  const [baseline, yearlyGames, winnings, transactions, categories] = await Promise.all([
     getPadelBaseline(),
+    getPadelYearlyGames(),
     getPadelWinnings(),
     getAllTransactions(),
     getAllDdCategories(),
@@ -187,8 +210,17 @@ export async function getPadelStats(): Promise<PadelStats> {
     byYear.set(yKey, (byYear.get(yKey) ?? 0) + 1);
   }
 
+  // Fold each year's historical baseline into the same map real
+  // transactions feed, so "this year"/"last year"/"best year" reflect
+  // known history plus whatever's actually been logged since.
+  const totalBaselineGames = yearlyGames.reduce((sum, y) => sum + y.games, 0);
+  for (const { year, games: g } of yearlyGames) {
+    const key = String(year);
+    byYear.set(key, (byYear.get(key) ?? 0) + g);
+  }
+
   const games: PadelGameCounts = {
-    allTime: baseline.games + gameTx.length,
+    allTime: totalBaselineGames + gameTx.length,
     thisMonth: byMonth.get(thisMonthKey) ?? 0,
     lastMonth: byMonth.get(lastMonthKey) ?? 0,
     bestMonth: bestPeriod(byMonth),
@@ -197,5 +229,5 @@ export async function getPadelStats(): Promise<PadelStats> {
     bestYear: bestPeriod(byYear),
   };
 
-  return { baseline, winnings, totalIncome, totalSpent, net, breakdown, games };
+  return { baseline, yearlyGames, winnings, totalIncome, totalSpent, net, breakdown, games };
 }
