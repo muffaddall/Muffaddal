@@ -9,6 +9,7 @@ type TransactionRow = {
   amount: number;
   account_id: string;
   to_account_id: string | null;
+  to_amount: number | null;
   category_id: string | null;
   note: string;
   created_at: string;
@@ -22,6 +23,7 @@ function fromRow(row: TransactionRow): Transaction {
     amount: row.amount,
     accountId: row.account_id,
     toAccountId: row.to_account_id,
+    toAmount: row.to_amount,
     categoryId: row.category_id,
     note: row.note,
     createdAt: row.created_at,
@@ -88,6 +90,7 @@ export async function addTransaction(input: TransactionInput): Promise<void> {
     amount: input.amount,
     account_id: input.accountId,
     to_account_id: input.toAccountId,
+    to_amount: input.toAmount,
     category_id: input.categoryId,
     note: input.note,
   });
@@ -103,6 +106,7 @@ export async function updateTransaction(id: string, input: TransactionInput): Pr
       amount: input.amount,
       account_id: input.accountId,
       to_account_id: input.toAccountId,
+      to_amount: input.toAmount,
       category_id: input.categoryId,
       note: input.note,
     })

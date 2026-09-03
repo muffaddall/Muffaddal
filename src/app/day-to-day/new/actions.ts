@@ -15,6 +15,7 @@ function parseTransactionForm(formData: FormData):
       amount: number;
       accountId: string;
       toAccountId: string | null;
+      toAmount: number | null;
       categoryId: string | null;
       note: string;
     } {
@@ -23,6 +24,7 @@ function parseTransactionForm(formData: FormData):
   const amount = Number(formData.get("amount"));
   const accountId = String(formData.get("accountId") ?? "");
   const toAccountId = String(formData.get("toAccountId") ?? "") || null;
+  const toAmountRaw = String(formData.get("toAmount") ?? "").trim();
   const categoryId = String(formData.get("categoryId") ?? "") || null;
   const note = String(formData.get("note") ?? "").trim();
 
@@ -40,12 +42,22 @@ function parseTransactionForm(formData: FormData):
     return { error: "Select a category." };
   }
 
+  let toAmount: number | null = null;
+  if (type === "transfer" && toAmountRaw !== "") {
+    const parsed = Number(toAmountRaw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return { error: "Exchange rate must convert to a positive amount." };
+    }
+    toAmount = parsed;
+  }
+
   return {
     type,
     date,
     amount,
     accountId,
     toAccountId: type === "transfer" ? toAccountId : null,
+    toAmount: type === "transfer" ? toAmount : null,
     categoryId: type === "transfer" ? null : categoryId,
     note,
   };

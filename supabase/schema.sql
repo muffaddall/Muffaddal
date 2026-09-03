@@ -345,6 +345,14 @@ create index if not exists dd_transactions_account_idx on dd_transactions (accou
 
 alter table dd_transactions enable row level security;
 
+-- For a transfer between two different-currency accounts, the amount that
+-- actually lands in the destination account, converted using whatever
+-- exchange rate was entered at the time — rates change often enough that
+-- this isn't computed on the fly from a single stored rate. Null means
+-- "same as amount": a same-currency transfer, or one from before this
+-- column existed.
+alter table dd_transactions add column if not exists to_amount numeric;
+
 -- Planned Expenses are per-account (each account has its own list and its
 -- own income figure) rather than one shared household list. Existing rows
 -- predate this, so they're backfilled onto the first account by sort

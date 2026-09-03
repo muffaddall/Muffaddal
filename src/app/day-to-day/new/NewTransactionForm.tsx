@@ -47,6 +47,31 @@ export default function NewTransactionForm({
   const [level2, setLevel2] = useState(initialPath[1] ?? "");
   const [level3, setLevel3] = useState(initialPath[2] ?? "");
 
+  const accountsById = new Map(accounts.map((a) => [a.id, a]));
+  const [fromAccountId, setFromAccountId] = useState(transaction?.accountId ?? defaultAccountId ?? "");
+  const [toAccountId, setToAccountId] = useState(transaction?.toAccountId ?? "");
+  const [amountStr, setAmountStr] = useState(String(transaction?.amount ?? ""));
+  const [rateDirection, setRateDirection] = useState<"fromToOne" | "toToOne">("fromToOne");
+  const [rateStr, setRateStr] = useState(
+    transaction?.toAmount && transaction.amount
+      ? String(transaction.toAmount / transaction.amount)
+      : ""
+  );
+
+  const fromCurrency = accountsById.get(fromAccountId)?.currency;
+  const toCurrency = accountsById.get(toAccountId)?.currency;
+  const needsRate = type === "transfer" && !!fromCurrency && !!toCurrency && fromCurrency !== toCurrency;
+
+  const amountNum = Number(amountStr);
+  const rateNum = Number(rateStr);
+  const validRate = Number.isFinite(rateNum) && rateNum > 0;
+  const computedToAmount =
+    needsRate && validRate && Number.isFinite(amountNum) && amountNum > 0
+      ? rateDirection === "fromToOne"
+        ? amountNum * rateNum
+        : amountNum / rateNum
+      : null;
+
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
     formData: FormData
@@ -59,6 +84,11 @@ export default function NewTransactionForm({
       setLevel1("");
       setLevel2("");
       setLevel3("");
+      setAmountStr("");
+      setRateStr("");
+      setRateDirection("fromToOne");
+      setFromAccountId(defaultAccountId ?? "");
+      setToAccountId("");
     }
     return result;
   }, undefined);
@@ -120,7 +150,8 @@ export default function NewTransactionForm({
           min="0"
           required
           placeholder="0.00"
-          defaultValue={transaction?.amount ?? ""}
+          value={amountStr}
+          onChange={(e) => setAmountStr(e.target.value)}
           className={inputClass}
         />
       </Field>
@@ -129,7 +160,8 @@ export default function NewTransactionForm({
         <select
           name="accountId"
           required
-          defaultValue={transaction?.accountId ?? defaultAccountId ?? ""}
+          value={fromAccountId}
+          onChange={(e) => setFromAccountId(e.target.value)}
           className={inputClass}
         >
           <option value="" disabled>
@@ -148,7 +180,8 @@ export default function NewTransactionForm({
           <select
             name="toAccountId"
             required
-            defaultValue={transaction?.toAccountId ?? ""}
+            value={toAccountId}
+            onChange={(e) => setToAccountId(e.target.value)}
             className={inputClass}
           >
             <option value="" disabled>
@@ -162,6 +195,46 @@ export default function NewTransactionForm({
           </select>
         </Field>
       )}
+
+      {needsRate && (
+        <Field label="Exchange rate">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={rateDirection}
+                onChange={(e) => setRateDirection(e.target.value as "fromToOne" | "toToOne")}
+                className={`${inputClass} w-auto shrink-0`}
+              >
+                <option value="fromToOne">1 {fromCurrency} =</option>
+                <option value="toToOne">1 {toCurrency} =</option>
+              </select>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                required
+                placeholder="0.0000"
+                value={rateStr}
+                onChange={(e) => setRateStr(e.target.value)}
+                className={`${inputClass} min-w-0 flex-1 basis-20`}
+              />
+              <span className="text-sm text-white/60 shrink-0">
+                {rateDirection === "fromToOne" ? toCurrency : fromCurrency}
+              </span>
+            </div>
+            <p className="text-xs text-[var(--color-fg-dim)]">
+              {computedToAmount !== null
+                ? `${amountStr} ${fromCurrency} → ${computedToAmount.toFixed(2)} ${toCurrency}`
+                : "Enter today's rate to convert the destination amount."}
+            </p>
+          </div>
+        </Field>
+      )}
+      <input
+        type="hidden"
+        name="toAmount"
+        value={needsRate && computedToAmount !== null ? computedToAmount : ""}
+      />
 
       {type !== "transfer" && (
         <>

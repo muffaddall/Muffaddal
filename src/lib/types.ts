@@ -579,6 +579,7 @@ export type Transaction = {
   amount: number;
   accountId: string;
   toAccountId: string | null; // only set for transfers
+  toAmount: number | null; // transfer only, in the destination account's currency — null means "same as amount"
   categoryId: string | null; // only set for income/expense
   note: string;
   createdAt: string;
@@ -590,6 +591,7 @@ export type TransactionInput = {
   amount: number;
   accountId: string;
   toAccountId: string | null;
+  toAmount: number | null;
   categoryId: string | null;
   note: string;
 };
@@ -600,7 +602,10 @@ export function transactionAccountDelta(tx: Transaction, accountId: string): num
   if (tx.type === "expense" && tx.accountId === accountId) return -tx.amount;
   if (tx.type === "transfer") {
     if (tx.accountId === accountId) return -tx.amount;
-    if (tx.toAccountId === accountId) return tx.amount;
+    // A cross-currency transfer's destination amount was converted using
+    // whatever exchange rate was entered at the time; falls back to
+    // `amount` for a same-currency transfer or one predating that field.
+    if (tx.toAccountId === accountId) return tx.toAmount ?? tx.amount;
   }
   return 0;
 }

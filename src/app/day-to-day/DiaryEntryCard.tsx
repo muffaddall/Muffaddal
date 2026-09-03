@@ -31,19 +31,27 @@ export default function DiaryEntryCard({
 }) {
   const [isDeleting, startDelete] = useTransition();
   const account = accountsById.get(tx.accountId);
+  const toAccount = accountsById.get(tx.toAccountId ?? "");
   const currency: Currency = account?.currency ?? "AED";
 
   let detail: string;
   let sign: string;
   let color: string;
+  let displayAmount = tx.amount;
+  let displayCurrency = currency;
 
   if (tx.type === "transfer") {
     const fromName = account?.name ?? "?";
-    const toName = accountsById.get(tx.toAccountId ?? "")?.name ?? "?";
+    const toName = toAccount?.name ?? "?";
     if (perspectiveAccountId === tx.toAccountId) {
       detail = `← ${fromName}`;
       sign = "+";
       color = "var(--color-positive)";
+      // A cross-currency transfer lands as the converted amount, in the
+      // destination account's own currency — not the amount that left
+      // the source account.
+      displayAmount = tx.toAmount ?? tx.amount;
+      displayCurrency = toAccount?.currency ?? currency;
     } else if (perspectiveAccountId === tx.accountId) {
       detail = `→ ${toName}`;
       sign = "-";
@@ -83,7 +91,7 @@ export default function DiaryEntryCard({
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-sm font-semibold tabular-nums" style={{ color }}>
             {sign}
-            {formatMoney(tx.amount, currency)}
+            {formatMoney(displayAmount, displayCurrency)}
           </span>
           <Link
             href={editHref}
