@@ -130,7 +130,7 @@ export default async function DayToDayPage({
 
   const periodChain = buildPeriodChain(plannedLeftoverByMonth, netByPeriod, minMonthKey, monthKey);
   const monthPeriods = periodChain.filter((p) => p.monthKey === monthKey);
-  const carryIn = monthPeriods[0].carryIn;
+  const carryIn = monthPeriods[0].monthCarryIn;
   const leftForMonth = monthPeriods[2].remaining;
 
   const paidPeriodChain = buildPeriodChain(paidLeftoverByMonth, netByPeriod, minMonthKey, monthKey);
