@@ -36,6 +36,13 @@ const GROUPS: { title: string; color: string; sections: Section[] }[] = [
       { href: "/workouts", label: "Workout Tracker", description: "Running, cycling & swimming logs" },
     ],
   },
+  {
+    title: "Education",
+    color: "var(--color-education)",
+    sections: [
+      { href: "/education", label: "Semesters & GPA", description: "Courses, grades, and cumulative GPA" },
+    ],
+  },
 ];
 
 export default function HomePage() {

@@ -509,3 +509,58 @@ create table if not exists padel_winnings (
 );
 
 alter table padel_winnings enable row level security;
+
+-- ---- Education (Phase 1: Semester & Course core + GPA) ----
+
+-- Status is a manual field rather than derived from dates, by request —
+-- you flip it yourself rather than having it computed from today's date.
+create table if not exists edu_semesters (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  start_date date not null,
+  end_date date not null,
+  status text not null default 'upcoming' check (status in ('current', 'past', 'upcoming')),
+  created_at timestamptz not null default now()
+);
+
+alter table edu_semesters enable row level security;
+
+-- current_letter_grade/target_grade store any AUS grade value (the GPA
+-- letters A..F/XF, or a non-GPA status like P/NP/W/TR/I/IP/AUD/N/WV) — the
+-- fixed AUS-wide point value per GPA letter lives in code (GPA_POINTS in
+-- src/lib/types.ts), not here, since it never varies. What DOES vary per
+-- course is which % range counts as which letter — that's
+-- edu_course_grade_scale below.
+create table if not exists edu_courses (
+  id uuid primary key default gen_random_uuid(),
+  semester_id uuid not null references edu_semesters(id) on delete cascade,
+  name text not null,
+  course_code text not null default '',
+  credit_hours numeric not null default 3,
+  instructor text not null default '',
+  room text not null default '',
+  current_letter_grade text,
+  target_grade text,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_courses_semester_idx on edu_courses (semester_id);
+
+alter table edu_courses enable row level security;
+
+-- One row per (course, letter grade) this course actually uses, with the
+-- minimum % needed to earn it — set per course since professors set their
+-- own cutoffs. A letter with no row here simply isn't used in that course.
+create table if not exists edu_course_grade_scale (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references edu_courses(id) on delete cascade,
+  letter_grade text not null,
+  min_percent numeric not null,
+  created_at timestamptz not null default now(),
+  unique (course_id, letter_grade)
+);
+
+create index if not exists edu_course_grade_scale_course_idx on edu_course_grade_scale (course_id);
+
+alter table edu_course_grade_scale enable row level security;

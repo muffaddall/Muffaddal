@@ -13,6 +13,7 @@
   --color-edit: #4ad9ff;
   --color-post: #ffd84a;
   --color-fitness: #818cf8;
+  --color-education: #2dd4bf;
 
   /* Format/type badge colors — deliberately separate palette */
   --color-type-reel: #a78bfa;
@@ -48,6 +49,7 @@
   --color-edit: var(--color-edit);
   --color-post: var(--color-post);
   --color-fitness: var(--color-fitness);
+  --color-education: var(--color-education);
   --color-type-reel: var(--color-type-reel);
   --color-type-carousel: var(--color-type-carousel);
   --color-type-static: var(--color-type-static);

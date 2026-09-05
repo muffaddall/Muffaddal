@@ -655,3 +655,97 @@ export type PostInput = {
   shotDone: boolean;
   editedDone: boolean;
 };
+
+// ---- Education ----
+
+// AUS's fixed 4.0-point scale — the point value per letter never varies,
+// unlike the % cutoff that earns each letter, which is set per course (see
+// EduCourseGradeScale). Minimum passing grade for any course is C-; good
+// standing requires a 2.00 CGPA.
+export const GPA_LETTER_GRADES = ["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F", "XF"] as const;
+export type GpaLetterGrade = (typeof GPA_LETTER_GRADES)[number];
+
+export function isGpaLetterGrade(value: string): value is GpaLetterGrade {
+  return (GPA_LETTER_GRADES as readonly string[]).includes(value);
+}
+
+export const GPA_POINTS: Record<GpaLetterGrade, number> = {
+  A: 4.0,
+  "A-": 3.7,
+  "B+": 3.3,
+  B: 3.0,
+  "B-": 2.7,
+  "C+": 2.3,
+  C: 2.0,
+  "C-": 1.7,
+  D: 1.0,
+  F: 0.0,
+  XF: 0.0,
+};
+
+// Statuses a course can carry that never factor into GPA at all (as
+// opposed to F/XF, which do count, just as 0.0).
+export const NON_GPA_STATUSES = ["AUD", "I", "IP", "N", "P", "NP", "TR", "W", "WV"] as const;
+export type NonGpaStatus = (typeof NON_GPA_STATUSES)[number];
+
+export const COURSE_GRADE_VALUES = [...GPA_LETTER_GRADES, ...NON_GPA_STATUSES] as const;
+export type CourseGradeValue = (typeof COURSE_GRADE_VALUES)[number];
+
+export function isCourseGradeValue(value: string): value is CourseGradeValue {
+  return (COURSE_GRADE_VALUES as readonly string[]).includes(value);
+}
+
+export type EduSemesterStatus = "current" | "past" | "upcoming";
+export const EDU_SEMESTER_STATUSES: EduSemesterStatus[] = ["current", "past", "upcoming"];
+
+export type EduSemester = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: EduSemesterStatus;
+};
+
+export type EduCourse = {
+  id: string;
+  semesterId: string;
+  name: string;
+  courseCode: string;
+  creditHours: number;
+  instructor: string;
+  room: string;
+  currentLetterGrade: CourseGradeValue | null;
+  targetGrade: GpaLetterGrade | null;
+  sortOrder: number;
+};
+
+// One row per (course, letter) that course actually uses, with the
+// minimum % needed to earn it — a letter the course doesn't use just has
+// no row.
+export type EduCourseGradeScale = {
+  id: string;
+  courseId: string;
+  letterGrade: GpaLetterGrade;
+  minPercent: number;
+};
+
+/** This course's GPA points, or null if it's ungraded or carries a non-GPA status (P/NP/W/TR/...). */
+export function coursePoints(grade: CourseGradeValue | null): number | null {
+  if (grade === null) return null;
+  return isGpaLetterGrade(grade) ? GPA_POINTS[grade] : null;
+}
+
+/** Credit-hour-weighted GPA across the given courses — skips any that are ungraded or carry a non-GPA status. */
+export function computeGpa(
+  courses: { creditHours: number; currentLetterGrade: CourseGradeValue | null }[]
+): number | null {
+  let totalPoints = 0;
+  let totalCredits = 0;
+  for (const c of courses) {
+    const points = coursePoints(c.currentLetterGrade);
+    if (points === null) continue;
+    totalPoints += points * c.creditHours;
+    totalCredits += c.creditHours;
+  }
+  return totalCredits > 0 ? totalPoints / totalCredits : null;
+}
