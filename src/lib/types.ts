@@ -717,6 +717,7 @@ export type EduCourse = {
   currentLetterGrade: CourseGradeValue | null;
   targetGrade: GpaLetterGrade | null;
   sortOrder: number;
+  attendanceThresholdPercent: number | null;
 };
 
 // One row per (course, letter) that course actually uses, with the
@@ -748,4 +749,268 @@ export function computeGpa(
     totalCredits += c.creditHours;
   }
   return totalCredits > 0 ? totalPoints / totalCredits : null;
+}
+
+// ---- Education Phase 2: live grade calculator ----
+
+export const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+export const DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+export type EduCourseMeeting = {
+  id: string;
+  courseId: string;
+  dayOfWeek: number; // 0 = Sunday .. 6 = Saturday
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+};
+
+export type EduGradeCategory = {
+  id: string;
+  courseId: string;
+  name: string;
+  weight: number;
+  sortOrder: number;
+};
+
+export type EduGradeEntry = {
+  id: string;
+  categoryId: string;
+  name: string;
+  score: number;
+  maxScore: number;
+  sortOrder: number;
+};
+
+/** This category's earned % so far, or null if it has no entries yet. */
+export function categoryPercent(entries: { score: number; maxScore: number }[]): number | null {
+  if (entries.length === 0) return null;
+  const totalScore = entries.reduce((sum, e) => sum + e.score, 0);
+  const totalMax = entries.reduce((sum, e) => sum + e.maxScore, 0);
+  return totalMax > 0 ? (totalScore / totalMax) * 100 : null;
+}
+
+export type CourseGradeCalc = {
+  /** Weighted % across only the categories that have entries so far, renormalized to their combined weight. Null if nothing is graded yet. */
+  liveGrade: number | null;
+  /** Weighted % across every category, treating any category with no entries as 0 — i.e. the worst-case grade if nothing else comes in. */
+  worstCaseGrade: number | null;
+  /** Sum of every category's weight — flagged elsewhere if it doesn't add up to 100. */
+  totalWeight: number;
+};
+
+/** Live running grade for a course from its categories + entries, per Phase 2. */
+export function computeCourseGrade(
+  categories: { id: string; weight: number }[],
+  entriesByCategory: Map<string, { score: number; maxScore: number }[]>
+): CourseGradeCalc {
+  const totalWeight = categories.reduce((sum, c) => sum + c.weight, 0);
+
+  let gradedWeightedSum = 0;
+  let gradedWeight = 0;
+  let worstCaseWeightedSum = 0;
+
+  for (const cat of categories) {
+    const pct = categoryPercent(entriesByCategory.get(cat.id) ?? []);
+    if (pct !== null) {
+      gradedWeightedSum += pct * cat.weight;
+      gradedWeight += cat.weight;
+      worstCaseWeightedSum += pct * cat.weight;
+    }
+  }
+
+  return {
+    liveGrade: gradedWeight > 0 ? gradedWeightedSum / gradedWeight : null,
+    worstCaseGrade: totalWeight > 0 ? worstCaseWeightedSum / totalWeight : null,
+    totalWeight,
+  };
+}
+
+/**
+ * What score (%) is needed on the still-ungraded categories, combined, to
+ * reach a target overall %. Null if every category is already graded (no
+ * remaining weight to hit a target with) or total weight is 0.
+ */
+export function scoreNeededForTarget(
+  categories: { id: string; weight: number }[],
+  entriesByCategory: Map<string, { score: number; maxScore: number }[]>,
+  targetPercent: number
+): number | null {
+  const totalWeight = categories.reduce((sum, c) => sum + c.weight, 0);
+  if (totalWeight <= 0) return null;
+
+  let gradedWeightedSum = 0;
+  let remainingWeight = 0;
+  for (const cat of categories) {
+    const pct = categoryPercent(entriesByCategory.get(cat.id) ?? []);
+    if (pct !== null) {
+      gradedWeightedSum += pct * cat.weight;
+    } else {
+      remainingWeight += cat.weight;
+    }
+  }
+
+  if (remainingWeight <= 0) return null;
+  const neededWeightedSum = targetPercent * totalWeight - gradedWeightedSum;
+  return neededWeightedSum / remainingWeight;
+}
+
+// ---- Education Phase 3: assignment tracker ----
+
+export const ASSIGNMENT_STATUSES = ["not_started", "in_progress", "done"] as const;
+export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
+
+export const ASSIGNMENT_STATUS_LABELS: Record<AssignmentStatus, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  done: "Done",
+};
+
+export function isAssignmentStatus(value: string): value is AssignmentStatus {
+  return (ASSIGNMENT_STATUSES as readonly string[]).includes(value);
+}
+
+export type EduAssignment = {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: AssignmentStatus;
+};
+
+// ---- Education Phase 4: exams/quizzes + study schedule ----
+
+export const EXAM_TYPES = ["exam", "quiz"] as const;
+export type ExamType = (typeof EXAM_TYPES)[number];
+
+export function isExamType(value: string): value is ExamType {
+  return (EXAM_TYPES as readonly string[]).includes(value);
+}
+
+export type EduExam = {
+  id: string;
+  courseId: string;
+  title: string;
+  type: ExamType;
+  examDate: string;
+};
+
+export type EduExamTopic = {
+  id: string;
+  examId: string;
+  label: string;
+  done: boolean;
+  sortOrder: number;
+};
+
+/** Default study milestones for a newly-created exam — editable/removable afterward, never hardcoded into the calculator. */
+export const DEFAULT_STUDY_MILESTONES: { label: string; offsetDays: number }[] = [
+  { label: "Topic review", offsetDays: 7 },
+  { label: "Consolidation", offsetDays: 3 },
+  { label: "Final review", offsetDays: 1 },
+];
+
+export type EduStudyMilestone = {
+  id: string;
+  examId: string;
+  label: string;
+  offsetDays: number;
+  done: boolean;
+  sortOrder: number;
+};
+
+export function studyMilestoneDate(examDate: string, offsetDays: number): string {
+  return shiftDateStr(examDate, -offsetDays);
+}
+
+function shiftDateStr(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+export function daysUntil(dateStr: string, todayStr: string): number {
+  const [y1, m1, d1] = dateStr.split("-").map(Number);
+  const [y2, m2, d2] = todayStr.split("-").map(Number);
+  const a = Date.UTC(y1, m1 - 1, d1);
+  const b = Date.UTC(y2, m2 - 1, d2);
+  return Math.round((a - b) / 86400000);
+}
+
+// ---- Education Phase 5: attendance tracker ----
+
+export const ATTENDANCE_STATUSES = ["attended", "missed", "excused"] as const;
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+
+export function isAttendanceStatus(value: string): value is AttendanceStatus {
+  return (ATTENDANCE_STATUSES as readonly string[]).includes(value);
+}
+
+export type EduAttendanceRecord = {
+  id: string;
+  courseId: string;
+  date: string;
+  status: AttendanceStatus;
+};
+
+/** % attended out of non-excused records — excused absences don't count against you. Null if there's nothing to compute from. */
+export function computeAttendancePercent(records: { status: AttendanceStatus }[]): number | null {
+  const countable = records.filter((r) => r.status !== "excused");
+  if (countable.length === 0) return null;
+  const attended = countable.filter((r) => r.status === "attended").length;
+  return (attended / countable.length) * 100;
+}
+
+// ---- Education Phase 6: degree requirements checklist ----
+
+export const DEGREE_REQUIREMENT_STATUSES = ["completed", "in_progress", "not_started"] as const;
+export type DegreeRequirementStatus = (typeof DEGREE_REQUIREMENT_STATUSES)[number];
+
+export const DEGREE_REQUIREMENT_STATUS_LABELS: Record<DegreeRequirementStatus, string> = {
+  completed: "Completed",
+  in_progress: "In progress",
+  not_started: "Not started",
+};
+
+export function isDegreeRequirementStatus(value: string): value is DegreeRequirementStatus {
+  return (DEGREE_REQUIREMENT_STATUSES as readonly string[]).includes(value);
+}
+
+export type EduDegreeRequirement = {
+  id: string;
+  category: string;
+  name: string;
+  creditHours: number;
+  status: DegreeRequirementStatus;
+  fulfilledByCourseId: string | null;
+  sortOrder: number;
+};
+
+export type DegreeProgress = {
+  totalCredits: number;
+  completedCredits: number;
+  remainingCredits: number;
+};
+
+export function computeDegreeProgress(requirements: { creditHours: number; status: DegreeRequirementStatus }[]): DegreeProgress {
+  const totalCredits = requirements.reduce((sum, r) => sum + r.creditHours, 0);
+  const completedCredits = requirements
+    .filter((r) => r.status === "completed")
+    .reduce((sum, r) => sum + r.creditHours, 0);
+  return { totalCredits, completedCredits, remainingCredits: totalCredits - completedCredits };
+}
+
+/** Rough graduation-pace check: remaining credits vs. remaining semesters at a typical full course load. */
+export function computeOnTrackStatus(
+  remainingCredits: number,
+  remainingSemesters: number,
+  typicalCreditsPerSemester = 15
+): { onTrack: boolean | null; neededPerSemester: number | null } {
+  if (remainingCredits <= 0) return { onTrack: true, neededPerSemester: 0 };
+  if (remainingSemesters <= 0) return { onTrack: null, neededPerSemester: null };
+  const neededPerSemester = remainingCredits / remainingSemesters;
+  return { onTrack: neededPerSemester <= typicalCreditsPerSemester, neededPerSemester };
 }

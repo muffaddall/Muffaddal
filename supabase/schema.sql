@@ -564,3 +564,151 @@ create table if not exists edu_course_grade_scale (
 create index if not exists edu_course_grade_scale_course_idx on edu_course_grade_scale (course_id);
 
 alter table edu_course_grade_scale enable row level security;
+
+-- ---- Education (Phase 2: live grade calculator) ----
+
+-- Weights are per-course and should sum to 100 — enforced in the app, not
+-- the DB, so a partially set-up course isn't blocked from saving.
+create table if not exists edu_grade_categories (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references edu_courses(id) on delete cascade,
+  name text not null,
+  weight numeric not null default 0,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_grade_categories_course_idx on edu_grade_categories (course_id);
+
+alter table edu_grade_categories enable row level security;
+
+create table if not exists edu_grade_entries (
+  id uuid primary key default gen_random_uuid(),
+  category_id uuid not null references edu_grade_categories(id) on delete cascade,
+  name text not null,
+  score numeric not null,
+  max_score numeric not null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_grade_entries_category_idx on edu_grade_entries (category_id);
+
+alter table edu_grade_entries enable row level security;
+
+-- ---- Education (Phase 3: assignment tracker) ----
+
+create table if not exists edu_assignments (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references edu_courses(id) on delete cascade,
+  title text not null,
+  description text not null default '',
+  due_date date not null,
+  status text not null default 'not_started' check (status in ('not_started', 'in_progress', 'done')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_assignments_course_idx on edu_assignments (course_id);
+create index if not exists edu_assignments_due_date_idx on edu_assignments (due_date);
+
+alter table edu_assignments enable row level security;
+
+-- ---- Education (Phase 4: exams/quizzes + study schedule) ----
+
+create table if not exists edu_exams (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references edu_courses(id) on delete cascade,
+  title text not null,
+  type text not null default 'exam' check (type in ('exam', 'quiz')),
+  exam_date date not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_exams_course_idx on edu_exams (course_id);
+create index if not exists edu_exams_date_idx on edu_exams (exam_date);
+
+alter table edu_exams enable row level security;
+
+create table if not exists edu_exam_topics (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references edu_exams(id) on delete cascade,
+  label text not null,
+  done boolean not null default false,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_exam_topics_exam_idx on edu_exam_topics (exam_id);
+
+alter table edu_exam_topics enable row level security;
+
+-- Study milestones count back from exam_date by offset_days (e.g. "Topic
+-- review" at 7 days out, "Consolidation" at 3, "Final review" at 1). The
+-- spacing is per-exam data rather than hardcoded, so it's editable per exam
+-- instead of baked into the app.
+create table if not exists edu_study_milestones (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references edu_exams(id) on delete cascade,
+  label text not null,
+  offset_days int not null,
+  done boolean not null default false,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_study_milestones_exam_idx on edu_study_milestones (exam_id);
+
+alter table edu_study_milestones enable row level security;
+
+-- ---- Education (Phase 5: attendance tracker) ----
+
+-- The policy floor you set per course (e.g. 80) to be warned as attendance
+-- approaches it. Null means no policy tracked for that course.
+alter table edu_courses add column if not exists attendance_threshold_percent numeric;
+
+create table if not exists edu_attendance (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references edu_courses(id) on delete cascade,
+  date date not null,
+  status text not null default 'attended' check (status in ('attended', 'missed', 'excused')),
+  created_at timestamptz not null default now(),
+  unique (course_id, date)
+);
+
+create index if not exists edu_attendance_course_idx on edu_attendance (course_id);
+
+alter table edu_attendance enable row level security;
+
+-- ---- Education (Phase 6: degree requirements checklist) ----
+
+create table if not exists edu_degree_requirements (
+  id uuid primary key default gen_random_uuid(),
+  category text not null default '',
+  name text not null,
+  credit_hours numeric not null default 0,
+  status text not null default 'not_started' check (status in ('completed', 'in_progress', 'not_started')),
+  fulfilled_by_course_id uuid references edu_courses(id) on delete set null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_degree_requirements_fulfilled_idx on edu_degree_requirements (fulfilled_by_course_id);
+
+alter table edu_degree_requirements enable row level security;
+
+-- ---- Education (Phase 7: homepage "Today" view) ----
+
+-- Weekly class meeting times (can repeat multiple times a week — one row
+-- per day/time slot). Powers the homepage's "Today's classes" section.
+create table if not exists edu_course_meetings (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid not null references edu_courses(id) on delete cascade,
+  day_of_week int not null check (day_of_week between 0 and 6), -- 0 = Sunday .. 6 = Saturday
+  start_time time not null,
+  end_time time not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists edu_course_meetings_course_idx on edu_course_meetings (course_id);
+
+alter table edu_course_meetings enable row level security;

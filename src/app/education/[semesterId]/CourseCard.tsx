@@ -6,20 +6,46 @@ import {
   COURSE_GRADE_VALUES,
   GPA_LETTER_GRADES,
   coursePoints,
+  type EduAssignment,
+  type EduAttendanceRecord,
   type EduCourse,
   type EduCourseGradeScale,
+  type EduCourseMeeting,
+  type EduExam,
+  type EduExamTopic,
+  type EduGradeCategory,
+  type EduGradeEntry,
+  type EduStudyMilestone,
 } from "@/lib/types";
 import GradeScaleEditor from "./GradeScaleEditor";
 import WhatGradeCalculator from "./WhatGradeCalculator";
+import GradeCategoriesEditor from "./GradeCategoriesEditor";
+import MeetingsPanel from "./MeetingsPanel";
+import AssignmentsPanel from "./AssignmentsPanel";
+import ExamsPanel from "./ExamsPanel";
+import AttendancePanel from "./AttendancePanel";
+
+type CategoryWithEntries = EduGradeCategory & { entries: EduGradeEntry[] };
+type ExamWithChecklist = EduExam & { topics: EduExamTopic[]; milestones: EduStudyMilestone[] };
 
 export default function CourseCard({
   course,
   scale,
   semesterIsPast,
+  gradeCategories,
+  meetings,
+  assignments,
+  exams,
+  attendance,
 }: {
   course: EduCourse;
   scale: EduCourseGradeScale[];
   semesterIsPast: boolean;
+  gradeCategories: CategoryWithEntries[];
+  meetings: EduCourseMeeting[];
+  assignments: EduAssignment[];
+  exams: ExamWithChecklist[];
+  attendance: EduAttendanceRecord[];
 }) {
   const [editing, setEditing] = useState(false);
   const [isDeleting, startDelete] = useTransition();
@@ -113,6 +139,21 @@ export default function CourseCard({
               </select>
             </label>
           </div>
+          <label className="flex flex-col gap-0.5">
+            <span className="text-[10px] uppercase tracking-wide text-white/40">
+              Attendance policy threshold % (optional)
+            </span>
+            <input
+              name="attendanceThresholdPercent"
+              type="number"
+              step="any"
+              min={0}
+              max={100}
+              defaultValue={course.attendanceThresholdPercent ?? ""}
+              placeholder="e.g. 80"
+              className="rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-education)]"
+            />
+          </label>
           <div className="flex items-center gap-2">
             <button
               type="submit"
@@ -190,6 +231,16 @@ export default function CourseCard({
         <>
           <details className="mt-2 pt-2 border-t border-white/8">
             <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+              Live grade calculator
+              <span className="text-white/40">▾</span>
+            </summary>
+            <div className="mt-2">
+              <GradeCategoriesEditor courseId={course.id} semesterId={course.semesterId} categories={gradeCategories} />
+            </div>
+          </details>
+
+          <details className="mt-2 pt-2 border-t border-white/8">
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
               Grade scale
               <span className="text-white/40">▾</span>
             </summary>
@@ -209,6 +260,51 @@ export default function CourseCard({
           </details>
         </>
       )}
+
+      <details className="mt-2 pt-2 border-t border-white/8">
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+          Class meeting times
+          <span className="text-white/40">▾</span>
+        </summary>
+        <div className="mt-2">
+          <MeetingsPanel courseId={course.id} semesterId={course.semesterId} meetings={meetings} />
+        </div>
+      </details>
+
+      <details className="mt-2 pt-2 border-t border-white/8">
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+          Assignments {assignments.length > 0 && <span className="text-white/40 font-normal">({assignments.length})</span>}
+          <span className="text-white/40">▾</span>
+        </summary>
+        <div className="mt-2">
+          <AssignmentsPanel courseId={course.id} semesterId={course.semesterId} assignments={assignments} />
+        </div>
+      </details>
+
+      <details className="mt-2 pt-2 border-t border-white/8">
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+          Exams & quizzes {exams.length > 0 && <span className="text-white/40 font-normal">({exams.length})</span>}
+          <span className="text-white/40">▾</span>
+        </summary>
+        <div className="mt-2">
+          <ExamsPanel courseId={course.id} semesterId={course.semesterId} exams={exams} />
+        </div>
+      </details>
+
+      <details className="mt-2 pt-2 border-t border-white/8">
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+          Attendance
+          <span className="text-white/40">▾</span>
+        </summary>
+        <div className="mt-2">
+          <AttendancePanel
+            courseId={course.id}
+            semesterId={course.semesterId}
+            records={attendance}
+            thresholdPercent={course.attendanceThresholdPercent}
+          />
+        </div>
+      </details>
     </li>
   );
 }

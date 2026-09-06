@@ -1,7 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import { getCoursesForSemester, getGradeScalesForCourses, getSemester } from "@/lib/education";
+import {
+  getAssignmentsForCourses,
+  getAttendanceForCourses,
+  getCoursesForSemester,
+  getExamsForCourses,
+  getGradeCategoriesForCourses,
+  getGradeEntriesForCategories,
+  getGradeScalesForCourses,
+  getMeetingsForCourses,
+  getMilestonesForExams,
+  getSemester,
+  getTopicsForExams,
+} from "@/lib/education";
 import { computeGpa } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
 import CourseCard from "./CourseCard";
@@ -19,7 +31,20 @@ export default async function SemesterPage({
   if (!semester) notFound();
 
   const courses = await getCoursesForSemester(semesterId);
-  const scalesByCourse = await getGradeScalesForCourses(courses.map((c) => c.id));
+  const courseIds = courses.map((c) => c.id);
+
+  const scalesByCourse = await getGradeScalesForCourses(courseIds);
+  const categoriesByCourse = await getGradeCategoriesForCourses(courseIds);
+  const allCategoryIds = [...categoriesByCourse.values()].flat().map((c) => c.id);
+  const entriesByCategory = await getGradeEntriesForCategories(allCategoryIds);
+  const meetingsByCourse = await getMeetingsForCourses(courseIds);
+  const assignmentsByCourse = await getAssignmentsForCourses(courseIds);
+  const examsByCourse = await getExamsForCourses(courseIds);
+  const allExamIds = [...examsByCourse.values()].flat().map((e) => e.id);
+  const topicsByExam = await getTopicsForExams(allExamIds);
+  const milestonesByExam = await getMilestonesForExams(allExamIds);
+  const attendanceByCourse = await getAttendanceForCourses(courseIds);
+
   const gpa = computeGpa(courses);
   const totalCredits = courses.reduce((sum, c) => sum + c.creditHours, 0);
 
@@ -54,14 +79,30 @@ export default async function SemesterPage({
         </p>
 
         <ul className="flex flex-col gap-2 mb-4">
-          {courses.map((course) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              scale={scalesByCourse.get(course.id) ?? []}
-              semesterIsPast={semester.status === "past"}
-            />
-          ))}
+          {courses.map((course) => {
+            const categories = (categoriesByCourse.get(course.id) ?? []).map((cat) => ({
+              ...cat,
+              entries: entriesByCategory.get(cat.id) ?? [],
+            }));
+            const exams = (examsByCourse.get(course.id) ?? []).map((exam) => ({
+              ...exam,
+              topics: topicsByExam.get(exam.id) ?? [],
+              milestones: milestonesByExam.get(exam.id) ?? [],
+            }));
+            return (
+              <CourseCard
+                key={course.id}
+                course={course}
+                scale={scalesByCourse.get(course.id) ?? []}
+                semesterIsPast={semester.status === "past"}
+                gradeCategories={categories}
+                meetings={meetingsByCourse.get(course.id) ?? []}
+                assignments={assignmentsByCourse.get(course.id) ?? []}
+                exams={exams}
+                attendance={attendanceByCourse.get(course.id) ?? []}
+              />
+            );
+          })}
           {courses.length === 0 && (
             <li className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
               No courses in this semester yet.
