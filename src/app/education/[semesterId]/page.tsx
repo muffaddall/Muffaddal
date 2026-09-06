@@ -55,7 +55,12 @@ export default async function SemesterPage({
 
         <ul className="flex flex-col gap-2 mb-4">
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} scale={scalesByCourse.get(course.id) ?? []} />
+            <CourseCard
+              key={course.id}
+              course={course}
+              scale={scalesByCourse.get(course.id) ?? []}
+              semesterIsPast={semester.status === "past"}
+            />
           ))}
           {courses.length === 0 && (
             <li className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
@@ -64,7 +69,7 @@ export default async function SemesterPage({
           )}
         </ul>
 
-        <AddCourseForm semesterId={semesterId} />
+        <AddCourseForm semesterId={semesterId} semesterIsPast={semester.status === "past"} />
       </main>
     </div>
   );

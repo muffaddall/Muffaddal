@@ -2,8 +2,15 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createCourse } from "../actions";
+import { COURSE_GRADE_VALUES } from "@/lib/types";
 
-export default function AddCourseForm({ semesterId }: { semesterId: string }) {
+export default function AddCourseForm({
+  semesterId,
+  semesterIsPast,
+}: {
+  semesterId: string;
+  semesterIsPast?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(async (
@@ -73,6 +80,23 @@ export default function AddCourseForm({ semesterId }: { semesterId: string }) {
         placeholder="Room / building (optional)"
         className="rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-education)]"
       />
+      {semesterIsPast && (
+        <label className="flex flex-col gap-0.5">
+          <span className="text-[10px] uppercase tracking-wide text-white/40">Grade</span>
+          <select
+            name="currentLetterGrade"
+            defaultValue=""
+            className="rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-education)]"
+          >
+            <option value="">Not graded yet</option>
+            {COURSE_GRADE_VALUES.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="flex items-center gap-2">
         <button
           type="submit"

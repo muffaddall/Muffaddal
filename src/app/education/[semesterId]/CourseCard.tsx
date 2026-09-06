@@ -15,9 +15,11 @@ import WhatGradeCalculator from "./WhatGradeCalculator";
 export default function CourseCard({
   course,
   scale,
+  semesterIsPast,
 }: {
   course: EduCourse;
   scale: EduCourseGradeScale[];
+  semesterIsPast: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [isDeleting, startDelete] = useTransition();
@@ -184,25 +186,29 @@ export default function CourseCard({
         )}
       </div>
 
-      <details className="mt-2 pt-2 border-t border-white/8">
-        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
-          Grade scale
-          <span className="text-white/40">▾</span>
-        </summary>
-        <div className="mt-2">
-          <GradeScaleEditor courseId={course.id} semesterId={course.semesterId} scale={scale} />
-        </div>
-      </details>
+      {!semesterIsPast && (
+        <>
+          <details className="mt-2 pt-2 border-t border-white/8">
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+              Grade scale
+              <span className="text-white/40">▾</span>
+            </summary>
+            <div className="mt-2">
+              <GradeScaleEditor courseId={course.id} semesterId={course.semesterId} scale={scale} />
+            </div>
+          </details>
 
-      <details className="mt-2 pt-2 border-t border-white/8">
-        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
-          What grade do I need?
-          <span className="text-white/40">▾</span>
-        </summary>
-        <div className="mt-2">
-          <WhatGradeCalculator scale={scale} />
-        </div>
-      </details>
+          <details className="mt-2 pt-2 border-t border-white/8">
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold flex items-center justify-between" style={{ color: "var(--color-education)" }}>
+              What grade do I need?
+              <span className="text-white/40">▾</span>
+            </summary>
+            <div className="mt-2">
+              <WhatGradeCalculator scale={scale} />
+            </div>
+          </details>
+        </>
+      )}
     </li>
   );
 }
