@@ -1,81 +1,71 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { getAllCourses, getDegreeRequirements, getSemesters } from "@/lib/education";
-import { computeDegreeProgress, computeOnTrackStatus } from "@/lib/types";
-import DegreeRequirementsList from "./DegreeRequirementsList";
+import { getDegreePlanStatuses } from "@/lib/degreePlan";
+import { DEGREE_PLAN_COURSES } from "@/lib/degreePlanCatalog";
+import RoadmapDiagram from "./RoadmapDiagram";
 
 export const dynamic = "force-dynamic";
 
-export default async function DegreePage() {
-  const [requirements, courses, semesters] = await Promise.all([
-    getDegreeRequirements(),
-    getAllCourses(),
-    getSemesters(),
-  ]);
+export default async function DegreePlanPage() {
+  const statusMap = await getDegreePlanStatuses();
+  const statuses = Object.fromEntries(statusMap);
 
-  const progress = computeDegreeProgress(requirements);
-  const remainingSemesters = semesters.filter((s) => s.status !== "past").length;
-  const { onTrack, neededPerSemester } = computeOnTrackStatus(progress.remainingCredits, remainingSemesters);
-
-  const courseOptions = courses.map((c) => ({
-    id: c.id,
-    label: c.courseCode ? `${c.name} (${c.courseCode})` : c.name,
-  }));
-  const courseNameById = Object.fromEntries(courses.map((c) => [c.id, c.name]));
-
-  let onTrackText: string;
-  let onTrackColor: string;
-  if (onTrack === true) {
-    onTrackText =
-      progress.remainingCredits <= 0
-        ? "All degree requirements complete!"
-        : `On track — you need ~${neededPerSemester!.toFixed(1)} credits/semester across ${remainingSemesters} remaining semester${remainingSemesters === 1 ? "" : "s"}.`;
-    onTrackColor = "var(--color-positive)";
-  } else if (onTrack === false) {
-    onTrackText = `Behind pace — you'd need ~${neededPerSemester!.toFixed(1)} credits/semester across ${remainingSemesters} remaining semester${remainingSemesters === 1 ? "" : "s"}, above a typical full load.`;
-    onTrackColor = "var(--color-negative)";
-  } else {
-    onTrackText = "No upcoming/current semesters recorded yet, so pace can't be estimated.";
-    onTrackColor = "var(--color-fg-dim)";
-  }
+  const totalCredits = DEGREE_PLAN_COURSES.reduce((sum, c) => sum + c.credits, 0);
+  const completedCredits = DEGREE_PLAN_COURSES.filter((c) => (statuses[c.id]?.status ?? "planned") === "completed").reduce(
+    (sum, c) => sum + c.credits,
+    0
+  );
+  const ongoingCredits = DEGREE_PLAN_COURSES.filter((c) => statuses[c.id]?.status === "ongoing").reduce(
+    (sum, c) => sum + c.credits,
+    0
+  );
 
   return (
     <div className="pb-10">
       <PageHeader title="Degree Plan" subtitle="Education" />
-      <main className="mx-auto max-w-2xl px-4 sm:px-6">
-        <Link
-          href="/education"
-          className="inline-flex items-center gap-1 text-sm text-[var(--color-fg-dim)] hover:text-white/80 transition-colors mb-4"
-        >
-          ← Back to Education
-        </Link>
+      <main className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <Link
+            href="/education"
+            className="inline-flex items-center gap-1 text-sm text-[var(--color-fg-dim)] hover:text-white/80 transition-colors"
+          >
+            ← Back to Education
+          </Link>
+          <Link
+            href="/education/degree/requirements"
+            className="text-sm font-semibold hover:opacity-80"
+            style={{ color: "var(--color-education)" }}
+          >
+            Degree Requirements Checklist →
+          </Link>
+        </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-education)" }}>
-              Credits completed
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+            <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: "var(--color-education)" }}>
+              Completed
             </p>
-            <p className="font-display text-2xl">
-              {progress.completedCredits} / {progress.totalCredits}
-            </p>
+            <p className="font-display text-2xl">{completedCredits} cr</p>
           </div>
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-education)" }}>
-              Remaining
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+            <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: "var(--color-education)" }}>
+              Ongoing
             </p>
-            <p className="font-display text-2xl">{progress.remainingCredits}</p>
+            <p className="font-display text-2xl">{ongoingCredits} cr</p>
+          </div>
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+            <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: "var(--color-education)" }}>
+              Total
+            </p>
+            <p className="font-display text-2xl">{totalCredits} cr</p>
           </div>
         </div>
 
-        <p className="text-sm font-medium mb-6" style={{ color: onTrackColor }}>
-          {onTrackText}
+        <p className="text-sm text-white/60 mb-4">
+          Tap any course to mark it Completed, Ongoing, or Planned — and pick which term you plan to take it.
         </p>
 
-        <DegreeRequirementsList
-          requirements={requirements}
-          courseOptions={courseOptions}
-          courseNameById={courseNameById}
-        />
+        <RoadmapDiagram statuses={statuses} />
       </main>
     </div>
   );

@@ -5,7 +5,7 @@ import {
   createDegreeRequirement,
   editDegreeRequirement,
   removeDegreeRequirement,
-} from "../actions";
+} from "../../actions";
 import {
   DEGREE_REQUIREMENT_STATUSES,
   DEGREE_REQUIREMENT_STATUS_LABELS,

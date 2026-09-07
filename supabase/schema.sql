@@ -726,3 +726,21 @@ create table if not exists edu_course_meetings (
 create index if not exists edu_course_meetings_course_idx on edu_course_meetings (course_id);
 
 alter table edu_course_meetings enable row level security;
+
+-- ---- Education (Degree Plan: interactive course roadmap) ----
+
+-- The roadmap itself (course boxes, terms, prerequisite arrows) is fixed
+-- university curriculum data and lives in code
+-- (src/lib/degreePlanCatalog.ts), not here — this table only holds the one
+-- thing that's actually yours: where each course stands. course_id matches
+-- a DEGREE_PLAN_COURSES id from that file, not a foreign key into
+-- edu_courses (the roadmap is a separate, fixed template — not the
+-- semesters/courses you track for GPA).
+create table if not exists edu_degree_plan_status (
+  course_id text primary key,
+  status text not null default 'planned' check (status in ('completed', 'ongoing', 'planned')),
+  planned_term text,
+  updated_at timestamptz not null default now()
+);
+
+alter table edu_degree_plan_status enable row level security;

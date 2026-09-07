@@ -1075,3 +1075,21 @@ export function computeOnTrackStatus(
   const neededPerSemester = remainingCredits / remainingSemesters;
   return { onTrack: neededPerSemester <= typicalCreditsPerSemester, neededPerSemester };
 }
+
+// ---- Degree Plan (interactive course roadmap) ----
+
+// Gray = completed, green = ongoing, blue = planned — colors are applied
+// in the roadmap component itself so they can also handle the category
+// border styling; this just fixes the three valid states.
+export const DEGREE_PLAN_STATUSES = ["completed", "ongoing", "planned"] as const;
+export type DegreePlanStatus = (typeof DEGREE_PLAN_STATUSES)[number];
+
+export function isDegreePlanStatus(value: string): value is DegreePlanStatus {
+  return (DEGREE_PLAN_STATUSES as readonly string[]).includes(value);
+}
+
+export type DegreePlanStatusRecord = {
+  courseId: string;
+  status: DegreePlanStatus;
+  plannedTerm: string | null;
+};
