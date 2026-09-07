@@ -38,7 +38,7 @@ export default async function PadelTrackerPage() {
 
         <div className="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-accent)" }}>
               Padel Income
             </p>
             <p className="font-display text-2xl" style={{ color: "var(--color-positive)" }}>
@@ -46,7 +46,7 @@ export default async function PadelTrackerPage() {
             </p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-accent)" }}>
               Padel Deficit
             </p>
             <p className="font-display text-2xl" style={{ color: "var(--color-negative)" }}>
@@ -54,7 +54,7 @@ export default async function PadelTrackerPage() {
             </p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-accent)" }}>
               Net ({net < 0 ? "Deficit" : "Surplus"})
             </p>
             <p
@@ -68,7 +68,7 @@ export default async function PadelTrackerPage() {
 
         {breakdown.length > 0 && (
           <section className="mb-6">
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+            <h2 className="font-display text-2xl tracking-wide leading-none mb-3" style={{ color: "var(--color-accent)" }}>
               Where it&apos;s gone
             </h2>
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] divide-y divide-white/8">
@@ -86,18 +86,18 @@ export default async function PadelTrackerPage() {
         )}
 
         <section className="mb-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+          <h2 className="font-display text-2xl tracking-wide leading-none mb-3" style={{ color: "var(--color-accent)" }}>
             Games played
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-accent)" }}>
                 Since September 2024
               </p>
               <p className="font-display text-3xl">{games.allTime}</p>
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-accent)" }}>
                 This year
               </p>
               <p className="font-display text-3xl">{games.thisYear}</p>
@@ -107,7 +107,7 @@ export default async function PadelTrackerPage() {
               </p>
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+              <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-accent)" }}>
                 This month
               </p>
               <p className="font-display text-3xl">{games.thisMonth}</p>
@@ -121,7 +121,7 @@ export default async function PadelTrackerPage() {
         </section>
 
         <section className="mb-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+          <h2 className="font-display text-2xl tracking-wide leading-none mb-3" style={{ color: "var(--color-accent)" }}>
             Tournament record
           </h2>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center">
@@ -134,7 +134,7 @@ export default async function PadelTrackerPage() {
 
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+            <h2 className="font-display text-2xl tracking-wide leading-none" style={{ color: "var(--color-accent)" }}>
               Tournament winnings
             </h2>
             {winnings.length > 0 && (
@@ -168,7 +168,7 @@ export default async function PadelTrackerPage() {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-xs text-[var(--color-fg-dim)] mb-0.5">{label}</p>
+      <p className="text-sm font-bold uppercase tracking-wide mb-0.5" style={{ color: "var(--color-accent)" }}>{label}</p>
       <p className="font-display text-xl">{value}</p>
     </div>
   );

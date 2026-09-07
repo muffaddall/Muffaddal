@@ -371,6 +371,67 @@ export function computeWorkoutStats(logs: WorkoutLog[]): WorkoutStats {
   return { personalBestDistance, personalBestPace, averageDistance, averagePace };
 }
 
+/** This discipline's distance converted to km — swimming is logged in meters, running/cycling already in km. Used anywhere disciplines are compared side by side (e.g. the Workout Tracker home dashboard). */
+export function toKm(distance: number, discipline: WorkoutDiscipline): number {
+  return discipline === "swimming" ? distance / 1000 : distance;
+}
+
+/** Total distance (converted to km) logged for this discipline on exactly this date. */
+export function sumDistanceOnDate(logs: WorkoutLog[], discipline: WorkoutDiscipline, date: string): number {
+  const total = logs
+    .filter((l) => l.discipline === discipline && l.date === date)
+    .reduce((sum, l) => sum + l.distance, 0);
+  return Math.round(toKm(total, discipline) * 10) / 10;
+}
+
+/** Total distance (converted to km) logged for this discipline within [weekStart, weekEnd] inclusive. */
+export function sumDistanceInRange(
+  logs: WorkoutLog[],
+  discipline: WorkoutDiscipline,
+  weekStart: string,
+  weekEnd: string
+): number {
+  const total = logs
+    .filter((l) => l.discipline === discipline && l.date >= weekStart && l.date <= weekEnd)
+    .reduce((sum, l) => sum + l.distance, 0);
+  return Math.round(toKm(total, discipline) * 10) / 10;
+}
+
+// A weekly training target you set for yourself (e.g. every Sunday night or
+// Monday morning) — one row per Monday-start week, split across the three
+// disciplines, always in km for easy side-by-side comparison.
+export type WeeklyTarget = {
+  weekStart: string; // Monday, YYYY-MM-DD
+  running: number;
+  cycling: number;
+  swimming: number;
+};
+
+export type DisciplineTargetProgress = {
+  discipline: WorkoutDiscipline;
+  target: number;
+  actual: number;
+  remaining: number; // max(target - actual, 0)
+  over: number; // max(actual - target, 0)
+};
+
+export function computeTargetProgress(
+  target: WeeklyTarget | null,
+  actualByDiscipline: Record<WorkoutDiscipline, number>
+): DisciplineTargetProgress[] {
+  return WORKOUT_DISCIPLINES.map((discipline) => {
+    const targetKm = target?.[discipline] ?? 0;
+    const actual = actualByDiscipline[discipline] ?? 0;
+    return {
+      discipline,
+      target: targetKm,
+      actual,
+      remaining: Math.max(Math.round((targetKm - actual) * 10) / 10, 0),
+      over: Math.max(Math.round((actual - targetKm) * 10) / 10, 0),
+    };
+  });
+}
+
 // ---- Padel Tracker ----
 
 // Lifetime totals from before the Padel Tracker page existed — see the

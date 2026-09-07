@@ -43,7 +43,7 @@ export default async function WorkoutDisciplinePage(
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-fitness)" }}>
               PB Distance
             </p>
             <p className="font-display text-xl">
@@ -51,19 +51,19 @@ export default async function WorkoutDisciplinePage(
             </p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-fitness)" }}>
               PB Pace
             </p>
             <p className="font-display text-xl">{formatPace(personalBestPace, discipline)}</p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-fitness)" }}>
               Average Distance
             </p>
             <p className="font-display text-xl">{formatDistance(averageDistance, discipline)}</p>
           </div>
           <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-fitness)" }}>
               Average Pace
             </p>
             <p className="font-display text-xl">{formatPace(averagePace, discipline)}</p>
@@ -78,7 +78,7 @@ export default async function WorkoutDisciplinePage(
         <AddWorkoutForm discipline={discipline} />
 
         <section className="mt-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>
+          <h2 className="font-display text-3xl tracking-wide leading-none mb-3" style={{ color: "var(--color-fitness)" }}>
             Entries
           </h2>
           <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
@@ -127,11 +127,11 @@ function VolumeCard({
 
   return (
     <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-      <p className="text-xs mb-1" style={{ color: "var(--color-fitness)" }}>
+      <p className="text-sm font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--color-fitness)" }}>
         {title}
       </p>
       <p className="font-display text-2xl mb-2">{formatDistance(period.current, discipline)}</p>
-      <div className="flex flex-col gap-0.5 text-xs text-white/80">
+      <div className="flex flex-col gap-0.5 text-sm text-white/80">
         <span>
           vs previous ({formatDistance(period.previous, discipline)}):{" "}
           {vsPrevious > 0 ? "+" : ""}

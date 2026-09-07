@@ -18,7 +18,7 @@ export default function PadelBaselineEditor({
   return (
     <details className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
       <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
-        <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+        <span className="text-base font-bold" style={{ color: "var(--color-accent)" }}>
           Edit history before this page (Sept 2024 baseline)
         </span>
         <span className="text-xs text-[var(--color-fg-dim)]">▾</span>

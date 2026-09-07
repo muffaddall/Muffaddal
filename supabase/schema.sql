@@ -295,6 +295,20 @@ create index if not exists workout_logs_date_idx on workout_logs (date);
 
 alter table workout_logs enable row level security;
 
+-- One row per Monday-start week: the target you set for yourself (in km,
+-- for all three disciplines including swimming — the individual Swimming
+-- page still logs/paces in meters, but the weekly target lives in km to
+-- stay comparable across disciplines on the Workout Tracker home page).
+create table if not exists workout_weekly_targets (
+  week_start date primary key,
+  running_km numeric not null default 0,
+  cycling_km numeric not null default 0,
+  swimming_km numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table workout_weekly_targets enable row level security;
+
 -- ---- Day-to-day expenses (separate from the "Planned Expenses" tab) ----
 
 -- One row per bank account you actually hold money in. Balances are never
