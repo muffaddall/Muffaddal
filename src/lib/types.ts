@@ -144,11 +144,14 @@ export type InvestmentMonthComputed = InvestmentMonth & {
 
 // A purchase made using money from the Big Purchase Fund — logged on the
 // Savings tab, and netted against that month's fund contributions.
+// paid=false is a future planned purchase: it doesn't reduce the running
+// balance yet, only shows as a projected deduction, until marked paid.
 export type BpfPurchase = {
   id: string;
   month: string;
   name: string;
   amount: number;
+  paid: boolean;
   created_at: string;
 };
 
@@ -158,6 +161,7 @@ export type SavingsPurchase = {
   id: string;
   name: string;
   amount: number;
+  paid: boolean;
   created_at: string;
 };
 

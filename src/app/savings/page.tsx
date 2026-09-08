@@ -7,6 +7,8 @@ import {
   getSavingsPurchases,
   totalBpfPurchases,
   totalMoneyInfluxes,
+  totalPlannedBpfPurchases,
+  totalPlannedSavingsPurchases,
   totalSavingsPurchases,
 } from "@/lib/savings";
 import { currentMonth, formatMoney } from "@/lib/format";
@@ -29,6 +31,8 @@ export default async function SavingsPage() {
   ]);
   const purchaseTotal = totalBpfPurchases(purchases);
   const savingsPurchaseTotal = totalSavingsPurchases(savingsPurchases);
+  const plannedBpfTotal = totalPlannedBpfPurchases(purchases);
+  const plannedSavingsTotal = totalPlannedSavingsPurchases(savingsPurchases);
   const influxSavingsTotal = totalMoneyInfluxes(influxes, "savings");
   const influxBpfTotal = totalMoneyInfluxes(influxes, "bpf");
 
@@ -58,12 +62,22 @@ export default async function SavingsPage() {
               >
                 {formatMoney(current.debt_left)}
               </p>
+              {plannedBpfTotal > 0 && (
+                <p className="text-xs text-[var(--color-fg-dim)] mt-0.5">
+                  {formatMoney(current.debt_left - plannedBpfTotal)} after planned purchases
+                </p>
+              )}
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 Total savings
               </p>
               <p className="font-display text-2xl">{formatMoney(current.total_savings)}</p>
+              {plannedSavingsTotal > 0 && (
+                <p className="text-xs text-[var(--color-fg-dim)] mt-0.5">
+                  {formatMoney(current.total_savings - plannedSavingsTotal)} after planned purchases
+                </p>
+              )}
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
@@ -109,12 +123,19 @@ export default async function SavingsPage() {
             </span>
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-sm tabular-nums text-[var(--color-negative)]">
-                Total: {formatMoney(purchaseTotal)}
+                Paid: {formatMoney(purchaseTotal)}
+                {plannedBpfTotal > 0 && (
+                  <span className="text-[var(--color-fg-dim)]"> · Planned: {formatMoney(plannedBpfTotal)}</span>
+                )}
               </span>
               <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
             </div>
           </summary>
           <div className="px-4 pb-4">
+            <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+              Tick &ldquo;Future planned purchase&rdquo; for something you haven&apos;t bought yet —
+              it won&apos;t reduce Debt left until you tick it as paid.
+            </p>
             <ul className="flex flex-col gap-1 mb-3">
               {purchases.map((purchase) => (
                 <BpfPurchaseRow key={purchase.id} purchase={purchase} />
@@ -136,7 +157,10 @@ export default async function SavingsPage() {
             </span>
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-sm tabular-nums text-[var(--color-negative)]">
-                Total: {formatMoney(savingsPurchaseTotal)}
+                Paid: {formatMoney(savingsPurchaseTotal)}
+                {plannedSavingsTotal > 0 && (
+                  <span className="text-[var(--color-fg-dim)]"> · Planned: {formatMoney(plannedSavingsTotal)}</span>
+                )}
               </span>
               <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
             </div>
@@ -144,7 +168,9 @@ export default async function SavingsPage() {
           <div className="px-4 pb-4">
             <p className="text-xs text-[var(--color-fg-dim)] mb-3">
               Spent money straight from Savings? Log it here — it reduces Total savings above,
-              same as Big Purchase Fund purchases reduce Debt left.
+              same as Big Purchase Fund purchases reduce Debt left. Tick &ldquo;Future planned
+              purchase&rdquo; for something you haven&apos;t bought yet — it won&apos;t reduce
+              Total savings until you tick it as paid.
             </p>
             <ul className="flex flex-col gap-1 mb-3">
               {savingsPurchases.map((purchase) => (

@@ -22,20 +22,32 @@ export async function getBpfPurchases(): Promise<BpfPurchase[]> {
   return data ?? [];
 }
 
+// Only paid purchases reduce the actual running balance — planned
+// (paid=false) ones are projected separately, see totalPlannedBpfPurchases.
 export function totalBpfPurchases(purchases: BpfPurchase[]): number {
-  return purchases.reduce((sum, p) => sum + p.amount, 0);
+  return purchases.reduce((sum, p) => (p.paid ? sum + p.amount : sum), 0);
 }
 
-export async function addBpfPurchase(input: { name: string; amount: number }): Promise<void> {
+/** Sum of future planned (not yet paid) BPF purchases — what the balance would drop by if you made them all today. */
+export function totalPlannedBpfPurchases(purchases: BpfPurchase[]): number {
+  return purchases.reduce((sum, p) => (p.paid ? sum : sum + p.amount), 0);
+}
+
+export async function addBpfPurchase(input: { name: string; amount: number; paid: boolean }): Promise<void> {
   const { error } = await supabase.from("bpf_purchases").insert(input);
   if (error) throw error;
 }
 
 export async function updateBpfPurchase(
   id: string,
-  input: { name: string; amount: number }
+  input: { name: string; amount: number; paid: boolean }
 ): Promise<void> {
   const { error } = await supabase.from("bpf_purchases").update(input).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setBpfPurchasePaid(id: string, paid: boolean): Promise<void> {
+  const { error } = await supabase.from("bpf_purchases").update({ paid }).eq("id", id);
   if (error) throw error;
 }
 
@@ -56,20 +68,32 @@ export async function getSavingsPurchases(): Promise<SavingsPurchase[]> {
   return data ?? [];
 }
 
+// Only paid purchases reduce the actual running balance — planned
+// (paid=false) ones are projected separately, see totalPlannedSavingsPurchases.
 export function totalSavingsPurchases(purchases: SavingsPurchase[]): number {
-  return purchases.reduce((sum, p) => sum + p.amount, 0);
+  return purchases.reduce((sum, p) => (p.paid ? sum + p.amount : sum), 0);
 }
 
-export async function addSavingsPurchase(input: { name: string; amount: number }): Promise<void> {
+/** Sum of future planned (not yet paid) Savings purchases — what the balance would drop by if you made them all today. */
+export function totalPlannedSavingsPurchases(purchases: SavingsPurchase[]): number {
+  return purchases.reduce((sum, p) => (p.paid ? sum : sum + p.amount), 0);
+}
+
+export async function addSavingsPurchase(input: { name: string; amount: number; paid: boolean }): Promise<void> {
   const { error } = await supabase.from("savings_purchases").insert(input);
   if (error) throw error;
 }
 
 export async function updateSavingsPurchase(
   id: string,
-  input: { name: string; amount: number }
+  input: { name: string; amount: number; paid: boolean }
 ): Promise<void> {
   const { error } = await supabase.from("savings_purchases").update(input).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setSavingsPurchasePaid(id: string, paid: boolean): Promise<void> {
+  const { error } = await supabase.from("savings_purchases").update({ paid }).eq("id", id);
   if (error) throw error;
 }
 

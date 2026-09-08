@@ -168,6 +168,9 @@ on conflict (key) do nothing;
 -- Purchases made using money from the Big Purchase Fund. Their total is
 -- subtracted from the fund's running balance. (Replaces the old "debts"
 -- table — those are the same thing: things bought using the fund.)
+-- paid=false means it's a future planned purchase — it doesn't reduce the
+-- running balance yet, only shows as a projected deduction, until you mark
+-- it paid once you actually make the purchase.
 create table if not exists bpf_purchases (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -175,17 +178,21 @@ create table if not exists bpf_purchases (
   created_at timestamptz not null default now()
 );
 
+alter table bpf_purchases add column if not exists paid boolean not null default true;
+
 alter table bpf_purchases enable row level security;
 
 -- Purchases made using money from Savings — the Savings equivalent of
 -- bpf_purchases above. Their total is subtracted from the running Savings
--- balance.
+-- balance. Same paid=false/planned-purchase behavior as bpf_purchases.
 create table if not exists savings_purchases (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   amount numeric not null default 0,
   created_at timestamptz not null default now()
 );
+
+alter table savings_purchases add column if not exists paid boolean not null default true;
 
 alter table savings_purchases enable row level security;
 
