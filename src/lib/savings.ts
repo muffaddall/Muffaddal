@@ -7,6 +7,7 @@ import type {
   MoneyInfluxDestination,
   SavingsMonth,
   SavingsMonthComputed,
+  SavingsPurchase,
 } from "@/lib/types";
 
 // Purchases made using money from the Big Purchase Fund. Their total is
@@ -40,6 +41,40 @@ export async function updateBpfPurchase(
 
 export async function deleteBpfPurchase(id: string): Promise<void> {
   const { error } = await supabase.from("bpf_purchases").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// Purchases made using money from Savings. Their total is subtracted from
+// the running Savings balance — logged here on the Savings tab, not as
+// expense entries. Mirrors bpf_purchases above exactly.
+export async function getSavingsPurchases(): Promise<SavingsPurchase[]> {
+  const { data, error } = await supabase
+    .from("savings_purchases")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export function totalSavingsPurchases(purchases: SavingsPurchase[]): number {
+  return purchases.reduce((sum, p) => sum + p.amount, 0);
+}
+
+export async function addSavingsPurchase(input: { name: string; amount: number }): Promise<void> {
+  const { error } = await supabase.from("savings_purchases").insert(input);
+  if (error) throw error;
+}
+
+export async function updateSavingsPurchase(
+  id: string,
+  input: { name: string; amount: number }
+): Promise<void> {
+  const { error } = await supabase.from("savings_purchases").update(input).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteSavingsPurchase(id: string): Promise<void> {
+  const { error } = await supabase.from("savings_purchases").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -92,8 +127,9 @@ export async function deleteMoneyInflux(id: string): Promise<void> {
 // BPF purchases (below); savings kept is the sum of "Savings contribution"
 // expense entries. The Expenses tab is the single source of truth for both.
 export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
-  const [purchases, influxes, monthsRes, debtPaydownByMonth, savingsKeptByMonth] = await Promise.all([
+  const [purchases, savingsPurchases, influxes, monthsRes, debtPaydownByMonth, savingsKeptByMonth] = await Promise.all([
     getBpfPurchases(),
+    getSavingsPurchases(),
     getMoneyInfluxes(),
     supabase.from("savings_months").select("*").order("month", { ascending: true }),
     getExpenseAmountByMonthForCategory("debt"),
@@ -113,11 +149,11 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
     ])
   ).sort();
 
-  // BPF purchases and impromptu money influxes aren't tied to a month —
-  // they permanently move the fund/savings balances from now on.
+  // BPF/Savings purchases and impromptu money influxes aren't tied to a
+  // month — they permanently move the fund/savings balances from now on.
   const startingDebt = totalMoneyInfluxes(influxes, "bpf") - totalBpfPurchases(purchases);
   let runningDebt = startingDebt;
-  let runningSavings = totalMoneyInfluxes(influxes, "savings");
+  let runningSavings = totalMoneyInfluxes(influxes, "savings") - totalSavingsPurchases(savingsPurchases);
 
   return allMonths.map((month) => {
     const saved = savingsByMonth.get(month);

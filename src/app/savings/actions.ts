@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 import {
   addBpfPurchase,
   addMoneyInflux,
+  addSavingsPurchase,
   deleteBpfPurchase,
   deleteMoneyInflux,
   deleteSavingsMonth,
+  deleteSavingsPurchase,
   updateBpfPurchase,
   updateMoneyInflux,
+  updateSavingsPurchase,
   upsertSavingsMonth,
 } from "@/lib/savings";
 import { inputValueToMonth } from "@/lib/format";
@@ -50,6 +53,44 @@ export async function editBpfPurchase(
 
 export async function removeBpfPurchase(id: string): Promise<void> {
   await deleteBpfPurchase(id);
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function createSavingsPurchase(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const amount = Number(formData.get("amount"));
+
+  if (!name) return { error: "Name is required." };
+  if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
+
+  await addSavingsPurchase({ name, amount });
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function editSavingsPurchase(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const amount = Number(formData.get("amount"));
+
+  if (!id) return { error: "Missing purchase." };
+  if (!name) return { error: "Name is required." };
+  if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
+
+  await updateSavingsPurchase(id, { name, amount });
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function removeSavingsPurchase(id: string): Promise<void> {
+  await deleteSavingsPurchase(id);
   revalidatePath("/savings");
   revalidatePath("/");
 }

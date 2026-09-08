@@ -4,12 +4,16 @@ import {
   getBpfPurchases,
   getMoneyInfluxes,
   getSavingsMonths,
+  getSavingsPurchases,
   totalBpfPurchases,
   totalMoneyInfluxes,
+  totalSavingsPurchases,
 } from "@/lib/savings";
 import { currentMonth, formatMoney } from "@/lib/format";
 import BpfPurchaseRow from "./BpfPurchaseRow";
 import AddBpfPurchaseForm from "./AddBpfPurchaseForm";
+import SavingsPurchaseRow from "./SavingsPurchaseRow";
+import AddSavingsPurchaseForm from "./AddSavingsPurchaseForm";
 import SavingsMonthRow from "./SavingsMonthRow";
 import MoneyInfluxRow from "./MoneyInfluxRow";
 import AddMoneyInfluxForm from "./AddMoneyInfluxForm";
@@ -17,12 +21,14 @@ import AddMoneyInfluxForm from "./AddMoneyInfluxForm";
 export const dynamic = "force-dynamic";
 
 export default async function SavingsPage() {
-  const [purchases, influxes, months] = await Promise.all([
+  const [purchases, savingsPurchases, influxes, months] = await Promise.all([
     getBpfPurchases(),
+    getSavingsPurchases(),
     getMoneyInfluxes(),
     getSavingsMonths(),
   ]);
   const purchaseTotal = totalBpfPurchases(purchases);
+  const savingsPurchaseTotal = totalSavingsPurchases(savingsPurchases);
   const influxSavingsTotal = totalMoneyInfluxes(influxes, "savings");
   const influxBpfTotal = totalMoneyInfluxes(influxes, "bpf");
 
@@ -124,6 +130,37 @@ export default async function SavingsPage() {
         </details>
 
         <details className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              Savings purchases
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-sm tabular-nums text-[var(--color-negative)]">
+                Total: {formatMoney(savingsPurchaseTotal)}
+              </span>
+              <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+            </div>
+          </summary>
+          <div className="px-4 pb-4">
+            <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+              Spent money straight from Savings? Log it here — it reduces Total savings above,
+              same as Big Purchase Fund purchases reduce Debt left.
+            </p>
+            <ul className="flex flex-col gap-1 mb-3">
+              {savingsPurchases.map((purchase) => (
+                <SavingsPurchaseRow key={purchase.id} purchase={purchase} />
+              ))}
+              {savingsPurchases.length === 0 && (
+                <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
+                  No purchases logged.
+                </li>
+              )}
+            </ul>
+            <AddSavingsPurchaseForm />
+          </div>
+        </details>
+
+        <details className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               Monthly savings progress
@@ -134,7 +171,8 @@ export default async function SavingsPage() {
             <p className="text-xs text-[var(--color-fg-dim)] mb-3">
               Debt paydown comes from that month&apos;s &ldquo;Big Purchase Fund&rdquo; entries on
               the Expenses tab. Savings kept comes from &ldquo;Savings contribution&rdquo; entries
-              there too. Big Purchase Fund purchases (above) reduce the balance separately.
+              there too. Big Purchase Fund purchases and Savings purchases (above) reduce their
+              balances separately.
             </p>
             <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-white/[0.02] p-3">
               <table className="w-full min-w-[780px] border-collapse">

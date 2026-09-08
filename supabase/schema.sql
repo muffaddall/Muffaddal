@@ -177,6 +177,18 @@ create table if not exists bpf_purchases (
 
 alter table bpf_purchases enable row level security;
 
+-- Purchases made using money from Savings — the Savings equivalent of
+-- bpf_purchases above. Their total is subtracted from the running Savings
+-- balance.
+create table if not exists savings_purchases (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  amount numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table savings_purchases enable row level security;
+
 -- Impromptu / one-off money from anywhere, added straight to Savings or
 -- the Big Purchase Fund on your own call — not tied to a month, unlike
 -- the recurring Planned Expenses categories that normally feed these

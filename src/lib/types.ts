@@ -152,6 +152,15 @@ export type BpfPurchase = {
   created_at: string;
 };
 
+// A purchase made using money from Savings — same idea as BpfPurchase, but
+// netted against the running Savings balance instead of the BPF balance.
+export type SavingsPurchase = {
+  id: string;
+  name: string;
+  amount: number;
+  created_at: string;
+};
+
 // Impromptu / one-off money you receive from anywhere and choose to add
 // straight to Savings or the Big Purchase Fund — not tied to a month,
 // unlike the recurring Planned Expenses categories that normally feed
