@@ -84,6 +84,12 @@ export default async function SavingsPage() {
                 Account total
               </p>
               <p className="font-display text-2xl">{formatMoney(current.account_total)}</p>
+              {plannedBpfTotal + plannedSavingsTotal > 0 && (
+                <p className="text-xs text-[var(--color-fg-dim)] mt-0.5">
+                  {formatMoney(current.account_total - plannedBpfTotal - plannedSavingsTotal)} after
+                  planned purchases
+                </p>
+              )}
             </div>
           </div>
         )}
