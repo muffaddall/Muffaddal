@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { removeTransaction } from "./transactionActions";
 import { formatMoney } from "@/lib/format";
+import { MaskedAmount } from "@/components/AmountVisibility";
 import {
   categoryPath,
   type Account,
@@ -90,8 +91,10 @@ export default function DiaryEntryCard({
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-sm font-semibold tabular-nums" style={{ color }}>
-            {sign}
-            {formatMoney(displayAmount, displayCurrency)}
+            <MaskedAmount id={`tx-${tx.id}`}>
+              {sign}
+              {formatMoney(displayAmount, displayCurrency)}
+            </MaskedAmount>
           </span>
           <Link
             href={editHref}
@@ -112,7 +115,11 @@ export default function DiaryEntryCard({
       {tx.type === "expense" && (
         <div className="flex items-center justify-between gap-3 mt-1.5 pt-1.5 border-t border-white/5">
           <span className="text-xs" style={{ color: outstandingOwed > 0 ? "var(--color-negative)" : "var(--color-fg-dim)" }}>
-            {outstandingOwed > 0 ? `${formatMoney(outstandingOwed, currency)} owed to you` : "Nobody owes you on this"}
+            {outstandingOwed > 0 ? (
+              <MaskedAmount id={`owed-${tx.id}`}>{formatMoney(outstandingOwed, currency)} owed to you</MaskedAmount>
+            ) : (
+              "Nobody owes you on this"
+            )}
           </span>
           <Link
             href={`/day-to-day/receivables/${tx.id}`}

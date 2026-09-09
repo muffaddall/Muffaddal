@@ -28,6 +28,7 @@ import {
 } from "@/lib/format";
 import { todayStr } from "@/lib/date";
 import DiaryEntryCard from "./DiaryEntryCard";
+import { AmountVisibilityProvider, MaskedAmount, VisibilityMasterToggle } from "@/components/AmountVisibility";
 
 export const dynamic = "force-dynamic";
 
@@ -180,6 +181,7 @@ export default async function DayToDayPage({
       </div>
 
       <main className="mx-auto max-w-2xl px-4 sm:px-6">
+        <AmountVisibilityProvider>
         <div className="flex items-center justify-center gap-2 mb-4">
           <Link
             href={`/day-to-day?month=${monthToInputValue(prev)}${
@@ -239,6 +241,12 @@ export default async function DayToDayPage({
         </div>
 
         {selectedAccount && (
+          <div className="flex justify-end mb-3">
+            <VisibilityMasterToggle />
+          </div>
+        )}
+
+        {selectedAccount && (
           <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
@@ -248,14 +256,18 @@ export default async function DayToDayPage({
                 className="font-display text-3xl"
                 style={{ color: leftForMonth < 0 ? "var(--color-negative)" : undefined }}
               >
-                {formatMoney(leftForMonth, selectedAccount.currency)}
+                <MaskedAmount id="planned-balance">
+                  {formatMoney(leftForMonth, selectedAccount.currency)}
+                </MaskedAmount>
               </p>
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 If every planned expense gets paid
               </p>
               {totalOutstandingOwed > 0 && (
                 <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
-                  {formatMoney(leftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
+                  <MaskedAmount id="planned-personal">
+                    {formatMoney(leftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
+                  </MaskedAmount>
                   <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
                     incl. {formatMoney(totalOutstandingOwed, selectedAccount.currency)} owed to you
                   </span>
@@ -270,14 +282,18 @@ export default async function DayToDayPage({
                 className="font-display text-3xl"
                 style={{ color: actualLeftForMonth < 0 ? "var(--color-negative)" : undefined }}
               >
-                {formatMoney(actualLeftForMonth, selectedAccount.currency)}
+                <MaskedAmount id="actual-balance">
+                  {formatMoney(actualLeftForMonth, selectedAccount.currency)}
+                </MaskedAmount>
               </p>
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 Only what you&apos;ve marked paid — matches your bank
               </p>
               {totalOutstandingOwed > 0 && (
                 <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
-                  {formatMoney(actualLeftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
+                  <MaskedAmount id="actual-personal">
+                    {formatMoney(actualLeftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
+                  </MaskedAmount>
                   <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
                     incl. {formatMoney(totalOutstandingOwed, selectedAccount.currency)} owed to you
                   </span>
@@ -289,7 +305,9 @@ export default async function DayToDayPage({
                 Total Expenses
               </p>
               <p className="font-display text-3xl">
-                {formatMoney(totalExpensesForMonth, selectedAccount.currency)}
+                <MaskedAmount id="total-expenses">
+                  {formatMoney(totalExpensesForMonth, selectedAccount.currency)}
+                </MaskedAmount>
               </p>
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 Logged in the diary this month
@@ -310,7 +328,11 @@ export default async function DayToDayPage({
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 From Planned Expenses
               </p>
-              <p className="font-display text-xl">{formatMoney(monthlyLeftover, selectedAccount?.currency)}</p>
+              <p className="font-display text-xl">
+                <MaskedAmount id="breakdown-planned">
+                  {formatMoney(monthlyLeftover, selectedAccount?.currency)}
+                </MaskedAmount>
+              </p>
             </div>
             <div className="rounded-xl bg-white/5 p-4">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
@@ -320,7 +342,9 @@ export default async function DayToDayPage({
                 className="font-display text-xl"
                 style={{ color: carryIn < 0 ? "var(--color-negative)" : carryIn > 0 ? "var(--color-positive)" : undefined }}
               >
-                {formatSignedMoney(carryIn, selectedAccount?.currency)}
+                <MaskedAmount id="breakdown-carried">
+                  {formatSignedMoney(carryIn, selectedAccount?.currency)}
+                </MaskedAmount>
               </p>
             </div>
           </div>
@@ -362,7 +386,9 @@ export default async function DayToDayPage({
                       color: p.remaining < 0 ? "var(--color-negative)" : "var(--color-positive)",
                     }}
                   >
-                    {formatMoney(p.remaining, selectedAccount?.currency)} left
+                    <MaskedAmount id={`period-${p.key}`}>
+                      {formatMoney(p.remaining, selectedAccount?.currency)} left
+                    </MaskedAmount>
                   </p>
                   {(p.expense > 0 || p.income > 0) && (
                     <p className="text-sm text-white/80 mt-1">
@@ -465,7 +491,9 @@ export default async function DayToDayPage({
                   className="text-sm font-semibold tabular-nums shrink-0"
                   style={{ color: "var(--color-negative)" }}
                 >
-                  -{formatMoney(entry.amount, selectedAccount?.currency)}
+                  <MaskedAmount id={`planned-entry-${entry.id}`}>
+                    -{formatMoney(entry.amount, selectedAccount?.currency)}
+                  </MaskedAmount>
                 </span>
               </div>
             ))}
@@ -476,6 +504,7 @@ export default async function DayToDayPage({
             )}
           </div>
         </section>
+        </AmountVisibilityProvider>
       </main>
     </div>
   );
