@@ -24,6 +24,7 @@ import DefaultIncomeEditor from "./DefaultIncomeEditor";
 import AddExpenseForm from "./AddExpenseForm";
 import ExpenseRow from "./ExpenseRow";
 import CopyPreviousMonthButton from "./CopyPreviousMonthButton";
+import { AmountVisibilityProvider, MaskedAmount, VisibilityMasterToggle } from "@/components/AmountVisibility";
 
 export const dynamic = "force-dynamic";
 
@@ -76,81 +77,95 @@ export default async function ExpensesPage({
         <FinanceSectionTabs active="expenses" />
       </div>
       <main className="mx-auto max-w-3xl px-4 sm:px-6">
-        <div className="flex justify-center mb-4">
-          <AccountQuickTabs
-            accounts={accounts}
-            selectedAccountId={selectedAccountId}
-            basePath="/expenses"
-            extraQuery={`month=${monthInputValue}`}
-          />
-        </div>
+        <AmountVisibilityProvider>
+          <div className="flex justify-center mb-4">
+            <AccountQuickTabs
+              accounts={accounts}
+              selectedAccountId={selectedAccountId}
+              basePath="/expenses"
+              extraQuery={`month=${monthInputValue}`}
+            />
+          </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <MonthNav month={month} accountId={selectedAccountId} />
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+            <MonthNav month={month} accountId={selectedAccountId} />
+            {selectedAccountId && (
+              <IncomeEditor month={month} accountId={selectedAccountId} income={income} />
+            )}
+          </div>
           {selectedAccountId && (
-            <IncomeEditor month={month} accountId={selectedAccountId} income={income} />
+            <div className="flex justify-end mb-6">
+              <DefaultIncomeEditor accountId={selectedAccountId} defaultIncome={defaultIncome} />
+            </div>
           )}
-        </div>
-        {selectedAccountId && (
-          <div className="flex justify-end mb-6">
-            <DefaultIncomeEditor accountId={selectedAccountId} defaultIncome={defaultIncome} />
-          </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-3 mb-3 sm:grid-cols-4">
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              Income
-            </p>
-            <p className="font-display text-2xl">{formatMoney(income, selectedAccount?.currency)}</p>
-          </div>
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              Spent
-            </p>
-            <p className="font-display text-2xl">{formatMoney(total, selectedAccount?.currency)}</p>
-          </div>
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              Left over
-            </p>
-            <p
-              className="font-display text-2xl"
-              style={{ color: leftover < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
-            >
-              {formatSignedMoney(leftover, selectedAccount?.currency)}
-            </p>
-          </div>
-          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
-            <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-              Paid so far
-            </p>
-            <p className="font-display text-2xl">{formatMoney(paidTotal, selectedAccount?.currency)}</p>
-          </div>
-        </div>
-        <p className="text-xs text-[var(--color-fg-dim)] mb-6">
-          Tick a planned expense off as &quot;Paid&quot; once it&apos;s actually left your account — that
-          feeds the Actual Balance on the Day-to-Day page.
-        </p>
-
-        {selectedAccountId && (
           <div className="flex justify-end mb-3">
-            <CopyPreviousMonthButton month={month} accountId={selectedAccountId} />
+            <VisibilityMasterToggle />
           </div>
-        )}
 
-        <ul className="flex flex-col gap-1 mb-4">
-          {entries.map((entry) => (
-            <ExpenseRow key={entry.id} entry={entry} currency={selectedAccount?.currency} />
-          ))}
-          {entries.length === 0 && (
-            <li className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
-              No expenses logged for {selectedAccount?.name ?? "this account"} this month yet.
-            </li>
+          <div className="grid grid-cols-2 gap-3 mb-3 sm:grid-cols-4">
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Income
+              </p>
+              <p className="font-display text-2xl">
+                <MaskedAmount id="stat-income">{formatMoney(income, selectedAccount?.currency)}</MaskedAmount>
+              </p>
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Spent
+              </p>
+              <p className="font-display text-2xl">
+                <MaskedAmount id="stat-spent">{formatMoney(total, selectedAccount?.currency)}</MaskedAmount>
+              </p>
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Left over
+              </p>
+              <p
+                className="font-display text-2xl"
+                style={{ color: leftover < 0 ? "var(--color-negative)" : "var(--color-positive)" }}
+              >
+                <MaskedAmount id="stat-leftover">
+                  {formatSignedMoney(leftover, selectedAccount?.currency)}
+                </MaskedAmount>
+              </p>
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Paid so far
+              </p>
+              <p className="font-display text-2xl">
+                <MaskedAmount id="stat-paid">{formatMoney(paidTotal, selectedAccount?.currency)}</MaskedAmount>
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-[var(--color-fg-dim)] mb-6">
+            Tick a planned expense off as &quot;Paid&quot; once it&apos;s actually left your account — that
+            feeds the Actual Balance on the Day-to-Day page.
+          </p>
+
+          {selectedAccountId && (
+            <div className="flex justify-end mb-3">
+              <CopyPreviousMonthButton month={month} accountId={selectedAccountId} />
+            </div>
           )}
-        </ul>
 
-        {selectedAccountId && <AddExpenseForm month={month} accountId={selectedAccountId} />}
+          <ul className="flex flex-col gap-1 mb-4">
+            {entries.map((entry) => (
+              <ExpenseRow key={entry.id} entry={entry} currency={selectedAccount?.currency} />
+            ))}
+            {entries.length === 0 && (
+              <li className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
+                No expenses logged for {selectedAccount?.name ?? "this account"} this month yet.
+              </li>
+            )}
+          </ul>
+
+          {selectedAccountId && <AddExpenseForm month={month} accountId={selectedAccountId} />}
+        </AmountVisibilityProvider>
       </main>
     </div>
   );

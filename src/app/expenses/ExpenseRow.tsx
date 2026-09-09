@@ -5,6 +5,7 @@ import { editExpense, removeExpense, toggleExpensePaid } from "./actions";
 import { CATEGORY_LABELS, EXPENSE_CATEGORIES, type Currency, type ExpenseEntry } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import CategoryBadge from "@/components/CategoryBadge";
+import { MaskedAmount } from "@/components/AmountVisibility";
 
 export default function ExpenseRow({
   entry,
@@ -109,7 +110,9 @@ export default function ExpenseRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm tabular-nums">{formatMoney(entry.amount, currency)}</span>
+        <span className="text-sm tabular-nums">
+          <MaskedAmount id={`entry-${entry.id}`}>{formatMoney(entry.amount, currency)}</MaskedAmount>
+        </span>
         <button
           type="button"
           onClick={() => setEditing(true)}
