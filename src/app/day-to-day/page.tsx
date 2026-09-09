@@ -90,6 +90,10 @@ export default async function DayToDayPage({
   const expensePieData = pieDataFor("expense");
   const incomePieData = pieDataFor("income");
 
+  const totalExpensesForMonth = accountDiaryTransactions
+    .filter((tx) => tx.type === "expense")
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
   const monthlyLeftover = income - totalForMonth(plannedExpenses);
   const monthlyPaidLeftover = income - totalPaidForMonth(plannedExpenses);
 
@@ -235,7 +239,7 @@ export default async function DayToDayPage({
         </div>
 
         {selectedAccount && (
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 Planned Balance
@@ -279,6 +283,17 @@ export default async function DayToDayPage({
                   </span>
                 </p>
               )}
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Total Expenses
+              </p>
+              <p className="font-display text-3xl">
+                {formatMoney(totalExpensesForMonth, selectedAccount.currency)}
+              </p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
+                Logged in the diary this month
+              </p>
             </div>
           </div>
         )}
