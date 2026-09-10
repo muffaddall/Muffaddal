@@ -1285,3 +1285,48 @@ export type TourneyFormat = {
   name: string;
   numGroups: number;
 };
+
+export type TourneyPlayerStats = {
+  tournamentsPlayed: number;
+  matchesWon: number;
+  matchesLost: number;
+  firstPlaceCount: number;
+  secondPlaceCount: number;
+};
+
+// Loyalty program: every 5 tournaments played earns one free entry. Each
+// row here is one free entry actually handed out — logged the moment you
+// mark it given, so the progress bar resets for the next cycle and you
+// can't accidentally grant the same free entry twice.
+export const TOURNEY_LOYALTY_CYCLE = 5;
+
+export type TourneyLoyaltyReward = {
+  id: string;
+  playerId: string;
+  redeemedAt: string;
+};
+
+export type TourneyLoyaltyStatus = {
+  tournamentsPlayed: number;
+  rewardsRedeemed: number;
+  progressInCycle: number; // tournaments played since the last redemption, may exceed cycleLength if a reward hasn't been marked given yet
+  cycleLength: number;
+  eligibleNow: boolean;
+  history: TourneyLoyaltyReward[];
+};
+
+export function computeLoyaltyStatus(
+  tournamentsPlayed: number,
+  redemptions: TourneyLoyaltyReward[]
+): TourneyLoyaltyStatus {
+  const rewardsRedeemed = redemptions.length;
+  const progressInCycle = tournamentsPlayed - rewardsRedeemed * TOURNEY_LOYALTY_CYCLE;
+  return {
+    tournamentsPlayed,
+    rewardsRedeemed,
+    progressInCycle,
+    cycleLength: TOURNEY_LOYALTY_CYCLE,
+    eligibleNow: progressInCycle >= TOURNEY_LOYALTY_CYCLE,
+    history: redemptions,
+  };
+}

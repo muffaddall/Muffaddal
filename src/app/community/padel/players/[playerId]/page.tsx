@@ -5,6 +5,7 @@ import { getPlayerProfile } from "@/lib/tourneys";
 import { TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
 import DeletePlayerButton from "./DeletePlayerButton";
+import LoyaltyProgress from "./LoyaltyProgress";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function PlayerProfilePage(props: PageProps<"/community/pad
   const profile = await getPlayerProfile(playerId);
   if (!profile) notFound();
 
-  const { player, currentLevel, totalPoints, joinPoints, winPoints, history } = profile;
+  const { player, currentLevel, totalPoints, joinPoints, winPoints, history, stats, loyalty } = profile;
 
   return (
     <div className="pb-10">
@@ -35,6 +36,16 @@ export default async function PlayerProfilePage(props: PageProps<"/community/pad
           <Stat label="Join Points" value={joinPoints} />
           <Stat label="Win Points" value={winPoints} />
         </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <Stat label="Tournaments" value={stats.tournamentsPlayed} />
+          <Stat label="Matches Won" value={stats.matchesWon} />
+          <Stat label="Matches Lost" value={stats.matchesLost} />
+          <Stat label="1st Place" value={stats.firstPlaceCount} />
+          <Stat label="2nd Place" value={stats.secondPlaceCount} />
+        </div>
+
+        <LoyaltyProgress playerId={player.id} loyalty={loyalty} />
 
         <section>
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>

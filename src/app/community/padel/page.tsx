@@ -18,7 +18,14 @@ export default function PadelPage() {
           className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
         >
           <p className="font-semibold text-base mb-1">Players</p>
-          <p className="text-xs text-white/45">Leaderboard and profiles</p>
+          <p className="text-xs text-white/45">Directory and profiles</p>
+        </Link>
+        <Link
+          href="/community/padel/leaderboard"
+          className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+        >
+          <p className="font-semibold text-base mb-1">Leaderboard</p>
+          <p className="text-xs text-white/45">Ranked by total points</p>
         </Link>
         <Link
           href="/community/padel/formats"

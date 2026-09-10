@@ -6,9 +6,12 @@ import type {
   TourneyGroup,
   TourneyLeaderboardEntry,
   TourneyLevel,
+  TourneyLoyaltyReward,
+  TourneyLoyaltyStatus,
   TourneyMatch,
   TourneyMatchStage,
   TourneyPlayer,
+  TourneyPlayerStats,
   TourneyStanding,
   TourneyStatus,
   TourneyTeam,
@@ -16,6 +19,7 @@ import type {
 import {
   TOURNEY_JOIN_POINTS,
   computeGroupStandings,
+  computeLoyaltyStatus,
   isValidBracketSize,
   pointsForMatchWin,
   roundNameForSize,
@@ -213,8 +217,16 @@ export async function deletePlayer(playerId: string): Promise<void> {
     if (teamDeleteError) throw new Error(teamDeleteError.message);
   }
 
+  const { error: rewardsError } = await supabase.from("tourney_loyalty_rewards").delete().eq("player_id", playerId);
+  if (rewardsError) throw new Error(rewardsError.message);
+
   const { error: playerDeleteError } = await supabase.from("tourney_players").delete().eq("id", playerId);
   if (playerDeleteError) throw new Error(playerDeleteError.message);
+}
+
+/** Manually add a player from the players directory, not tied to a tournament entry. Same name-matching as team entry, so it won't create a duplicate of someone already added via a team. */
+export async function addPlayer(name: string, country: string | null): Promise<string> {
+  return findOrCreatePlayer(name, country);
 }
 
 /** Matches an existing player by name (case/whitespace-insensitive) so the same person keeps one running profile across tourneys, instead of creating a fresh one every time you type their name. */
@@ -662,20 +674,28 @@ export type TourneyPlayerProfile = {
   joinPoints: number;
   winPoints: number;
   history: TourneyPlayerHistoryEntry[];
+  stats: TourneyPlayerStats;
+  loyalty: TourneyLoyaltyStatus;
 };
 
 export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerProfile | null> {
   const player = await getPlayer(playerId);
   if (!player) return null;
 
-  const [eventsRes, teamsRes, tourneys, players] = await Promise.all([
+  const [eventsRes, teamsRes, tourneys, players, rewardsRes] = await Promise.all([
     supabase.from("tourney_points_events").select("*").eq("player_id", playerId),
     supabase.from("tourney_teams").select("*"),
     getAllTourneys(),
     getAllPlayers(),
+    supabase
+      .from("tourney_loyalty_rewards")
+      .select("*")
+      .eq("player_id", playerId)
+      .order("redeemed_at", { ascending: false }),
   ]);
   if (eventsRes.error) throw new Error(eventsRes.error.message);
   if (teamsRes.error) throw new Error(teamsRes.error.message);
+  if (rewardsRes.error) throw new Error(rewardsRes.error.message);
 
   const events = (eventsRes.data ?? []) as { reason: "join" | "win"; points: number }[];
   const allTeams = (teamsRes.data ?? []) as TeamRow[];
@@ -683,6 +703,7 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
   const playersById = new Map(players.map((p) => [p.id, p]));
 
   const myTeams = allTeams.filter((t) => t.player_a_id === playerId || t.player_b_id === playerId);
+  const myTeamIds = myTeams.map((t) => t.id);
   const history: TourneyPlayerHistoryEntry[] = myTeams
     .map((t) => {
       const tourney = tourneysById.get(t.tourney_id);
@@ -705,7 +726,71 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
   const joinPoints = events.filter((e) => e.reason === "join").reduce((s, e) => s + e.points, 0);
   const winPoints = events.filter((e) => e.reason === "win").reduce((s, e) => s + e.points, 0);
 
-  return { player, currentLevel, totalPoints: joinPoints + winPoints, joinPoints, winPoints, history };
+  let matchesWon = 0;
+  let matchesLost = 0;
+  let firstPlaceCount = 0;
+  let secondPlaceCount = 0;
+
+  if (myTeamIds.length > 0) {
+    const orExpr = myTeamIds.map((id) => `team_a_id.eq.${id},team_b_id.eq.${id}`).join(",");
+    const { data: matchRows, error: matchError } = await supabase.from("tourney_matches").select("*").or(orExpr);
+    if (matchError) throw new Error(matchError.message);
+    const myMatches = (matchRows ?? []).map((r) => matchFromRow(r as MatchRow));
+
+    for (const m of myMatches) {
+      if (!m.winnerTeamId) continue;
+      const myTeamIdInMatch = myTeamIds.includes(m.teamAId ?? "")
+        ? m.teamAId
+        : myTeamIds.includes(m.teamBId ?? "")
+          ? m.teamBId
+          : null;
+      if (!myTeamIdInMatch) continue;
+      const won = m.winnerTeamId === myTeamIdInMatch;
+      if (won) matchesWon += 1;
+      else matchesLost += 1;
+      if (m.roundName === "Final") {
+        if (won) firstPlaceCount += 1;
+        else secondPlaceCount += 1;
+      }
+    }
+  }
+
+  const stats: TourneyPlayerStats = {
+    tournamentsPlayed: history.length,
+    matchesWon,
+    matchesLost,
+    firstPlaceCount,
+    secondPlaceCount,
+  };
+
+  const rewards: TourneyLoyaltyReward[] = (rewardsRes.data ?? []).map((r) => {
+    const row = r as { id: string; player_id: string; redeemed_at: string };
+    return { id: row.id, playerId: row.player_id, redeemedAt: row.redeemed_at };
+  });
+  const loyalty = computeLoyaltyStatus(history.length, rewards);
+
+  return {
+    player,
+    currentLevel,
+    totalPoints: joinPoints + winPoints,
+    joinPoints,
+    winPoints,
+    history,
+    stats,
+    loyalty,
+  };
+}
+
+export async function redeemLoyaltyReward(playerId: string): Promise<void> {
+  const { error } = await supabase
+    .from("tourney_loyalty_rewards")
+    .insert({ player_id: playerId, redeemed_at: new Date().toISOString() });
+  if (error) throw new Error(error.message);
+}
+
+export async function undoLoyaltyReward(id: string): Promise<void> {
+  const { error } = await supabase.from("tourney_loyalty_rewards").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 // ---- Formats ----

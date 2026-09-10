@@ -903,3 +903,16 @@ create table if not exists tourney_formats (
   num_groups int not null,
   created_at timestamptz not null default now()
 );
+
+-- Loyalty program: every 5 tournaments played earns a free entry into
+-- the next one. Each row is one free entry actually handed out — logged
+-- the moment you mark it given (from the player's profile), so their
+-- progress resets for the next cycle and the same reward can't
+-- accidentally get granted twice.
+create table if not exists tourney_loyalty_rewards (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references tourney_players(id) on delete cascade,
+  redeemed_at timestamptz not null default now()
+);
+
+create index if not exists tourney_loyalty_rewards_player_idx on tourney_loyalty_rewards (player_id);
