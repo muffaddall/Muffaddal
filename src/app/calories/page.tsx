@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
-import { getAllCalorieLogs, getCalorieLog } from "@/lib/calories";
+import { getAllCalorieLogs, getCalorieEntriesForDate, getCalorieLog } from "@/lib/calories";
 import { getFoodItems } from "@/lib/foodItems";
 import { computeCalorieAverages, computeCalorieLog, WATER_GOAL_ML } from "@/lib/types";
 import { formatDayHeading, formatMonthYear, shiftDate, todayStr } from "@/lib/date";
@@ -16,10 +16,11 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   const date = typeof dateParam === "string" ? dateParam : todayStr();
   const isToday = date === todayStr();
 
-  const [log, allLogs, foodItems] = await Promise.all([
+  const [log, allLogs, foodItems, entries] = await Promise.all([
     getCalorieLog(date),
     getAllCalorieLogs(),
     getFoodItems(),
+    getCalorieEntriesForDate(date),
   ]);
   const computed = log ? computeCalorieLog(log) : null;
   const { avgIntake, avgBurned, avgWater } = computeCalorieAverages(allLogs);
@@ -87,7 +88,7 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
           </div>
         )}
 
-        <CalorieLogForm key={date} date={date} log={log} foodItems={foodItems} />
+        <CalorieLogForm key={date} date={date} log={log} entries={entries} foodItems={foodItems} />
 
         <section className="mt-8">
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-fitness)" }}>

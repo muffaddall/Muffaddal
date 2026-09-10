@@ -1,6 +1,6 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
-import type { CalorieLog } from "@/lib/types";
+import type { CalorieEntry, CalorieLog, MealType } from "@/lib/types";
 
 type CalorieLogRow = {
   date: string;
@@ -53,9 +53,96 @@ export async function getAllCalorieLogs(): Promise<CalorieLog[]> {
   return (data ?? []).map(fromRow);
 }
 
-export async function upsertCalorieLog(input: CalorieLog): Promise<void> {
+/** Partial upsert — only touches water/burned, never clobbers the meal totals kept in sync by calorie_entries. */
+export async function updateWaterAndBurned(date: string, water: number, burned: number): Promise<void> {
   const { error } = await supabase
     .from("calorie_logs")
-    .upsert(input, { onConflict: "date" });
+    .upsert({ date, water, burned }, { onConflict: "date" });
   if (error) throw new Error(error.message);
+}
+
+type CalorieEntryRow = {
+  id: string;
+  date: string;
+  meal_type: MealType;
+  name: string;
+  calories: number;
+  sort_order: number;
+};
+
+function entryFromRow(row: CalorieEntryRow): CalorieEntry {
+  return {
+    id: row.id,
+    date: row.date,
+    mealType: row.meal_type,
+    name: row.name,
+    calories: row.calories,
+    sortOrder: row.sort_order,
+  };
+}
+
+export async function getCalorieEntriesForDate(date: string): Promise<CalorieEntry[]> {
+  const { data, error } = await supabase
+    .from("calorie_entries")
+    .select("*")
+    .eq("date", date)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(entryFromRow);
+}
+
+const MEAL_COLUMN: Record<MealType, "breakfast" | "lunch" | "dinner" | "snacks"> = {
+  breakfast: "breakfast",
+  lunch: "lunch",
+  dinner: "dinner",
+  snack: "snacks",
+};
+
+/** Re-sums this date+meal's entries and writes the result into calorie_logs — the cached total shown everywhere else. */
+async function recomputeMealTotal(date: string, mealType: MealType): Promise<void> {
+  const { data, error } = await supabase
+    .from("calorie_entries")
+    .select("calories")
+    .eq("date", date)
+    .eq("meal_type", mealType);
+  if (error) throw new Error(error.message);
+  const total = (data ?? []).reduce((sum, r) => sum + Number(r.calories), 0);
+
+  const { error: upsertError } = await supabase
+    .from("calorie_logs")
+    .upsert({ date, [MEAL_COLUMN[mealType]]: total }, { onConflict: "date" });
+  if (upsertError) throw new Error(upsertError.message);
+}
+
+export async function addCalorieEntry(input: {
+  date: string;
+  mealType: MealType;
+  name: string;
+  calories: number;
+}): Promise<void> {
+  const { count, error: countError } = await supabase
+    .from("calorie_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("date", input.date)
+    .eq("meal_type", input.mealType);
+  if (countError) throw new Error(countError.message);
+
+  const { error } = await supabase.from("calorie_entries").insert({
+    date: input.date,
+    meal_type: input.mealType,
+    name: input.name,
+    calories: input.calories,
+    sort_order: count ?? 0,
+  });
+  if (error) throw new Error(error.message);
+
+  await recomputeMealTotal(input.date, input.mealType);
+}
+
+export async function deleteCalorieEntry(id: string, date: string, mealType: MealType): Promise<void> {
+  const { error } = await supabase.from("calorie_entries").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  await recomputeMealTotal(date, mealType);
 }

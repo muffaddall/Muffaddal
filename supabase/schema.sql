@@ -243,6 +243,27 @@ alter table calorie_logs add column if not exists water numeric not null default
 
 alter table calorie_logs enable row level security;
 
+-- Every named food you log against a meal on a given day — this is what
+-- you actually type in ("Chicken sandwich", 450 kcal), so you can see what
+-- made up the number later instead of just a lump total. calorie_logs'
+-- breakfast/lunch/dinner/snacks columns are kept as a running cache of
+-- each meal's entries summed together, recomputed whenever an entry here
+-- is added or removed — the app never asks you to type a meal total by
+-- hand anymore.
+create table if not exists calorie_entries (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
+  name text not null,
+  calories numeric not null default 0,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists calorie_entries_date_idx on calorie_entries (date);
+
+alter table calorie_entries enable row level security;
+
 -- Saved foods/meals you can quick-add to a day's log on the Calorie
 -- Tracker instead of retyping calories every time (e.g. "Apple", or a
 -- multi-ingredient combo like "Turkey and Eggs Breakfast"). A "snack"

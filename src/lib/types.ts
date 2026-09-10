@@ -276,6 +276,18 @@ export type FoodItem = {
   created_at: string;
 };
 
+// One named thing you ate, logged against a specific meal on a specific
+// day — e.g. "Chicken sandwich" (450 kcal, lunch, 2026-09-10). A meal's
+// total on CalorieLog is just these summed, kept in sync automatically.
+export type CalorieEntry = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  mealType: MealType;
+  name: string;
+  calories: number;
+  sortOrder: number;
+};
+
 export type WeightLog = {
   id: string;
   date: string; // YYYY-MM-DD
