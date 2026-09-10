@@ -791,3 +791,104 @@ create table if not exists edu_degree_plan_status (
 );
 
 alter table edu_degree_plan_status enable row level security;
+
+-- ---- Elevate Fitness Community: Padel tournament organizer ----
+--
+-- Separate from padel_baseline/padel_winnings/padel_yearly_games (those
+-- back the Workout Tracker's money/games stats at /workouts/padel — a
+-- personal finance view, not an event organizer). Everything below is
+-- prefixed tourney_ instead of padel_ specifically to keep the two apart.
+
+-- A player who has ever entered a tourney. Profiles accumulate across
+-- every tourney a player joins — the app finds-or-creates by name rather
+-- than requiring you to pre-register anyone, so typing the same name
+-- again reuses the same profile and keeps their points running.
+create table if not exists tourney_players (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  country text,
+  created_at timestamptz not null default now()
+);
+
+-- One weekly (or whenever) event at a given level. Walks through
+-- setup -> groups -> knockout -> completed as you run the day:
+-- setup = entering teams, groups = round-robin group stage in progress,
+-- knockout = bracket in progress, completed = a champion was decided.
+create table if not exists tourneys (
+  id uuid primary key default gen_random_uuid(),
+  level text not null check (level in ('open-d', 'd-plus-c-minus', 'c-minus-c')),
+  name text not null,
+  date date not null,
+  status text not null default 'setup' check (status in ('setup', 'groups', 'knockout', 'completed')),
+  created_at timestamptz not null default now()
+);
+
+-- A doubles pairing entered into one specific tourney. Partners are
+-- re-entered fresh each tourney (not a standing partnership you reuse) —
+-- the two player profiles are what persists, not the pairing itself.
+create table if not exists tourney_teams (
+  id uuid primary key default gen_random_uuid(),
+  tourney_id uuid not null references tourneys(id) on delete cascade,
+  player_a_id uuid not null references tourney_players(id) on delete cascade,
+  player_b_id uuid not null references tourney_players(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists tourney_teams_tourney_idx on tourney_teams (tourney_id);
+
+-- The random group-stage draw, generated once from the entered teams.
+create table if not exists tourney_groups (
+  id uuid primary key default gen_random_uuid(),
+  tourney_id uuid not null references tourneys(id) on delete cascade,
+  name text not null, -- "Group A", "Group B", ...
+  sort_order int not null default 0
+);
+
+create table if not exists tourney_group_teams (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references tourney_groups(id) on delete cascade,
+  team_id uuid not null references tourney_teams(id) on delete cascade
+);
+
+create index if not exists tourney_group_teams_group_idx on tourney_group_teams (group_id);
+
+-- Every match, group stage or knockout. Group matches are the full
+-- round robin within a group (group_id set, round_name/round_index
+-- null). Knockout matches are generated one round at a time as the
+-- previous round's winners are decided; round_name is the human label
+-- ('Quarterfinal'/'Semifinal'/'Final'/...) derived from how many teams
+-- are left, and round_index orders the rounds.
+create table if not exists tourney_matches (
+  id uuid primary key default gen_random_uuid(),
+  tourney_id uuid not null references tourneys(id) on delete cascade,
+  stage text not null check (stage in ('group', 'knockout')),
+  round_name text,
+  group_id uuid references tourney_groups(id) on delete cascade,
+  round_index int,
+  team_a_id uuid references tourney_teams(id) on delete cascade,
+  team_b_id uuid references tourney_teams(id) on delete cascade,
+  team_a_score int,
+  team_b_score int,
+  winner_team_id uuid references tourney_teams(id) on delete set null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists tourney_matches_tourney_idx on tourney_matches (tourney_id);
+
+-- Point ledger — every point a player has earned, tagged with why. The
+-- leaderboard is just SUM(points) grouped by player. Recomputed (old
+-- events for that team/match deleted, then reinserted) whenever a score
+-- changes or a team is removed, so corrections never double-count.
+create table if not exists tourney_points_events (
+  id uuid primary key default gen_random_uuid(),
+  player_id uuid not null references tourney_players(id) on delete cascade,
+  tourney_id uuid not null references tourneys(id) on delete cascade,
+  team_id uuid references tourney_teams(id) on delete cascade,
+  match_id uuid references tourney_matches(id) on delete cascade,
+  reason text not null check (reason in ('join', 'win')),
+  points int not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists tourney_points_events_player_idx on tourney_points_events (player_id);

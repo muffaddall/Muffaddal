@@ -1119,3 +1119,161 @@ export type DegreePlanStatusRecord = {
   status: DegreePlanStatus;
   plannedTerm: string | null;
 };
+
+// ---- Elevate Fitness Community: Padel tournament organizer ----
+// (Unrelated to PadelBaseline/PadelWinning above — those back the Workout
+// Tracker's personal money/games stats at /workouts/padel. Everything
+// below runs the actual weekly tournaments: teams, groups, brackets,
+// points. See lib/tourneys.ts.)
+
+export const TOURNEY_LEVELS = ["open-d", "d-plus-c-minus", "c-minus-c"] as const;
+export type TourneyLevel = (typeof TOURNEY_LEVELS)[number];
+
+export function isTourneyLevel(value: string): value is TourneyLevel {
+  return (TOURNEY_LEVELS as readonly string[]).includes(value);
+}
+
+export const TOURNEY_LEVEL_LABELS: Record<TourneyLevel, string> = {
+  "open-d": "Open D",
+  "d-plus-c-minus": "D+ C -",
+  "c-minus-c": "C- C",
+};
+
+export const TOURNEY_STATUSES = ["setup", "groups", "knockout", "completed"] as const;
+export type TourneyStatus = (typeof TOURNEY_STATUSES)[number];
+
+export type Tourney = {
+  id: string;
+  level: TourneyLevel;
+  name: string;
+  date: string; // YYYY-MM-DD
+  status: TourneyStatus;
+};
+
+export type TourneyPlayer = {
+  id: string;
+  name: string;
+  country: string | null;
+};
+
+// A doubles pairing entered into one tourney — playerA/B persist as
+// profiles, but the pairing itself is only good for this one event.
+export type TourneyTeam = {
+  id: string;
+  tourneyId: string;
+  playerAId: string;
+  playerAName: string;
+  playerBId: string;
+  playerBName: string;
+};
+
+export type TourneyGroup = {
+  id: string;
+  tourneyId: string;
+  name: string;
+  sortOrder: number;
+};
+
+export type TourneyMatchStage = "group" | "knockout";
+
+export type TourneyMatch = {
+  id: string;
+  tourneyId: string;
+  stage: TourneyMatchStage;
+  roundName: string | null; // null for group matches; "Quarterfinal"/"Semifinal"/"Final"/... for knockout
+  groupId: string | null;
+  roundIndex: number | null;
+  teamAId: string | null;
+  teamBId: string | null;
+  teamAScore: number | null;
+  teamBScore: number | null;
+  winnerTeamId: string | null;
+  sortOrder: number;
+};
+
+export type TourneyPointsEvent = {
+  id: string;
+  playerId: string;
+  tourneyId: string;
+  teamId: string | null;
+  matchId: string | null;
+  reason: "join" | "win";
+  points: number;
+};
+
+export const TOURNEY_JOIN_POINTS = 5;
+export const TOURNEY_GROUP_WIN_POINTS = 2;
+export const TOURNEY_KNOCKOUT_ROUND_POINTS: Record<string, number> = {
+  Quarterfinal: 4,
+  Semifinal: 7,
+  Final: 10,
+};
+
+/** Points for winning a match at this stage/round — the full value for that round, not stacked on top of the group-stage win value. */
+export function pointsForMatchWin(stage: TourneyMatchStage, roundName: string | null): number {
+  if (stage === "group" || roundName === null) return TOURNEY_GROUP_WIN_POINTS;
+  return TOURNEY_KNOCKOUT_ROUND_POINTS[roundName] ?? TOURNEY_GROUP_WIN_POINTS;
+}
+
+const KNOCKOUT_ROUND_NAMES: Record<number, string> = {
+  2: "Final",
+  4: "Semifinal",
+  8: "Quarterfinal",
+  16: "Round of 16",
+  32: "Round of 32",
+};
+
+/** Names a knockout round from how many teams enter it — 2 teams play the Final, 4 the Semifinal, 8 the Quarterfinal, and so on. */
+export function roundNameForSize(teamCount: number): string {
+  return KNOCKOUT_ROUND_NAMES[teamCount] ?? `Round of ${teamCount}`;
+}
+
+/** True if a knockout bracket can be built cleanly from this many group winners — must be a power of 2, at least 2. */
+export function isValidBracketSize(teamCount: number): boolean {
+  return teamCount >= 2 && (teamCount & (teamCount - 1)) === 0;
+}
+
+export type TourneyStanding = {
+  teamId: string;
+  wins: number;
+  losses: number;
+  scoreFor: number;
+  scoreAgainst: number;
+  scoreDiff: number;
+};
+
+/** Ranks a group's teams by wins then total score differential. Doesn't auto-break every tie (head-to-head, etc.) — the UI lets you manually pick the advancing team when it matters. */
+export function computeGroupStandings(teamIds: string[], matches: TourneyMatch[]): TourneyStanding[] {
+  const standings = new Map<string, TourneyStanding>();
+  for (const id of teamIds) {
+    standings.set(id, { teamId: id, wins: 0, losses: 0, scoreFor: 0, scoreAgainst: 0, scoreDiff: 0 });
+  }
+  for (const m of matches) {
+    if (!m.teamAId || !m.teamBId || m.teamAScore === null || m.teamBScore === null) continue;
+    const a = standings.get(m.teamAId);
+    const b = standings.get(m.teamBId);
+    if (!a || !b) continue;
+    a.scoreFor += m.teamAScore;
+    a.scoreAgainst += m.teamBScore;
+    b.scoreFor += m.teamBScore;
+    b.scoreAgainst += m.teamAScore;
+    if (m.teamAScore > m.teamBScore) {
+      a.wins += 1;
+      b.losses += 1;
+    } else if (m.teamBScore > m.teamAScore) {
+      b.wins += 1;
+      a.losses += 1;
+    }
+  }
+  for (const s of standings.values()) s.scoreDiff = s.scoreFor - s.scoreAgainst;
+  return Array.from(standings.values()).sort((a, b) => b.wins - a.wins || b.scoreDiff - a.scoreDiff);
+}
+
+export type TourneyLeaderboardEntry = {
+  playerId: string;
+  name: string;
+  country: string | null;
+  totalPoints: number;
+  tourneysPlayed: number;
+  currentLevel: TourneyLevel | null;
+};
