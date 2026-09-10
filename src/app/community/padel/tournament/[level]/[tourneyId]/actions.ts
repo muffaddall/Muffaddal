@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  clearGroups,
+  clearKnockoutBracket,
   createTeam,
   generateGroups,
   generateKnockoutBracket,
@@ -77,6 +79,24 @@ export async function generateBracketAction(
     await generateKnockoutBracket(tourneyId, advancingTeamIds);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to generate bracket." };
+  }
+  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+}
+
+export async function clearGroupsAction(level: string, tourneyId: string): Promise<{ error: string } | void> {
+  try {
+    await clearGroups(tourneyId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to regenerate groups." };
+  }
+  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+}
+
+export async function clearKnockoutBracketAction(level: string, tourneyId: string): Promise<{ error: string } | void> {
+  try {
+    await clearKnockoutBracket(tourneyId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to regenerate bracket." };
   }
   revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
 }

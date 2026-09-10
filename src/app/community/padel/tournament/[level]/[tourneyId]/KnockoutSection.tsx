@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setMatchScoreAction } from "./actions";
+import { clearKnockoutBracketAction, setMatchScoreAction } from "./actions";
 import type { TourneyLevel, TourneyMatch, TourneyStatus, TourneyTeam } from "@/lib/types";
 
 export default function KnockoutSection({
@@ -33,6 +33,8 @@ export default function KnockoutSection({
 
   return (
     <div className="flex flex-col gap-5">
+      <RegenerateBracketButton level={level} tourneyId={tourneyId} />
+
       {champion && (
         <div className="rounded-xl border border-[var(--color-community)] bg-[var(--color-community)]/10 p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-[var(--color-community)] mb-1">🏆 Champion</p>
@@ -143,6 +145,37 @@ function KnockoutMatchRow({
           {isSaving ? "Saving…" : match.winnerTeamId ? "Update Score" : "Save Score"}
         </button>
       )}
+      {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
+    </div>
+  );
+}
+
+function RegenerateBracketButton({ level, tourneyId }: { level: TourneyLevel; tourneyId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [isClearing, startClear] = useTransition();
+
+  return (
+    <div className="self-end flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={isClearing}
+        onClick={() => {
+          if (
+            !window.confirm(
+              "Regenerate the knockout bracket? This deletes every knockout match and any points already awarded from them, and lets you re-confirm which teams advance from the groups."
+            )
+          ) {
+            return;
+          }
+          startClear(async () => {
+            const result = await clearKnockoutBracketAction(level, tourneyId);
+            if (result?.error) setError(result.error);
+          });
+        }}
+        className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+      >
+        {isClearing ? "Regenerating…" : "Regenerate Bracket"}
+      </button>
       {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
     </div>
   );

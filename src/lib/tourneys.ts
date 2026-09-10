@@ -260,6 +260,53 @@ export async function generateGroups(tourneyId: string, numGroups: number): Prom
   if (statusError) throw new Error(statusError.message);
 }
 
+/**
+ * Undoes the group draw entirely — deletes every group, its fixtures, and
+ * any points already awarded from group matches — so you can reshuffle
+ * with a different number of groups. Team entries are untouched. Deletes
+ * are done explicitly rather than relying on FK cascade, since the mock
+ * client used for local testing doesn't simulate cascade.
+ */
+export async function clearGroups(tourneyId: string): Promise<void> {
+  const { data: matchRows, error: matchFetchError } = await supabase
+    .from("tourney_matches")
+    .select("id")
+    .eq("tourney_id", tourneyId)
+    .eq("stage", "group");
+  if (matchFetchError) throw new Error(matchFetchError.message);
+  const matchIds = (matchRows ?? []).map((r) => (r as { id: string }).id);
+
+  if (matchIds.length > 0) {
+    const { error: pointsError } = await supabase.from("tourney_points_events").delete().in("match_id", matchIds);
+    if (pointsError) throw new Error(pointsError.message);
+  }
+
+  const { error: matchDeleteError } = await supabase
+    .from("tourney_matches")
+    .delete()
+    .eq("tourney_id", tourneyId)
+    .eq("stage", "group");
+  if (matchDeleteError) throw new Error(matchDeleteError.message);
+
+  const { data: groupRows, error: groupFetchError } = await supabase
+    .from("tourney_groups")
+    .select("id")
+    .eq("tourney_id", tourneyId);
+  if (groupFetchError) throw new Error(groupFetchError.message);
+  const groupIds = (groupRows ?? []).map((r) => (r as { id: string }).id);
+
+  if (groupIds.length > 0) {
+    const { error: gtError } = await supabase.from("tourney_group_teams").delete().in("group_id", groupIds);
+    if (gtError) throw new Error(gtError.message);
+  }
+
+  const { error: groupDeleteError } = await supabase.from("tourney_groups").delete().eq("tourney_id", tourneyId);
+  if (groupDeleteError) throw new Error(groupDeleteError.message);
+
+  const { error: statusError } = await supabase.from("tourneys").update({ status: "setup" }).eq("id", tourneyId);
+  if (statusError) throw new Error(statusError.message);
+}
+
 export async function getGroupsForTourney(tourneyId: string): Promise<TourneyGroup[]> {
   const { data, error } = await supabase
     .from("tourney_groups")
@@ -402,6 +449,38 @@ export async function generateKnockoutBracket(tourneyId: string, advancingTeamId
 
   const { error } = await supabase.from("tourneys").update({ status: "knockout" }).eq("id", tourneyId);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Undoes the knockout bracket entirely — deletes every knockout match
+ * (any round) and any points already awarded from them — so you can
+ * re-confirm the advancing teams and reseed. Group-stage results are
+ * untouched. Works whether the tourney is mid-bracket or already
+ * completed.
+ */
+export async function clearKnockoutBracket(tourneyId: string): Promise<void> {
+  const { data: matchRows, error: matchFetchError } = await supabase
+    .from("tourney_matches")
+    .select("id")
+    .eq("tourney_id", tourneyId)
+    .eq("stage", "knockout");
+  if (matchFetchError) throw new Error(matchFetchError.message);
+  const matchIds = (matchRows ?? []).map((r) => (r as { id: string }).id);
+
+  if (matchIds.length > 0) {
+    const { error: pointsError } = await supabase.from("tourney_points_events").delete().in("match_id", matchIds);
+    if (pointsError) throw new Error(pointsError.message);
+  }
+
+  const { error: matchDeleteError } = await supabase
+    .from("tourney_matches")
+    .delete()
+    .eq("tourney_id", tourneyId)
+    .eq("stage", "knockout");
+  if (matchDeleteError) throw new Error(matchDeleteError.message);
+
+  const { error: statusError } = await supabase.from("tourneys").update({ status: "groups" }).eq("id", tourneyId);
+  if (statusError) throw new Error(statusError.message);
 }
 
 async function tryAdvanceKnockoutRound(tourneyId: string, roundIndex: number): Promise<void> {

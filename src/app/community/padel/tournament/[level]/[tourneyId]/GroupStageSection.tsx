@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { generateBracketAction, setMatchScoreAction } from "./actions";
+import { clearGroupsAction, generateBracketAction, setMatchScoreAction } from "./actions";
 import type { TourneyGroupWithStandings } from "@/lib/tourneys";
 import type { TourneyLevel, TourneyMatch, TourneyTeam } from "@/lib/types";
 
@@ -20,6 +20,8 @@ export default function GroupStageSection({
 
   return (
     <div className="flex flex-col gap-5">
+      {!locked && <RegenerateGroupsButton level={level} tourneyId={tourneyId} />}
+
       {groups.map((g) => (
         <div key={g.group.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--color-community)" }}>
@@ -217,6 +219,33 @@ function GenerateBracketForm({
         className="rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
       >
         {isGenerating ? "Generating…" : "Generate Knockout Bracket"}
+      </button>
+      {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
+    </div>
+  );
+}
+
+function RegenerateGroupsButton({ level, tourneyId }: { level: TourneyLevel; tourneyId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [isClearing, startClear] = useTransition();
+
+  return (
+    <div className="self-end flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={isClearing}
+        onClick={() => {
+          if (!window.confirm("Regenerate groups? This deletes all group fixtures, scores, and any points already awarded from them.")) {
+            return;
+          }
+          startClear(async () => {
+            const result = await clearGroupsAction(level, tourneyId);
+            if (result?.error) setError(result.error);
+          });
+        }}
+        className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+      >
+        {isClearing ? "Regenerating…" : "Regenerate Groups"}
       </button>
       {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
     </div>
