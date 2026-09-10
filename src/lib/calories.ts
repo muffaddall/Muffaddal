@@ -68,6 +68,7 @@ type CalorieEntryRow = {
   name: string;
   calories: number;
   sort_order: number;
+  eaten: boolean;
 };
 
 function entryFromRow(row: CalorieEntryRow): CalorieEntry {
@@ -78,6 +79,7 @@ function entryFromRow(row: CalorieEntryRow): CalorieEntry {
     name: row.name,
     calories: row.calories,
     sortOrder: row.sort_order,
+    eaten: row.eaten,
   };
 }
 
@@ -99,13 +101,14 @@ const MEAL_COLUMN: Record<MealType, "breakfast" | "lunch" | "dinner" | "snacks">
   snack: "snacks",
 };
 
-/** Re-sums this date+meal's entries and writes the result into calorie_logs — the cached total shown everywhere else. */
+/** Re-sums this date+meal's eaten entries and writes the result into calorie_logs — the cached total shown everywhere else. Unticked (planned) entries don't count yet. */
 async function recomputeMealTotal(date: string, mealType: MealType): Promise<void> {
   const { data, error } = await supabase
     .from("calorie_entries")
     .select("calories")
     .eq("date", date)
-    .eq("meal_type", mealType);
+    .eq("meal_type", mealType)
+    .eq("eaten", true);
   if (error) throw new Error(error.message);
   const total = (data ?? []).reduce((sum, r) => sum + Number(r.calories), 0);
 
@@ -134,6 +137,7 @@ export async function addCalorieEntry(input: {
     name: input.name,
     calories: input.calories,
     sort_order: count ?? 0,
+    eaten: false,
   });
   if (error) throw new Error(error.message);
 
@@ -142,6 +146,18 @@ export async function addCalorieEntry(input: {
 
 export async function deleteCalorieEntry(id: string, date: string, mealType: MealType): Promise<void> {
   const { error } = await supabase.from("calorie_entries").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  await recomputeMealTotal(date, mealType);
+}
+
+export async function setCalorieEntryEaten(
+  id: string,
+  date: string,
+  mealType: MealType,
+  eaten: boolean
+): Promise<void> {
+  const { error } = await supabase.from("calorie_entries").update({ eaten }).eq("id", id);
   if (error) throw new Error(error.message);
 
   await recomputeMealTotal(date, mealType);

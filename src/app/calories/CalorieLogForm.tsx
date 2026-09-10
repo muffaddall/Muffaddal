@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition } from "react";
-import { createCalorieEntry, removeCalorieEntry, saveCalorieLog } from "./actions";
+import { createCalorieEntry, removeCalorieEntry, saveCalorieLog, toggleCalorieEntryEaten } from "./actions";
 import type { CalorieEntry, CalorieLog, FoodItem, MealType } from "@/lib/types";
 
 const MEALS: { type: MealType; label: string; color: string }[] = [
@@ -84,7 +84,7 @@ function MealCard({
   entries: CalorieEntry[];
   foodItems: FoodItem[];
 }) {
-  const total = entries.reduce((sum, e) => sum + e.calories, 0);
+  const total = entries.filter((e) => e.eaten).reduce((sum, e) => sum + e.calories, 0);
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
@@ -114,11 +114,27 @@ function MealCard({
 
 function EntryRow({ entry }: { entry: CalorieEntry }) {
   const [isDeleting, startDelete] = useTransition();
+  const [isToggling, startToggle] = useTransition();
   return (
     <li className="flex items-center justify-between gap-2 text-sm rounded-lg px-2 py-1 hover:bg-white/5 transition-colors">
-      <span className="truncate">{entry.name}</span>
+      <span className="flex items-center gap-2 min-w-0">
+        <input
+          type="checkbox"
+          checked={entry.eaten}
+          disabled={isToggling}
+          title={entry.eaten ? "Eaten" : "Mark as eaten"}
+          onChange={(e) => {
+            const eaten = e.target.checked;
+            startToggle(() => toggleCalorieEntryEaten(entry.id, entry.date, entry.mealType, eaten));
+          }}
+          className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+        />
+        <span className={`truncate ${entry.eaten ? "" : "text-white/40"}`}>{entry.name}</span>
+      </span>
       <span className="flex shrink-0 items-center gap-2">
-        <span className="tabular-nums text-white/70">{entry.calories} kcal</span>
+        <span className={`tabular-nums ${entry.eaten ? "text-white/70" : "text-white/40"}`}>
+          {entry.calories} kcal
+        </span>
         <button
           type="button"
           disabled={isDeleting}

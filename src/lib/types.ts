@@ -286,6 +286,7 @@ export type CalorieEntry = {
   name: string;
   calories: number;
   sortOrder: number;
+  eaten: boolean;
 };
 
 export type WeightLog = {

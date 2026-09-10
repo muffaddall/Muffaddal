@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addCalorieEntry, deleteCalorieEntry, updateWaterAndBurned } from "@/lib/calories";
+import { addCalorieEntry, deleteCalorieEntry, setCalorieEntryEaten, updateWaterAndBurned } from "@/lib/calories";
 import { addFoodItem, deleteFoodItem } from "@/lib/foodItems";
 import { isMealType } from "@/lib/types";
 
@@ -52,6 +52,19 @@ export async function removeCalorieEntry(
 ): Promise<void> {
   if (!isMealType(mealType)) return;
   await deleteCalorieEntry(id, date, mealType);
+  revalidatePath("/calories");
+  revalidatePath("/calories/week");
+  revalidatePath("/calories/month");
+}
+
+export async function toggleCalorieEntryEaten(
+  id: string,
+  date: string,
+  mealType: string,
+  eaten: boolean
+): Promise<void> {
+  if (!isMealType(mealType)) return;
+  await setCalorieEntryEaten(id, date, mealType, eaten);
   revalidatePath("/calories");
   revalidatePath("/calories/week");
   revalidatePath("/calories/month");

@@ -264,6 +264,13 @@ create index if not exists calorie_entries_date_idx on calorie_entries (date);
 
 alter table calorie_entries enable row level security;
 
+-- Whether you actually ate this or just logged it as a plan — the app
+-- always inserts new entries with eaten=false and you tick them off as
+-- you go; this column defaults existing rows to true so calories already
+-- logged before this column existed keep counting the same as before.
+-- recomputeMealTotal only sums eaten=true rows into calorie_logs.
+alter table calorie_entries add column if not exists eaten boolean not null default true;
+
 -- Saved foods/meals you can quick-add to a day's log on the Calorie
 -- Tracker instead of retyping calories every time (e.g. "Apple", or a
 -- multi-ingredient combo like "Turkey and Eggs Breakfast"). A "snack"
