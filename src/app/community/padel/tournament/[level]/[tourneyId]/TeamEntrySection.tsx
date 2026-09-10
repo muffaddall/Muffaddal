@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useRef, useTransition } from "react";
+import Link from "next/link";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { addTeamAction, generateGroupsAction, removeTeamAction } from "./actions";
-import type { TourneyLevel, TourneyTeam } from "@/lib/types";
+import type { TourneyFormat, TourneyLevel, TourneyTeam } from "@/lib/types";
 
 const inputCls =
   "rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-community)]";
@@ -11,11 +12,13 @@ export default function TeamEntrySection({
   level,
   tourneyId,
   teams,
+  formats,
   locked,
 }: {
   level: TourneyLevel;
   tourneyId: string;
   teams: TourneyTeam[];
+  formats: TourneyFormat[];
   locked: boolean;
 }) {
   return (
@@ -28,7 +31,9 @@ export default function TeamEntrySection({
       </div>
 
       {!locked && <AddTeamForm level={level} tourneyId={tourneyId} />}
-      {!locked && teams.length >= 2 && <GenerateGroupsForm level={level} tourneyId={tourneyId} teamCount={teams.length} />}
+      {!locked && teams.length >= 2 && (
+        <GenerateGroupsForm level={level} tourneyId={tourneyId} teamCount={teams.length} formats={formats} />
+      )}
     </div>
   );
 }
@@ -106,12 +111,17 @@ function GenerateGroupsForm({
   level,
   tourneyId,
   teamCount,
+  formats,
 }: {
   level: TourneyLevel;
   tourneyId: string;
   teamCount: number;
+  formats: TourneyFormat[];
 }) {
   const [state, formAction, pending] = useActionState(generateGroupsAction, undefined);
+  const [selection, setSelection] = useState<string>(formats.length > 0 ? formats[0].id : "custom");
+  const selectedFormat = formats.find((f) => f.id === selection);
+  const showCustomInput = formats.length === 0 || selection === "custom";
 
   return (
     <form
@@ -123,26 +133,51 @@ function GenerateGroupsForm({
       <p className="text-xs uppercase tracking-wide text-white/40">
         Generate groups — {teamCount} team{teamCount === 1 ? "" : "s"} entered
       </p>
+
+      {formats.length > 0 && (
+        <select
+          value={selection}
+          onChange={(e) => setSelection(e.target.value)}
+          className={inputCls}
+        >
+          {formats.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name} ({f.numGroups} groups)
+            </option>
+          ))}
+          <option value="custom">Custom…</option>
+        </select>
+      )}
+
+      {!showCustomInput && selectedFormat && (
+        <input type="hidden" name="numGroups" value={selectedFormat.numGroups} />
+      )}
+
       <div className="flex items-center gap-2">
-        <input
-          name="numGroups"
-          type="number"
-          min={2}
-          step={1}
-          placeholder="Number of groups (2, 4, 8…)"
-          required
-          className={`${inputCls} flex-1`}
-        />
+        {showCustomInput && (
+          <input
+            name="numGroups"
+            type="number"
+            min={2}
+            step={1}
+            placeholder="Number of groups (2, 4, 8…)"
+            required
+            className={`${inputCls} flex-1`}
+          />
+        )}
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
+          className={`shrink-0 rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60 ${
+            showCustomInput ? "" : "flex-1"
+          }`}
         >
           {pending ? "Generating…" : "Shuffle & Generate"}
         </button>
       </div>
       <p className="text-xs text-white/40">
-        Groups must be a power of 2 (2, 4, 8, 16…) so winners seed cleanly into the bracket. Teams split as evenly as possible.
+        Groups must be a power of 2 (2, 4, 8, 16…) so winners seed cleanly into the bracket. Teams split as evenly as
+        possible. <Link href="/community/padel/formats" className="underline">Manage formats</Link>.
       </p>
       {state?.error && <p className="text-xs text-[var(--color-negative)]">{state.error}</p>}
     </form>

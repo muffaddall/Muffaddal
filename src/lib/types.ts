@@ -1277,3 +1277,11 @@ export type TourneyLeaderboardEntry = {
   tourneysPlayed: number;
   currentLevel: TourneyLevel | null;
 };
+
+// A saved "N groups" preset, picked from a dropdown when drawing groups
+// instead of retyping a number every tourney.
+export type TourneyFormat = {
+  id: string;
+  name: string;
+  numGroups: number;
+};

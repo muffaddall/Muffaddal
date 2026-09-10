@@ -892,3 +892,14 @@ create table if not exists tourney_points_events (
 );
 
 create index if not exists tourney_points_events_player_idx on tourney_points_events (player_id);
+
+-- Saved group-count presets ("4 Groups", "8 Groups Small", ...) so you
+-- don't have to remember/retype a number every time you draw groups for
+-- a new tourney — pick a saved format on the tourney page instead. Not
+-- scoped to a level; the same presets show up everywhere.
+create table if not exists tourney_formats (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  num_groups int not null,
+  created_at timestamptz not null default now()
+);

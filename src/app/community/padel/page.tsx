@@ -20,6 +20,13 @@ export default function PadelPage() {
           <p className="font-semibold text-base mb-1">Players</p>
           <p className="text-xs text-white/45">Leaderboard and profiles</p>
         </Link>
+        <Link
+          href="/community/padel/formats"
+          className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+        >
+          <p className="font-semibold text-base mb-1">Formats</p>
+          <p className="text-xs text-white/45">Saved group-count presets</p>
+        </Link>
       </main>
     </div>
   );

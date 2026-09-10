@@ -2,6 +2,7 @@ import "server-only";
 import { supabase } from "@/lib/supabase";
 import type {
   Tourney,
+  TourneyFormat,
   TourneyGroup,
   TourneyLeaderboardEntry,
   TourneyLevel,
@@ -113,6 +114,42 @@ export async function createTourney(level: TourneyLevel, name: string, date: str
   return (data as { id: string }).id;
 }
 
+/**
+ * Deletes a tournament and everything scoped to it — teams, groups,
+ * matches, and any points awarded from them. Fully self-contained (never
+ * touches another tournament), so this is always safe to do. Deletes are
+ * explicit rather than relying on FK cascade, since the mock client used
+ * for local testing doesn't simulate cascade.
+ */
+export async function deleteTourney(tourneyId: string): Promise<void> {
+  const { data: groupRows, error: groupFetchError } = await supabase
+    .from("tourney_groups")
+    .select("id")
+    .eq("tourney_id", tourneyId);
+  if (groupFetchError) throw new Error(groupFetchError.message);
+  const groupIds = (groupRows ?? []).map((r) => (r as { id: string }).id);
+
+  if (groupIds.length > 0) {
+    const { error } = await supabase.from("tourney_group_teams").delete().in("group_id", groupIds);
+    if (error) throw new Error(error.message);
+  }
+
+  const { error: pointsError } = await supabase.from("tourney_points_events").delete().eq("tourney_id", tourneyId);
+  if (pointsError) throw new Error(pointsError.message);
+
+  const { error: matchError } = await supabase.from("tourney_matches").delete().eq("tourney_id", tourneyId);
+  if (matchError) throw new Error(matchError.message);
+
+  const { error: groupError } = await supabase.from("tourney_groups").delete().eq("tourney_id", tourneyId);
+  if (groupError) throw new Error(groupError.message);
+
+  const { error: teamError } = await supabase.from("tourney_teams").delete().eq("tourney_id", tourneyId);
+  if (teamError) throw new Error(teamError.message);
+
+  const { error: tourneyError } = await supabase.from("tourneys").delete().eq("id", tourneyId);
+  if (tourneyError) throw new Error(tourneyError.message);
+}
+
 // ---- Players ----
 
 export async function getAllPlayers(): Promise<TourneyPlayer[]> {
@@ -125,6 +162,59 @@ export async function getPlayer(id: string): Promise<TourneyPlayer | null> {
   const { data, error } = await supabase.from("tourney_players").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   return data ? playerFromRow(data as PlayerRow) : null;
+}
+
+/**
+ * Deletes a player and every team they were ever part of, plus any
+ * matches and points tied to those teams — including the partner's share
+ * of that history, since a team/match row is shared between both players
+ * and can't be split down the middle. Fine for a mistaken/unused profile;
+ * for a player who's actually played, this also erases their partners'
+ * record of playing with them. Explicit deletes, not FK cascade, since
+ * the mock client used for local testing doesn't simulate cascade.
+ */
+export async function deletePlayer(playerId: string): Promise<void> {
+  const { data: teamRows, error: teamFetchError } = await supabase
+    .from("tourney_teams")
+    .select("*")
+    .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`);
+  if (teamFetchError) throw new Error(teamFetchError.message);
+  const teamIds = (teamRows ?? []).map((r) => (r as TeamRow).id);
+
+  let matchIds: string[] = [];
+  if (teamIds.length > 0) {
+    const orExpr = teamIds.map((id) => `team_a_id.eq.${id},team_b_id.eq.${id}`).join(",");
+    const { data: matchRows, error: matchFetchError } = await supabase.from("tourney_matches").select("id").or(orExpr);
+    if (matchFetchError) throw new Error(matchFetchError.message);
+    matchIds = (matchRows ?? []).map((r) => (r as { id: string }).id);
+  }
+
+  if (matchIds.length > 0) {
+    const { error } = await supabase.from("tourney_points_events").delete().in("match_id", matchIds);
+    if (error) throw new Error(error.message);
+  }
+  if (teamIds.length > 0) {
+    const { error } = await supabase.from("tourney_points_events").delete().in("team_id", teamIds);
+    if (error) throw new Error(error.message);
+  }
+  const { error: playerPointsError } = await supabase.from("tourney_points_events").delete().eq("player_id", playerId);
+  if (playerPointsError) throw new Error(playerPointsError.message);
+
+  if (matchIds.length > 0) {
+    const { error } = await supabase.from("tourney_matches").delete().in("id", matchIds);
+    if (error) throw new Error(error.message);
+  }
+
+  if (teamIds.length > 0) {
+    const { error: gtError } = await supabase.from("tourney_group_teams").delete().in("team_id", teamIds);
+    if (gtError) throw new Error(gtError.message);
+
+    const { error: teamDeleteError } = await supabase.from("tourney_teams").delete().in("id", teamIds);
+    if (teamDeleteError) throw new Error(teamDeleteError.message);
+  }
+
+  const { error: playerDeleteError } = await supabase.from("tourney_players").delete().eq("id", playerId);
+  if (playerDeleteError) throw new Error(playerDeleteError.message);
 }
 
 /** Matches an existing player by name (case/whitespace-insensitive) so the same person keeps one running profile across tourneys, instead of creating a fresh one every time you type their name. */
@@ -495,6 +585,18 @@ async function tryAdvanceKnockoutRound(tourneyId: string, roundIndex: number): P
   const roundMatches = (data ?? []).map((r) => matchFromRow(r as MatchRow));
   if (roundMatches.length === 0 || roundMatches.some((m) => !m.winnerTeamId)) return;
 
+  // Re-saving an already-decided match's score (via "Update Score") calls
+  // this again — don't duplicate a round that already got created the
+  // first time the round completed.
+  const { data: nextRoundRows, error: nextRoundError } = await supabase
+    .from("tourney_matches")
+    .select("id")
+    .eq("tourney_id", tourneyId)
+    .eq("stage", "knockout")
+    .eq("round_index", roundIndex + 1);
+  if (nextRoundError) throw new Error(nextRoundError.message);
+  if ((nextRoundRows ?? []).length > 0) return;
+
   const winners = roundMatches.map((m) => m.winnerTeamId as string);
   if (winners.length === 1) {
     const { error: doneError } = await supabase.from("tourneys").update({ status: "completed" }).eq("id", tourneyId);
@@ -604,4 +706,30 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
   const winPoints = events.filter((e) => e.reason === "win").reduce((s, e) => s + e.points, 0);
 
   return { player, currentLevel, totalPoints: joinPoints + winPoints, joinPoints, winPoints, history };
+}
+
+// ---- Formats ----
+
+type FormatRow = { id: string; name: string; num_groups: number };
+function formatFromRow(row: FormatRow): TourneyFormat {
+  return { id: row.id, name: row.name, numGroups: row.num_groups };
+}
+
+export async function getAllFormats(): Promise<TourneyFormat[]> {
+  const { data, error } = await supabase.from("tourney_formats").select("*").order("num_groups", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => formatFromRow(r as FormatRow));
+}
+
+export async function createFormat(name: string, numGroups: number): Promise<void> {
+  if (!isValidBracketSize(numGroups)) {
+    throw new Error("Number of groups must be a power of 2 (2, 4, 8, 16…) so it can seed a bracket.");
+  }
+  const { error } = await supabase.from("tourney_formats").insert({ name, num_groups: numGroups });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteFormat(id: string): Promise<void> {
+  const { error } = await supabase.from("tourney_formats").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }

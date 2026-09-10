@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { getPlayerProfile } from "@/lib/tourneys";
 import { TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
+import DeletePlayerButton from "./DeletePlayerButton";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,11 @@ export default async function PlayerProfilePage(props: PageProps<"/community/pad
 
   return (
     <div className="pb-10">
-      <PageHeader title={player.name} subtitle="Player Profile" />
+      <PageHeader
+        title={player.name}
+        subtitle="Player Profile"
+        right={<DeletePlayerButton playerId={player.id} playerName={player.name} tourneysPlayed={history.length} />}
+      />
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-1">
           {player.country && <p className="text-sm text-white/45">{player.country}</p>}

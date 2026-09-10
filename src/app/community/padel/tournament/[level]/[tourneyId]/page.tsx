@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import {
+  getAllFormats,
   getGroupsWithStandings,
   getMatchesForTourney,
   getTeamsForTourney,
@@ -11,6 +12,7 @@ import { formatDateShort } from "@/lib/date";
 import TeamEntrySection from "./TeamEntrySection";
 import GroupStageSection from "./GroupStageSection";
 import KnockoutSection from "./KnockoutSection";
+import DeleteTourneyButton from "./DeleteTourneyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -26,15 +28,20 @@ export default async function TourneyPage(props: PageProps<"/community/padel/tou
   const showGroups = tourney.status !== "setup";
   const showKnockout = tourney.status === "knockout" || tourney.status === "completed";
 
-  const [groups, matches] = await Promise.all([
+  const [groups, matches, formats] = await Promise.all([
     showGroups ? getGroupsWithStandings(tourneyId) : Promise.resolve([]),
     showKnockout ? getMatchesForTourney(tourneyId) : Promise.resolve([]),
+    tourney.status === "setup" ? getAllFormats() : Promise.resolve([]),
   ]);
   const knockoutMatches = matches.filter((m) => m.stage === "knockout");
 
   return (
     <div className="pb-10">
-      <PageHeader title={tourney.name} subtitle={TOURNEY_LEVEL_LABELS[level]} />
+      <PageHeader
+        title={tourney.name}
+        subtitle={TOURNEY_LEVEL_LABELS[level]}
+        right={<DeleteTourneyButton level={level} tourneyId={tourneyId} tourneyName={tourney.name} />}
+      />
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
         <p className="text-center text-sm text-white/40 -mt-2">{formatDateShort(tourney.date)}</p>
 
@@ -42,7 +49,13 @@ export default async function TourneyPage(props: PageProps<"/community/padel/tou
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
             Teams
           </h2>
-          <TeamEntrySection level={level} tourneyId={tourneyId} teams={teams} locked={tourney.status !== "setup"} />
+          <TeamEntrySection
+            level={level}
+            tourneyId={tourneyId}
+            teams={teams}
+            formats={formats}
+            locked={tourney.status !== "setup"}
+          />
         </section>
 
         {showGroups && (

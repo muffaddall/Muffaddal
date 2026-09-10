@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createTourney } from "@/lib/tourneys";
+import { createTourney, deleteTourney } from "@/lib/tourneys";
 import { isTourneyLevel } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
@@ -19,4 +19,10 @@ export async function createTourneyAction(_prev: FormState, formData: FormData):
   const id = await createTourney(level, name, date);
   revalidatePath(`/community/padel/tournament/${level}`);
   redirect(`/community/padel/tournament/${level}/${id}`);
+}
+
+export async function deleteTourneyAction(level: string, tourneyId: string): Promise<void> {
+  await deleteTourney(tourneyId);
+  revalidatePath(`/community/padel/tournament/${level}`);
+  redirect(`/community/padel/tournament/${level}`);
 }
