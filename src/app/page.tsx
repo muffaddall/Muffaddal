@@ -47,6 +47,13 @@ const GROUPS: { title: string; color: string; sections: Section[] }[] = [
       { href: "/education", label: "Semesters & GPA", description: "Courses, grades, and cumulative GPA" },
     ],
   },
+  {
+    title: "Elevate Fitness Community",
+    color: "var(--color-community)",
+    sections: [
+      { href: "/community/padel", label: "Padel", description: "Tournament divisions" },
+    ],
+  },
 ];
 
 export const dynamic = "force-dynamic";
