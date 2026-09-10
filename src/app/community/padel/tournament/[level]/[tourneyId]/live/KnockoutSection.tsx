@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { clearKnockoutBracketAction, setMatchScoreAction } from "./actions";
+import { clearKnockoutBracketAction, setMatchScoreAction } from "../actions";
 import type { TourneyLevel, TourneyMatch, TourneyStatus, TourneyTeam } from "@/lib/types";
 
 export default function KnockoutSection({

@@ -2,6 +2,8 @@ import "server-only";
 import { supabase } from "@/lib/supabase";
 import type {
   Tourney,
+  TourneyBudgetLine,
+  TourneyBudgetLineType,
   TourneyFormat,
   TourneyGroup,
   TourneyLeaderboardEntry,
@@ -37,7 +39,14 @@ function playerFromRow(row: PlayerRow): TourneyPlayer {
   return { id: row.id, name: row.name, country: row.country };
 }
 
-type TeamRow = { id: string; tourney_id: string; player_a_id: string; player_b_id: string };
+type TeamRow = {
+  id: string;
+  tourney_id: string;
+  player_a_id: string;
+  player_b_id: string;
+  player_a_paid?: boolean;
+  player_b_paid?: boolean;
+};
 
 type GroupRow = { id: string; tourney_id: string; name: string; sort_order: number };
 function groupFromRow(row: GroupRow): TourneyGroup {
@@ -149,6 +158,9 @@ export async function deleteTourney(tourneyId: string): Promise<void> {
 
   const { error: teamError } = await supabase.from("tourney_teams").delete().eq("tourney_id", tourneyId);
   if (teamError) throw new Error(teamError.message);
+
+  const { error: budgetError } = await supabase.from("tourney_budget_lines").delete().eq("tourney_id", tourneyId);
+  if (budgetError) throw new Error(budgetError.message);
 
   const { error: tourneyError } = await supabase.from("tourneys").delete().eq("id", tourneyId);
   if (tourneyError) throw new Error(tourneyError.message);
@@ -263,8 +275,10 @@ export async function getTeamsForTourney(tourneyId: string): Promise<TourneyTeam
     tourneyId: row.tourney_id,
     playerAId: row.player_a_id,
     playerAName: byId.get(row.player_a_id)?.name ?? "Unknown",
+    playerAPaid: row.player_a_paid ?? false,
     playerBId: row.player_b_id,
     playerBName: byId.get(row.player_b_id)?.name ?? "Unknown",
+    playerBPaid: row.player_b_paid ?? false,
   }));
 }
 
@@ -280,7 +294,13 @@ export async function createTeam(input: {
 
   const { data, error } = await supabase
     .from("tourney_teams")
-    .insert({ tourney_id: input.tourneyId, player_a_id: playerAId, player_b_id: playerBId })
+    .insert({
+      tourney_id: input.tourneyId,
+      player_a_id: playerAId,
+      player_b_id: playerBId,
+      player_a_paid: false,
+      player_b_paid: false,
+    })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -295,6 +315,12 @@ export async function createTeam(input: {
 
 export async function removeTeam(teamId: string): Promise<void> {
   const { error } = await supabase.from("tourney_teams").delete().eq("id", teamId);
+  if (error) throw new Error(error.message);
+}
+
+export async function setTeamPaid(teamId: string, side: "a" | "b", paid: boolean): Promise<void> {
+  const column = side === "a" ? "player_a_paid" : "player_b_paid";
+  const { error } = await supabase.from("tourney_teams").update({ [column]: paid }).eq("id", teamId);
   if (error) throw new Error(error.message);
 }
 
@@ -714,8 +740,10 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
         tourneyId: t.tourney_id,
         playerAId: t.player_a_id,
         playerAName: playersById.get(t.player_a_id)?.name ?? "Unknown",
+        playerAPaid: t.player_a_paid ?? false,
         playerBId: t.player_b_id,
         playerBName: playersById.get(t.player_b_id)?.name ?? "Unknown",
+        playerBPaid: t.player_b_paid ?? false,
       };
       return { tourney, team, partnerName: playersById.get(partnerId)?.name ?? "Unknown" };
     })
@@ -816,5 +844,97 @@ export async function createFormat(name: string, numGroups: number): Promise<voi
 
 export async function deleteFormat(id: string): Promise<void> {
   const { error } = await supabase.from("tourney_formats").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+// ---- Budget ----
+
+type BudgetLineRow = {
+  id: string;
+  tourney_id: string;
+  type: TourneyBudgetLineType;
+  name: string;
+  budgeted_amount: number;
+  actual_amount: number;
+  sort_order: number;
+};
+
+function budgetLineFromRow(row: BudgetLineRow): TourneyBudgetLine {
+  return {
+    id: row.id,
+    tourneyId: row.tourney_id,
+    type: row.type,
+    name: row.name,
+    budgetedAmount: row.budgeted_amount,
+    actualAmount: row.actual_amount,
+    sortOrder: row.sort_order,
+  };
+}
+
+export async function getBudgetLines(tourneyId: string): Promise<TourneyBudgetLine[]> {
+  const { data, error } = await supabase
+    .from("tourney_budget_lines")
+    .select("*")
+    .eq("tourney_id", tourneyId)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => budgetLineFromRow(r as BudgetLineRow));
+}
+
+export async function addBudgetLine(input: {
+  tourneyId: string;
+  type: TourneyBudgetLineType;
+  name: string;
+  budgetedAmount: number;
+}): Promise<void> {
+  const { count, error: countError } = await supabase
+    .from("tourney_budget_lines")
+    .select("id", { count: "exact", head: true })
+    .eq("tourney_id", input.tourneyId)
+    .eq("type", input.type);
+  if (countError) throw new Error(countError.message);
+
+  const { error } = await supabase.from("tourney_budget_lines").insert({
+    tourney_id: input.tourneyId,
+    type: input.type,
+    name: input.name,
+    budgeted_amount: input.budgetedAmount,
+    actual_amount: 0,
+    sort_order: count ?? 0,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function updateBudgetLine(
+  id: string,
+  input: { budgetedAmount: number; actualAmount: number }
+): Promise<void> {
+  const { error } = await supabase
+    .from("tourney_budget_lines")
+    .update({ budgeted_amount: input.budgetedAmount, actual_amount: input.actualAmount })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteBudgetLine(id: string): Promise<void> {
+  const { error } = await supabase.from("tourney_budget_lines").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Copies another tourney's budget lines as a starting point — name/type/budgeted amount only, actuals always start at 0 since this tourney hasn't happened yet. */
+export async function copyBudgetFromTourney(sourceTourneyId: string, destTourneyId: string): Promise<void> {
+  const sourceLines = await getBudgetLines(sourceTourneyId);
+  if (sourceLines.length === 0) return;
+
+  const { error } = await supabase.from("tourney_budget_lines").insert(
+    sourceLines.map((l) => ({
+      tourney_id: destTourneyId,
+      type: l.type,
+      name: l.name,
+      budgeted_amount: l.budgetedAmount,
+      actual_amount: 0,
+      sort_order: l.sortOrder,
+    }))
+  );
   if (error) throw new Error(error.message);
 }

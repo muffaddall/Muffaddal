@@ -19,7 +19,7 @@ export default async function TourneyLevelPage(props: PageProps<"/community/pade
     <div className="pb-10">
       <PageHeader title={TOURNEY_LEVEL_LABELS[level]} subtitle="Tournament" />
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-4">
-        <CreateTourneyForm level={level} />
+        <CreateTourneyForm level={level} pastTourneys={tourneys} />
 
         <div className="flex flex-col gap-2">
           {tourneys.length === 0 && <EmptyState label="No tournaments yet — create one above." />}

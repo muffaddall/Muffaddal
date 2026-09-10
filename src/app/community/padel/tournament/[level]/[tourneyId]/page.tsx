@@ -1,22 +1,21 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import {
-  getAllFormats,
-  getGroupsWithStandings,
-  getMatchesForTourney,
-  getTeamsForTourney,
-  getTourney,
-} from "@/lib/tourneys";
-import { isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import { getTourney } from "@/lib/tourneys";
+import { isTourneyLevel, TOURNEY_LEVEL_LABELS, type TourneyStatus } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
-import TeamEntrySection from "./TeamEntrySection";
-import GroupStageSection from "./GroupStageSection";
-import KnockoutSection from "./KnockoutSection";
 import DeleteTourneyButton from "./DeleteTourneyButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function TourneyPage(props: PageProps<"/community/padel/tournament/[level]/[tourneyId]">) {
+const STATUS_LABELS: Record<TourneyStatus, string> = {
+  setup: "Setup",
+  groups: "Groups",
+  knockout: "Knockout",
+  completed: "Completed",
+};
+
+export default async function TourneyHubPage(props: PageProps<"/community/padel/tournament/[level]/[tourneyId]">) {
   const { level: levelParam, tourneyId } = await props.params;
   if (!isTourneyLevel(levelParam)) notFound();
   const level = levelParam;
@@ -24,16 +23,7 @@ export default async function TourneyPage(props: PageProps<"/community/padel/tou
   const tourney = await getTourney(tourneyId);
   if (!tourney || tourney.level !== level) notFound();
 
-  const teams = await getTeamsForTourney(tourneyId);
-  const showGroups = tourney.status !== "setup";
-  const showKnockout = tourney.status === "knockout" || tourney.status === "completed";
-
-  const [groups, matches, formats] = await Promise.all([
-    showGroups ? getGroupsWithStandings(tourneyId) : Promise.resolve([]),
-    showKnockout ? getMatchesForTourney(tourneyId) : Promise.resolve([]),
-    tourney.status === "setup" ? getAllFormats() : Promise.resolve([]),
-  ]);
-  const knockoutMatches = matches.filter((m) => m.stage === "knockout");
+  const base = `/community/padel/tournament/${level}/${tourneyId}`;
 
   return (
     <div className="pb-10">
@@ -42,45 +32,37 @@ export default async function TourneyPage(props: PageProps<"/community/padel/tou
         subtitle={TOURNEY_LEVEL_LABELS[level]}
         right={<DeleteTourneyButton level={level} tourneyId={tourneyId} tourneyName={tourney.name} />}
       />
-      <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
-        <p className="text-center text-sm text-white/40 -mt-2">{formatDateShort(tourney.date)}</p>
+      <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-4">
+        <div className="flex flex-col items-center gap-1 -mt-2">
+          <p className="text-sm text-white/40">{formatDateShort(tourney.date)}</p>
+          <span className="rounded-full border border-[var(--color-community)] px-2.5 py-1 text-[10px] uppercase tracking-wide text-[var(--color-community)]">
+            {STATUS_LABELS[tourney.status]}
+          </span>
+        </div>
 
-        <section>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
-            Teams
-          </h2>
-          <TeamEntrySection
-            level={level}
-            tourneyId={tourneyId}
-            teams={teams}
-            formats={formats}
-            locked={tourney.status !== "setup"}
-          />
-        </section>
+        <Link
+          href={`${base}/pre`}
+          className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+        >
+          <p className="font-semibold text-base mb-1">Pre-Tournament</p>
+          <p className="text-xs text-white/45">Teams, players, and the group draw</p>
+        </Link>
 
-        {showGroups && (
-          <section>
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
-              Group Stage
-            </h2>
-            <GroupStageSection level={level} tourneyId={tourneyId} groups={groups} locked={tourney.status !== "groups"} />
-          </section>
-        )}
+        <Link
+          href={`${base}/live`}
+          className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+        >
+          <p className="font-semibold text-base mb-1">During Event</p>
+          <p className="text-xs text-white/45">Payments, live scores, and the knockout bracket</p>
+        </Link>
 
-        {showKnockout && (
-          <section>
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
-              Knockout
-            </h2>
-            <KnockoutSection
-              level={level}
-              tourneyId={tourneyId}
-              matches={knockoutMatches}
-              teams={teams}
-              status={tourney.status}
-            />
-          </section>
-        )}
+        <Link
+          href={`${base}/budget`}
+          className="block rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+        >
+          <p className="font-semibold text-base mb-1">Budget Sheet</p>
+          <p className="text-xs text-white/45">Income, outflow, and netflow — budgeted vs actual</p>
+        </Link>
       </main>
     </div>
   );

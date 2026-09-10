@@ -9,9 +9,17 @@ import {
   generateKnockoutBracket,
   removeTeam,
   setMatchScore,
+  setTeamPaid,
 } from "@/lib/tourneys";
 
 export type FormState = { error: string } | undefined;
+
+function revalidateTourneyPaths(level: string, tourneyId: string): void {
+  const base = `/community/padel/tournament/${level}/${tourneyId}`;
+  revalidatePath(base);
+  revalidatePath(`${base}/pre`);
+  revalidatePath(`${base}/live`);
+}
 
 export async function addTeamAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const tourneyId = String(formData.get("tourneyId") ?? "");
@@ -31,12 +39,23 @@ export async function addTeamAction(_prev: FormState, formData: FormData): Promi
     playerBName,
     playerBCountry: playerBCountry || null,
   });
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
 }
 
 export async function removeTeamAction(teamId: string, level: string, tourneyId: string): Promise<void> {
   await removeTeam(teamId);
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function setTeamPaidAction(
+  teamId: string,
+  side: "a" | "b",
+  paid: boolean,
+  level: string,
+  tourneyId: string
+): Promise<void> {
+  await setTeamPaid(teamId, side, paid);
+  revalidateTourneyPaths(level, tourneyId);
 }
 
 export async function generateGroupsAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -52,7 +71,7 @@ export async function generateGroupsAction(_prev: FormState, formData: FormData)
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to generate groups." };
   }
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
 }
 
 export async function setMatchScoreAction(
@@ -67,7 +86,7 @@ export async function setMatchScoreAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to save score." };
   }
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
 }
 
 export async function generateBracketAction(
@@ -80,7 +99,7 @@ export async function generateBracketAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to generate bracket." };
   }
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
 }
 
 export async function clearGroupsAction(level: string, tourneyId: string): Promise<{ error: string } | void> {
@@ -89,7 +108,7 @@ export async function clearGroupsAction(level: string, tourneyId: string): Promi
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to regenerate groups." };
   }
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
 }
 
 export async function clearKnockoutBracketAction(level: string, tourneyId: string): Promise<{ error: string } | void> {
@@ -98,5 +117,5 @@ export async function clearKnockoutBracketAction(level: string, tourneyId: strin
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to regenerate bracket." };
   }
-  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}`);
+  revalidateTourneyPaths(level, tourneyId);
 }

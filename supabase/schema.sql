@@ -834,6 +834,11 @@ create table if not exists tourney_teams (
   created_at timestamptz not null default now()
 );
 
+-- Entry-fee payment status, tracked per player since each half of a team
+-- pays for themselves. Marked from the During Event page.
+alter table tourney_teams add column if not exists player_a_paid boolean not null default false;
+alter table tourney_teams add column if not exists player_b_paid boolean not null default false;
+
 create index if not exists tourney_teams_tourney_idx on tourney_teams (tourney_id);
 
 -- The random group-stage draw, generated once from the entered teams.
@@ -916,3 +921,22 @@ create table if not exists tourney_loyalty_rewards (
 );
 
 create index if not exists tourney_loyalty_rewards_player_idx on tourney_loyalty_rewards (player_id);
+
+-- One line of a tourney's budget sheet — either expected/actual income
+-- (entry fees, sponsorship, ...) or outflow (court fees, balls,
+-- prizes, ...). Netflow is just sum(income) - sum(outflow), computed
+-- from these rows rather than stored. A new tourney can copy another
+-- tourney's lines (name/type/budgeted_amount only — actuals always
+-- start at 0 since they haven't happened yet).
+create table if not exists tourney_budget_lines (
+  id uuid primary key default gen_random_uuid(),
+  tourney_id uuid not null references tourneys(id) on delete cascade,
+  type text not null check (type in ('income', 'outflow')),
+  name text not null,
+  budgeted_amount numeric not null default 0,
+  actual_amount numeric not null default 0,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists tourney_budget_lines_tourney_idx on tourney_budget_lines (tourney_id);

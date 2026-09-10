@@ -1163,8 +1163,10 @@ export type TourneyTeam = {
   tourneyId: string;
   playerAId: string;
   playerAName: string;
+  playerAPaid: boolean;
   playerBId: string;
   playerBName: string;
+  playerBPaid: boolean;
 };
 
 export type TourneyGroup = {
@@ -1328,5 +1330,49 @@ export function computeLoyaltyStatus(
     cycleLength: TOURNEY_LOYALTY_CYCLE,
     eligibleNow: progressInCycle >= TOURNEY_LOYALTY_CYCLE,
     history: redemptions,
+  };
+}
+
+// One line of a tourney's budget sheet — an expected/actual income or
+// outflow item. A new tourney can copy another's lines wholesale as a
+// starting point instead of retyping the same recurring costs.
+export const TOURNEY_BUDGET_LINE_TYPES = ["income", "outflow"] as const;
+export type TourneyBudgetLineType = (typeof TOURNEY_BUDGET_LINE_TYPES)[number];
+
+export function isTourneyBudgetLineType(value: string): value is TourneyBudgetLineType {
+  return (TOURNEY_BUDGET_LINE_TYPES as readonly string[]).includes(value);
+}
+
+export type TourneyBudgetLine = {
+  id: string;
+  tourneyId: string;
+  type: TourneyBudgetLineType;
+  name: string;
+  budgetedAmount: number;
+  actualAmount: number;
+  sortOrder: number;
+};
+
+export type TourneyBudgetSummary = {
+  budgetedIncome: number;
+  actualIncome: number;
+  budgetedOutflow: number;
+  actualOutflow: number;
+  budgetedNetflow: number;
+  actualNetflow: number;
+};
+
+export function computeBudgetSummary(lines: TourneyBudgetLine[]): TourneyBudgetSummary {
+  const budgetedIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + l.budgetedAmount, 0);
+  const actualIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + l.actualAmount, 0);
+  const budgetedOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + l.budgetedAmount, 0);
+  const actualOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + l.actualAmount, 0);
+  return {
+    budgetedIncome,
+    actualIncome,
+    budgetedOutflow,
+    actualOutflow,
+    budgetedNetflow: budgetedIncome - budgetedOutflow,
+    actualNetflow: actualIncome - actualOutflow,
   };
 }
