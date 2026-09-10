@@ -1343,15 +1343,28 @@ export function isTourneyBudgetLineType(value: string): value is TourneyBudgetLi
   return (TOURNEY_BUDGET_LINE_TYPES as readonly string[]).includes(value);
 }
 
+// P&L-style: a line's total is units * unit cost, never stored directly.
+// Budgeted and actual are independent unit/cost pairs on the same line
+// so the sheet can show two separate P&L tables from one set of lines.
 export type TourneyBudgetLine = {
   id: string;
   tourneyId: string;
   type: TourneyBudgetLineType;
   name: string;
-  budgetedAmount: number;
-  actualAmount: number;
+  budgetedUnits: number;
+  budgetedUnitCost: number;
+  actualUnits: number;
+  actualUnitCost: number;
   sortOrder: number;
 };
+
+export function budgetLineBudgetedTotal(line: TourneyBudgetLine): number {
+  return line.budgetedUnits * line.budgetedUnitCost;
+}
+
+export function budgetLineActualTotal(line: TourneyBudgetLine): number {
+  return line.actualUnits * line.actualUnitCost;
+}
 
 export type TourneyBudgetSummary = {
   budgetedIncome: number;
@@ -1363,10 +1376,10 @@ export type TourneyBudgetSummary = {
 };
 
 export function computeBudgetSummary(lines: TourneyBudgetLine[]): TourneyBudgetSummary {
-  const budgetedIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + l.budgetedAmount, 0);
-  const actualIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + l.actualAmount, 0);
-  const budgetedOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + l.budgetedAmount, 0);
-  const actualOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + l.actualAmount, 0);
+  const budgetedIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
+  const actualIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + budgetLineActualTotal(l), 0);
+  const budgetedOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
+  const actualOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + budgetLineActualTotal(l), 0);
   return {
     budgetedIncome,
     actualIncome,

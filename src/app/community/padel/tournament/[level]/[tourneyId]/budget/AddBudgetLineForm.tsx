@@ -37,11 +37,21 @@ export default function AddBudgetLineForm({
       <input type="hidden" name="type" value={type} />
       <input name="name" placeholder="Name" required className={`${inputCls} min-w-0 flex-1`} />
       <input
-        name="budgetedAmount"
+        name="budgetedUnits"
         type="number"
         step="any"
         min={0}
-        placeholder="Budgeted"
+        placeholder="Units"
+        defaultValue={1}
+        required
+        className={`${inputCls} w-20`}
+      />
+      <input
+        name="budgetedUnitCost"
+        type="number"
+        step="any"
+        min={0}
+        placeholder="Unit cost"
         required
         className={`${inputCls} w-24`}
       />

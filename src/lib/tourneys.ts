@@ -854,8 +854,10 @@ type BudgetLineRow = {
   tourney_id: string;
   type: TourneyBudgetLineType;
   name: string;
-  budgeted_amount: number;
-  actual_amount: number;
+  budgeted_units: number;
+  budgeted_unit_cost: number;
+  actual_units: number;
+  actual_unit_cost: number;
   sort_order: number;
 };
 
@@ -865,8 +867,10 @@ function budgetLineFromRow(row: BudgetLineRow): TourneyBudgetLine {
     tourneyId: row.tourney_id,
     type: row.type,
     name: row.name,
-    budgetedAmount: row.budgeted_amount,
-    actualAmount: row.actual_amount,
+    budgetedUnits: row.budgeted_units,
+    budgetedUnitCost: row.budgeted_unit_cost,
+    actualUnits: row.actual_units,
+    actualUnitCost: row.actual_unit_cost,
     sortOrder: row.sort_order,
   };
 }
@@ -885,7 +889,8 @@ export async function addBudgetLine(input: {
   tourneyId: string;
   type: TourneyBudgetLineType;
   name: string;
-  budgetedAmount: number;
+  budgetedUnits: number;
+  budgetedUnitCost: number;
 }): Promise<void> {
   const { count, error: countError } = await supabase
     .from("tourney_budget_lines")
@@ -898,20 +903,27 @@ export async function addBudgetLine(input: {
     tourney_id: input.tourneyId,
     type: input.type,
     name: input.name,
-    budgeted_amount: input.budgetedAmount,
-    actual_amount: 0,
+    budgeted_units: input.budgetedUnits,
+    budgeted_unit_cost: input.budgetedUnitCost,
+    actual_units: input.budgetedUnits,
+    actual_unit_cost: 0,
     sort_order: count ?? 0,
   });
   if (error) throw new Error(error.message);
 }
 
-export async function updateBudgetLine(
-  id: string,
-  input: { budgetedAmount: number; actualAmount: number }
-): Promise<void> {
+export async function updateBudgetLineBudgeted(id: string, units: number, unitCost: number): Promise<void> {
   const { error } = await supabase
     .from("tourney_budget_lines")
-    .update({ budgeted_amount: input.budgetedAmount, actual_amount: input.actualAmount })
+    .update({ budgeted_units: units, budgeted_unit_cost: unitCost })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateBudgetLineActual(id: string, units: number, unitCost: number): Promise<void> {
+  const { error } = await supabase
+    .from("tourney_budget_lines")
+    .update({ actual_units: units, actual_unit_cost: unitCost })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -921,7 +933,7 @@ export async function deleteBudgetLine(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** Copies another tourney's budget lines as a starting point — name/type/budgeted amount only, actuals always start at 0 since this tourney hasn't happened yet. */
+/** Copies another tourney's budget lines as a starting point — name/type/budgeted units+cost only. Actual starts at the same units with cost 0, since this tourney hasn't happened yet. */
 export async function copyBudgetFromTourney(sourceTourneyId: string, destTourneyId: string): Promise<void> {
   const sourceLines = await getBudgetLines(sourceTourneyId);
   if (sourceLines.length === 0) return;
@@ -931,8 +943,10 @@ export async function copyBudgetFromTourney(sourceTourneyId: string, destTourney
       tourney_id: destTourneyId,
       type: l.type,
       name: l.name,
-      budgeted_amount: l.budgetedAmount,
-      actual_amount: 0,
+      budgeted_units: l.budgetedUnits,
+      budgeted_unit_cost: l.budgetedUnitCost,
+      actual_units: l.budgetedUnits,
+      actual_unit_cost: 0,
       sort_order: l.sortOrder,
     }))
   );

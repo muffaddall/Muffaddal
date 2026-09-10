@@ -924,19 +924,32 @@ create index if not exists tourney_loyalty_rewards_player_idx on tourney_loyalty
 
 -- One line of a tourney's budget sheet — either expected/actual income
 -- (entry fees, sponsorship, ...) or outflow (court fees, balls,
--- prizes, ...). Netflow is just sum(income) - sum(outflow), computed
--- from these rows rather than stored. A new tourney can copy another
--- tourney's lines (name/type/budgeted_amount only — actuals always
--- start at 0 since they haven't happened yet).
+-- prizes, ...), P&L-style: a line's total is units * unit_cost, never
+-- stored directly. Budgeted and actual are two independent unit/cost
+-- pairs on the same row so the Budget Sheet can show them as two
+-- separate P&L tables. Netflow is sum(income) - sum(outflow), computed
+-- from these rows. A new tourney can copy another tourney's lines
+-- (name/type/budgeted units+cost only — actual starts at the same
+-- units with cost 0, since it hasn't happened yet).
 create table if not exists tourney_budget_lines (
   id uuid primary key default gen_random_uuid(),
   tourney_id uuid not null references tourneys(id) on delete cascade,
   type text not null check (type in ('income', 'outflow')),
   name text not null,
-  budgeted_amount numeric not null default 0,
-  actual_amount numeric not null default 0,
+  budgeted_units numeric not null default 1,
+  budgeted_unit_cost numeric not null default 0,
+  actual_units numeric not null default 1,
+  actual_unit_cost numeric not null default 0,
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Migrates a table already created under the old amount-only shape.
+alter table tourney_budget_lines add column if not exists budgeted_units numeric not null default 1;
+alter table tourney_budget_lines add column if not exists budgeted_unit_cost numeric not null default 0;
+alter table tourney_budget_lines add column if not exists actual_units numeric not null default 1;
+alter table tourney_budget_lines add column if not exists actual_unit_cost numeric not null default 0;
+alter table tourney_budget_lines drop column if exists budgeted_amount;
+alter table tourney_budget_lines drop column if exists actual_amount;
 
 create index if not exists tourney_budget_lines_tourney_idx on tourney_budget_lines (tourney_id);
