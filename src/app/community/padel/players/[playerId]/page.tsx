@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { getPlayerProfile } from "@/lib/tourneys";
 import { TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
+import { PadelSectionTabs } from "../../PadelSectionTabs";
 import DeletePlayerButton from "./DeletePlayerButton";
 import LoyaltyProgress from "./LoyaltyProgress";
 
@@ -23,6 +24,9 @@ export default async function PlayerProfilePage(props: PageProps<"/community/pad
         subtitle="Player Profile"
         right={<DeletePlayerButton playerId={player.id} playerName={player.name} tourneysPlayed={history.length} />}
       />
+      <div className="flex justify-center mb-4">
+        <PadelSectionTabs active="players" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-1">
           {player.country && <p className="text-sm text-white/45">{player.country}</p>}

@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { getTourneysByLevel } from "@/lib/tourneys";
 import { isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import { TourneyLevelTabs } from "./TourneyLevelTabs";
 import CreateTourneyForm from "./CreateTourneyForm";
 import TourneyRow from "./TourneyRow";
 
@@ -18,6 +19,9 @@ export default async function TourneyLevelPage(props: PageProps<"/community/pade
   return (
     <div className="pb-10">
       <PageHeader title={TOURNEY_LEVEL_LABELS[level]} subtitle="Tournament" />
+      <div className="flex justify-center mb-4">
+        <TourneyLevelTabs active={level} />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-4">
         <CreateTourneyForm level={level} pastTourneys={tourneys} />
 

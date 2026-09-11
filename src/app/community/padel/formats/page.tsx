@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { getAllFormats } from "@/lib/tourneys";
+import { PadelSectionTabs } from "../PadelSectionTabs";
 import FormatRow from "./FormatRow";
 import AddFormatForm from "./AddFormatForm";
 
@@ -11,6 +12,9 @@ export default async function FormatsPage() {
   return (
     <div className="pb-10">
       <PageHeader title="Formats" subtitle="Padel" />
+      <div className="flex justify-center mb-4">
+        <PadelSectionTabs active="formats" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6">
         <p className="text-xs text-white/40 mb-6 text-center">
           Save your usual tournament shapes here — group sizes, how many qualify per group, wildcard slots, and

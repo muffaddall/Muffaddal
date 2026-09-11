@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { getAllFormats, getGroupsWithStandings, getTeamsForTourney, getTourney } from "@/lib/tourneys";
 import { isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import { TourneySectionTabs } from "../TourneySectionTabs";
 import TeamEntrySection from "../TeamEntrySection";
 import GroupsSummary from "./GroupsSummary";
 import RegenerateGroupsButton from "./RegenerateGroupsButton";
@@ -28,6 +29,9 @@ export default async function PreTournamentPage(
   return (
     <div className="pb-10">
       <PageHeader title="Pre-Tournament" subtitle={`${tourney.name} · ${TOURNEY_LEVEL_LABELS[level]}`} />
+      <div className="flex justify-center mb-4">
+        <TourneySectionTabs level={level} tourneyId={tourneyId} active="pre" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
         <section>
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>

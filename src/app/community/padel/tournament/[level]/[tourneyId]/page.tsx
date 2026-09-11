@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { getTourney } from "@/lib/tourneys";
 import { isTourneyLevel, TOURNEY_LEVEL_LABELS, type TourneyStatus } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
+import { TourneySectionTabs } from "./TourneySectionTabs";
 import DeleteTourneyButton from "./DeleteTourneyButton";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,9 @@ export default async function TourneyHubPage(props: PageProps<"/community/padel/
         subtitle={TOURNEY_LEVEL_LABELS[level]}
         right={<DeleteTourneyButton level={level} tourneyId={tourneyId} tourneyName={tourney.name} />}
       />
+      <div className="flex justify-center mb-4">
+        <TourneySectionTabs level={level} tourneyId={tourneyId} active="hub" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-4">
         <div className="flex flex-col items-center gap-1 -mt-2">
           <p className="text-sm text-white/40">{formatDateShort(tourney.date)}</p>

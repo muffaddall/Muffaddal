@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { getAllPlayers } from "@/lib/tourneys";
+import { PadelSectionTabs } from "../PadelSectionTabs";
 import AddPlayerForm from "./AddPlayerForm";
 
 export const dynamic = "force-dynamic";
@@ -11,18 +12,10 @@ export default async function PlayersPage() {
 
   return (
     <div className="pb-10">
-      <PageHeader
-        title="Players"
-        subtitle="Padel"
-        right={
-          <Link
-            href="/community/padel/leaderboard"
-            className="rounded-full border border-[var(--color-community)] px-3 py-1.5 text-xs text-[var(--color-community)]"
-          >
-            Leaderboard
-          </Link>
-        }
-      />
+      <PageHeader title="Players" subtitle="Padel" />
+      <div className="flex justify-center mb-4">
+        <PadelSectionTabs active="players" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-4">
         <AddPlayerForm />
 

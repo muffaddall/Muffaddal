@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { getLeaderboard } from "@/lib/tourneys";
 import { TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import { PadelSectionTabs } from "../PadelSectionTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export default async function LeaderboardPage() {
   return (
     <div className="pb-10">
       <PageHeader title="Leaderboard" subtitle="Padel" />
+      <div className="flex justify-center mb-4">
+        <PadelSectionTabs active="leaderboard" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6">
         {leaderboard.length === 0 ? (
           <EmptyState label="No players yet — they'll show up once teams join a tournament." />

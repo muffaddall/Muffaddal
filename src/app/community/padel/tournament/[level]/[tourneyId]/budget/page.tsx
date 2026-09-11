@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { getBudgetLines, getFormat, getTourney } from "@/lib/tourneys";
 import { formatHasCourtFeePreset, isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import { TourneySectionTabs } from "../TourneySectionTabs";
 import BudgetPLTable from "./BudgetPLTable";
 import ApplyCourtFeesButton from "./ApplyCourtFeesButton";
 
@@ -25,6 +26,9 @@ export default async function BudgetPage(props: PageProps<"/community/padel/tour
   return (
     <div className="pb-10">
       <PageHeader title="Budget Sheet" subtitle={`${tourney.name} · ${TOURNEY_LEVEL_LABELS[level]}`} />
+      <div className="flex justify-center mb-4">
+        <TourneySectionTabs level={level} tourneyId={tourneyId} active="budget" />
+      </div>
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
         {format && formatHasCourtFeePreset(format) && (
           <ApplyCourtFeesButton level={level} tourneyId={tourneyId} formatName={format.name} />
