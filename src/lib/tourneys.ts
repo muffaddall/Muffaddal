@@ -22,6 +22,8 @@ import {
   TOURNEY_JOIN_POINTS,
   computeGroupStandings,
   computeLoyaltyStatus,
+  courtFeePresetLines,
+  formatQualifierCount,
   isValidBracketSize,
   pointsForMatchWin,
   roundNameForSize,
@@ -29,9 +31,27 @@ import {
 
 // ---- Row types + mappers ----
 
-type TourneyRow = { id: string; level: string; name: string; date: string; status: string };
+type TourneyRow = {
+  id: string;
+  level: string;
+  name: string;
+  date: string;
+  status: string;
+  format_id?: string | null;
+  qualifiers_per_group?: number;
+  wildcard_count?: number;
+};
 function tourneyFromRow(row: TourneyRow): Tourney {
-  return { id: row.id, level: row.level as TourneyLevel, name: row.name, date: row.date, status: row.status as TourneyStatus };
+  return {
+    id: row.id,
+    level: row.level as TourneyLevel,
+    name: row.name,
+    date: row.date,
+    status: row.status as TourneyStatus,
+    formatId: row.format_id ?? null,
+    qualifiersPerGroup: row.qualifiers_per_group ?? 1,
+    wildcardCount: row.wildcard_count ?? 0,
+  };
 }
 
 type PlayerRow = { id: string; name: string; country: string | null };
@@ -120,7 +140,7 @@ export async function getTourney(id: string): Promise<Tourney | null> {
 export async function createTourney(level: TourneyLevel, name: string, date: string): Promise<string> {
   const { data, error } = await supabase
     .from("tourneys")
-    .insert({ level, name, date, status: "setup" })
+    .insert({ level, name, date, status: "setup", format_id: null, qualifiers_per_group: 1, wildcard_count: 0 })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -329,26 +349,46 @@ export async function setTeamPaid(teamId: string, side: "a" | "b", paid: boolean
 const GROUP_NAMES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /**
- * Randomly splits the entered teams into `numGroups` groups (as evenly as
- * possible) and generates the full round-robin fixture list within each
- * group. Group count must be a power of 2 — that's how many group winners
- * there'll be, and that count has to seed cleanly into a knockout bracket.
+ * Randomly splits the entered teams into groups of exactly `groupSizes`
+ * (in order — doesn't have to be even, e.g. [3, 3, 4]) and generates the
+ * full round-robin fixture list within each group. `qualifiersPerGroup`
+ * and `wildcardCount` are recorded on the tourney itself so the qualifier
+ * checklist on the During Event page knows the rule later — their sum
+ * across all groups (plus wildcards) has to be a power of 2 so it can seed
+ * a knockout bracket, but the group *sizes* no longer do.
  */
-export async function generateGroups(tourneyId: string, numGroups: number): Promise<void> {
+export async function generateGroups(
+  tourneyId: string,
+  groupSizes: number[],
+  qualifiersPerGroup: number,
+  wildcardCount: number,
+  formatId: string | null
+): Promise<void> {
   const teams = await getTeamsForTourney(tourneyId);
-  if (numGroups < 1 || numGroups > teams.length) {
-    throw new Error("Number of groups must be between 1 and the number of teams entered.");
+  if (groupSizes.length === 0 || groupSizes.some((n) => n < 1)) {
+    throw new Error("Enter at least one group with at least 1 team.");
   }
-  if (!isValidBracketSize(numGroups)) {
-    throw new Error("Number of groups must be a power of 2 (2, 4, 8, 16…) so the group winners seed cleanly into a bracket.");
+  const totalSize = groupSizes.reduce((s, n) => s + n, 0);
+  if (totalSize !== teams.length) {
+    throw new Error(`Group sizes add up to ${totalSize}, but ${teams.length} teams are entered.`);
+  }
+  const qualifierCount = formatQualifierCount(groupSizes, qualifiersPerGroup, wildcardCount);
+  if (!isValidBracketSize(qualifierCount)) {
+    throw new Error(
+      "Qualifiers per group × groups + wildcards must be a power of 2 (2, 4, 8, 16…) so it can seed a bracket."
+    );
   }
 
   const shuffled = shuffle(teams);
-  const groupTeamIds: string[][] = Array.from({ length: numGroups }, () => []);
-  shuffled.forEach((team, i) => groupTeamIds[i % numGroups].push(team.id));
+  const groupTeamIds: string[][] = [];
+  let cursor = 0;
+  for (const size of groupSizes) {
+    groupTeamIds.push(shuffled.slice(cursor, cursor + size).map((t) => t.id));
+    cursor += size;
+  }
 
   let matchSortOrder = 0;
-  for (let i = 0; i < numGroups; i++) {
+  for (let i = 0; i < groupSizes.length; i++) {
     const { data: group, error } = await supabase
       .from("tourney_groups")
       .insert({ tourney_id: tourneyId, name: `Group ${GROUP_NAMES[i] ?? i + 1}`, sort_order: i })
@@ -384,7 +424,10 @@ export async function generateGroups(tourneyId: string, numGroups: number): Prom
     }
   }
 
-  const { error: statusError } = await supabase.from("tourneys").update({ status: "groups" }).eq("id", tourneyId);
+  const { error: statusError } = await supabase
+    .from("tourneys")
+    .update({ status: "groups", qualifiers_per_group: qualifiersPerGroup, wildcard_count: wildcardCount, format_id: formatId })
+    .eq("id", tourneyId);
   if (statusError) throw new Error(statusError.message);
 }
 
@@ -545,6 +588,27 @@ export async function setMatchScore(matchId: string, teamAScore: number, teamBSc
   if (match.stage === "knockout" && match.roundIndex !== null) {
     await tryAdvanceKnockoutRound(match.tourneyId, match.roundIndex);
   }
+}
+
+export type MatchScoreInput = { matchId: string; teamAScore: number; teamBScore: number };
+
+/**
+ * Saves every given match score in one batch — lets the organizer type
+ * scores for every court/group at once and commit them together instead of
+ * saving match-by-match. Reuses setMatchScore's win/points logic per
+ * match; one bad entry (e.g. a tie) is collected as a failure rather than
+ * stopping the rest from saving.
+ */
+export async function setAllMatchScores(entries: MatchScoreInput[]): Promise<{ matchId: string; error: string }[]> {
+  const failures: { matchId: string; error: string }[] = [];
+  for (const entry of entries) {
+    try {
+      await setMatchScore(entry.matchId, entry.teamAScore, entry.teamBScore);
+    } catch (e) {
+      failures.push({ matchId: entry.matchId, error: e instanceof Error ? e.message : "Failed to save score." });
+    }
+  }
+  return failures;
 }
 
 // ---- Knockout bracket ----
@@ -823,22 +887,84 @@ export async function undoLoyaltyReward(id: string): Promise<void> {
 
 // ---- Formats ----
 
-type FormatRow = { id: string; name: string; num_groups: number };
+type FormatRow = {
+  id: string;
+  name: string;
+  group_sizes: string;
+  qualifiers_per_group: number;
+  wildcard_count: number;
+  group_stage_court_hours: number;
+  quarterfinal_court_hours: number;
+  semifinal_final_court_hours: number;
+  court_hour_rate: number;
+};
+
+function parseGroupSizes(csv: string): number[] {
+  return (csv ?? "")
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+function serializeGroupSizes(sizes: number[]): string {
+  return sizes.join(",");
+}
+
 function formatFromRow(row: FormatRow): TourneyFormat {
-  return { id: row.id, name: row.name, numGroups: row.num_groups };
+  return {
+    id: row.id,
+    name: row.name,
+    groupSizes: parseGroupSizes(row.group_sizes),
+    qualifiersPerGroup: row.qualifiers_per_group ?? 2,
+    wildcardCount: row.wildcard_count ?? 0,
+    groupStageCourtHours: row.group_stage_court_hours ?? 0,
+    quarterfinalCourtHours: row.quarterfinal_court_hours ?? 0,
+    semifinalFinalCourtHours: row.semifinal_final_court_hours ?? 0,
+    courtHourRate: row.court_hour_rate ?? 0,
+  };
 }
 
 export async function getAllFormats(): Promise<TourneyFormat[]> {
-  const { data, error } = await supabase.from("tourney_formats").select("*").order("num_groups", { ascending: true });
+  const { data, error } = await supabase.from("tourney_formats").select("*").order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => formatFromRow(r as FormatRow));
 }
 
-export async function createFormat(name: string, numGroups: number): Promise<void> {
-  if (!isValidBracketSize(numGroups)) {
-    throw new Error("Number of groups must be a power of 2 (2, 4, 8, 16…) so it can seed a bracket.");
+export async function getFormat(id: string): Promise<TourneyFormat | null> {
+  const { data, error } = await supabase.from("tourney_formats").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? formatFromRow(data as FormatRow) : null;
+}
+
+export async function createFormat(input: {
+  name: string;
+  groupSizes: number[];
+  qualifiersPerGroup: number;
+  wildcardCount: number;
+  groupStageCourtHours: number;
+  quarterfinalCourtHours: number;
+  semifinalFinalCourtHours: number;
+  courtHourRate: number;
+}): Promise<void> {
+  if (input.groupSizes.length === 0 || input.groupSizes.some((n) => n < 1)) {
+    throw new Error("Enter at least one group with at least 1 team.");
   }
-  const { error } = await supabase.from("tourney_formats").insert({ name, num_groups: numGroups });
+  const qualifierCount = formatQualifierCount(input.groupSizes, input.qualifiersPerGroup, input.wildcardCount);
+  if (!isValidBracketSize(qualifierCount)) {
+    throw new Error(
+      "Qualifiers per group × groups + wildcards must be a power of 2 (2, 4, 8, 16…) so it can seed a bracket."
+    );
+  }
+  const { error } = await supabase.from("tourney_formats").insert({
+    name: input.name,
+    group_sizes: serializeGroupSizes(input.groupSizes),
+    qualifiers_per_group: input.qualifiersPerGroup,
+    wildcard_count: input.wildcardCount,
+    group_stage_court_hours: input.groupStageCourtHours,
+    quarterfinal_court_hours: input.quarterfinalCourtHours,
+    semifinal_final_court_hours: input.semifinalFinalCourtHours,
+    court_hour_rate: input.courtHourRate,
+  });
   if (error) throw new Error(error.message);
 }
 
@@ -931,6 +1057,39 @@ export async function updateBudgetLineActual(id: string, units: number, unitCost
 export async function deleteBudgetLine(id: string): Promise<void> {
   const { error } = await supabase.from("tourney_budget_lines").delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Adds the tourney's format's court-fee preset as outflow budget lines
+ * (Group Stage / Quarterfinal / Semifinal & Final courts, at that format's
+ * court-hour rate). Skips any line whose name is already on the budget, so
+ * clicking this again after editing a line doesn't duplicate it.
+ */
+export async function applyCourtFeePreset(tourneyId: string): Promise<void> {
+  const tourney = await getTourney(tourneyId);
+  if (!tourney) throw new Error("Tournament not found.");
+  if (!tourney.formatId) throw new Error("This tournament wasn't drawn from a saved format.");
+
+  const formats = await getAllFormats();
+  const format = formats.find((f) => f.id === tourney.formatId);
+  if (!format) throw new Error("That format no longer exists.");
+
+  const lines = courtFeePresetLines(format);
+  if (lines.length === 0) throw new Error("This format has no court-fee preset set.");
+
+  const existing = await getBudgetLines(tourneyId);
+  const existingNames = new Set(existing.map((l) => l.name));
+  const toAdd = lines.filter((l) => !existingNames.has(l.name));
+
+  for (const line of toAdd) {
+    await addBudgetLine({
+      tourneyId,
+      type: "outflow",
+      name: line.name,
+      budgetedUnits: line.hours,
+      budgetedUnitCost: format.courtHourRate,
+    });
+  }
 }
 
 /** Copies another tourney's budget lines as a starting point — name/type/budgeted units+cost only. Actual starts at the same units with cost 0, since this tourney hasn't happened yet. */

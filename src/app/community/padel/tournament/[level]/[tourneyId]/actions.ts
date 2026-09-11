@@ -8,8 +8,10 @@ import {
   generateGroups,
   generateKnockoutBracket,
   removeTeam,
+  setAllMatchScores,
   setMatchScore,
   setTeamPaid,
+  type MatchScoreInput,
 } from "@/lib/tourneys";
 
 export type FormState = { error: string } | undefined;
@@ -61,13 +63,22 @@ export async function setTeamPaidAction(
 export async function generateGroupsAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const tourneyId = String(formData.get("tourneyId") ?? "");
   const level = String(formData.get("level") ?? "");
-  const numGroups = Number(formData.get("numGroups"));
+  const groupSizes = String(formData.get("groupSizes") ?? "")
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const qualifiersPerGroup = Number(formData.get("qualifiersPerGroup"));
+  const wildcardCount = Number(formData.get("wildcardCount") || 0);
+  const formatId = String(formData.get("formatId") ?? "").trim() || null;
 
   if (!tourneyId) return { error: "Missing tournament." };
-  if (!Number.isFinite(numGroups) || numGroups < 1) return { error: "Enter a valid number of groups." };
+  if (groupSizes.length === 0) return { error: "Enter at least one group size." };
+  if (!Number.isFinite(qualifiersPerGroup) || qualifiersPerGroup < 1) {
+    return { error: "Enter a valid number of qualifiers per group." };
+  }
 
   try {
-    await generateGroups(tourneyId, numGroups);
+    await generateGroups(tourneyId, groupSizes, qualifiersPerGroup, wildcardCount, formatId);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to generate groups." };
   }
@@ -87,6 +98,18 @@ export async function setMatchScoreAction(
     return { error: e instanceof Error ? e.message : "Failed to save score." };
   }
   revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function setAllMatchScoresAction(
+  level: string,
+  tourneyId: string,
+  entries: MatchScoreInput[]
+): Promise<{ error: string } | void> {
+  const failures = await setAllMatchScores(entries);
+  revalidateTourneyPaths(level, tourneyId);
+  if (failures.length > 0) {
+    return { error: `${failures.length} score${failures.length === 1 ? "" : "s"} failed to save: ${failures.map((f) => f.error).join(" ")}` };
+  }
 }
 
 export async function generateBracketAction(

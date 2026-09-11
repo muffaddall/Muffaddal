@@ -46,7 +46,14 @@ export default async function DuringEventPage(
               <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
                 Group Stage
               </h2>
-              <GroupStageSection level={level} tourneyId={tourneyId} groups={groups} locked={tourney.status !== "groups"} />
+              <GroupStageSection
+                level={level}
+                tourneyId={tourneyId}
+                groups={groups}
+                locked={tourney.status !== "groups"}
+                qualifiersPerGroup={tourney.qualifiersPerGroup}
+                wildcardCount={tourney.wildcardCount}
+              />
             </section>
 
             {showKnockout && (

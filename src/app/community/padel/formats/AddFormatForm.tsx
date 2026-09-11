@@ -21,26 +21,32 @@ export default function AddFormatForm() {
     <form
       ref={formRef}
       action={formAction}
-      className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3"
+      className="flex flex-col gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3"
     >
-      <input name="name" placeholder="Format name (e.g. 4 Groups of 4)" required className={`${inputCls} min-w-0 flex-1`} />
-      <input
-        name="numGroups"
-        type="number"
-        min={2}
-        step={1}
-        placeholder="Groups"
-        required
-        className={`${inputCls} w-20`}
-      />
+      <p className="text-xs uppercase tracking-wide text-white/40">Add format</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input name="name" placeholder="Name (e.g. 16 Teams)" required className={`${inputCls} col-span-2`} />
+        <input name="groupSizes" placeholder="Group sizes (e.g. 4,4,4,4)" required className={inputCls} />
+        <input name="qualifiersPerGroup" type="number" min={1} step={1} defaultValue={2} placeholder="Qualifiers/group" required className={inputCls} />
+        <input name="wildcardCount" type="number" min={0} step={1} defaultValue={0} placeholder="Wildcard slots" className={inputCls} />
+      </div>
+
+      <p className="text-xs uppercase tracking-wide text-white/40 mt-1">Court-fee preset (optional)</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input name="groupStageCourtHours" type="number" min={0} step="any" placeholder="Group stage court-hrs" className={inputCls} />
+        <input name="quarterfinalCourtHours" type="number" min={0} step="any" placeholder="Quarterfinal court-hrs" className={inputCls} />
+        <input name="semifinalFinalCourtHours" type="number" min={0} step="any" placeholder="SF + Final court-hrs" className={inputCls} />
+        <input name="courtHourRate" type="number" min={0} step="any" placeholder="Rate per court-hr" className={inputCls} />
+      </div>
+
       <button
         type="submit"
         disabled={pending}
-        className="shrink-0 rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
+        className="rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
       >
         {pending ? "Saving…" : "+ Add Format"}
       </button>
-      {state?.error && <p className="w-full text-xs text-[var(--color-negative)]">{state.error}</p>}
+      {state?.error && <p className="text-xs text-[var(--color-negative)]">{state.error}</p>}
     </form>
   );
 }

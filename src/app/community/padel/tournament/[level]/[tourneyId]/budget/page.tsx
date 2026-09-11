@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import { getBudgetLines, getTourney } from "@/lib/tourneys";
-import { isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import { getBudgetLines, getFormat, getTourney } from "@/lib/tourneys";
+import { formatHasCourtFeePreset, isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import BudgetPLTable from "./BudgetPLTable";
+import ApplyCourtFeesButton from "./ApplyCourtFeesButton";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,10 @@ export default async function BudgetPage(props: PageProps<"/community/padel/tour
   const tourney = await getTourney(tourneyId);
   if (!tourney || tourney.level !== level) notFound();
 
-  const lines = await getBudgetLines(tourneyId);
+  const [lines, format] = await Promise.all([
+    getBudgetLines(tourneyId),
+    tourney.formatId ? getFormat(tourney.formatId) : Promise.resolve(null),
+  ]);
   const income = lines.filter((l) => l.type === "income");
   const outflow = lines.filter((l) => l.type === "outflow");
 
@@ -22,6 +26,9 @@ export default async function BudgetPage(props: PageProps<"/community/padel/tour
     <div className="pb-10">
       <PageHeader title="Budget Sheet" subtitle={`${tourney.name} · ${TOURNEY_LEVEL_LABELS[level]}`} />
       <main className="mx-auto max-w-xl px-4 sm:px-6 flex flex-col gap-6">
+        {format && formatHasCourtFeePreset(format) && (
+          <ApplyCourtFeesButton level={level} tourneyId={tourneyId} formatName={format.name} />
+        )}
         <BudgetPLTable title="Budgeted" mode="budgeted" income={income} outflow={outflow} level={level} tourneyId={tourneyId} />
         <BudgetPLTable title="Actual" mode="actual" income={income} outflow={outflow} level={level} tourneyId={tourneyId} />
       </main>

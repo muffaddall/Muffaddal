@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { addTeamAction, generateGroupsAction, removeTeamAction } from "./actions";
+import { formatTeamCount } from "@/lib/types";
 import type { TourneyFormat, TourneyLevel, TourneyTeam } from "@/lib/types";
 
 const inputCls =
@@ -123,6 +124,16 @@ function GenerateGroupsForm({
   const selectedFormat = formats.find((f) => f.id === selection);
   const showCustomInput = formats.length === 0 || selection === "custom";
 
+  const [customGroupSizes, setCustomGroupSizes] = useState("");
+  const [customQualifiers, setCustomQualifiers] = useState("1");
+  const [customWildcard, setCustomWildcard] = useState("0");
+
+  const groupSizesValue = showCustomInput ? customGroupSizes : selectedFormat?.groupSizes.join(",") ?? "";
+  const qualifiersValue = showCustomInput ? customQualifiers : String(selectedFormat?.qualifiersPerGroup ?? "");
+  const wildcardValue = showCustomInput ? customWildcard : String(selectedFormat?.wildcardCount ?? 0);
+
+  const formatMismatch = !showCustomInput && selectedFormat && formatTeamCount(selectedFormat.groupSizes) !== teamCount;
+
   return (
     <form
       action={formAction}
@@ -130,54 +141,76 @@ function GenerateGroupsForm({
     >
       <input type="hidden" name="tourneyId" value={tourneyId} />
       <input type="hidden" name="level" value={level} />
+      <input type="hidden" name="groupSizes" value={groupSizesValue} />
+      <input type="hidden" name="qualifiersPerGroup" value={qualifiersValue} />
+      <input type="hidden" name="wildcardCount" value={wildcardValue} />
+      {!showCustomInput && selectedFormat && <input type="hidden" name="formatId" value={selectedFormat.id} />}
       <p className="text-xs uppercase tracking-wide text-white/40">
         Generate groups — {teamCount} team{teamCount === 1 ? "" : "s"} entered
       </p>
 
       {formats.length > 0 && (
-        <select
-          value={selection}
-          onChange={(e) => setSelection(e.target.value)}
-          className={inputCls}
-        >
+        <select value={selection} onChange={(e) => setSelection(e.target.value)} className={inputCls}>
           {formats.map((f) => (
             <option key={f.id} value={f.id}>
-              {f.name} ({f.numGroups} groups)
+              {f.name} ({formatTeamCount(f.groupSizes)} teams · groups of {f.groupSizes.join("+")})
             </option>
           ))}
           <option value="custom">Custom…</option>
         </select>
       )}
 
-      {!showCustomInput && selectedFormat && (
-        <input type="hidden" name="numGroups" value={selectedFormat.numGroups} />
+      {formatMismatch && (
+        <p className="text-xs text-[var(--color-negative)]">
+          This format expects {formatTeamCount(selectedFormat!.groupSizes)} teams, but {teamCount} are entered.
+        </p>
       )}
 
-      <div className="flex items-center gap-2">
-        {showCustomInput && (
+      {showCustomInput && (
+        <div className="grid grid-cols-2 gap-2">
           <input
-            name="numGroups"
-            type="number"
-            min={2}
-            step={1}
-            placeholder="Number of groups (2, 4, 8…)"
+            value={customGroupSizes}
+            onChange={(e) => setCustomGroupSizes(e.target.value)}
+            placeholder="Group sizes (e.g. 4,4,4,4)"
             required
-            className={`${inputCls} flex-1`}
+            className={`${inputCls} col-span-2`}
           />
-        )}
-        <button
-          type="submit"
-          disabled={pending}
-          className={`shrink-0 rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60 ${
-            showCustomInput ? "" : "flex-1"
-          }`}
-        >
-          {pending ? "Generating…" : "Shuffle & Generate"}
-        </button>
-      </div>
+          <input
+            value={customQualifiers}
+            onChange={(e) => setCustomQualifiers(e.target.value)}
+            type="number"
+            min={1}
+            step={1}
+            placeholder="Qualifiers/group"
+            required
+            className={inputCls}
+          />
+          <input
+            value={customWildcard}
+            onChange={(e) => setCustomWildcard(e.target.value)}
+            type="number"
+            min={0}
+            step={1}
+            placeholder="Wildcard slots"
+            className={inputCls}
+          />
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="shrink-0 rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
+      >
+        {pending ? "Generating…" : "Shuffle & Generate"}
+      </button>
       <p className="text-xs text-white/40">
-        Groups must be a power of 2 (2, 4, 8, 16…) so winners seed cleanly into the bracket. Teams split as evenly as
-        possible. <Link href="/community/padel/formats" className="underline">Manage formats</Link>.
+        (Qualifiers per group × groups) + wildcard slots must add up to a power of 2 (2, 4, 8, 16…) so the qualifiers
+        seed cleanly into a bracket. Teams are randomly shuffled into the group sizes given, in order.{" "}
+        <Link href="/community/padel/formats" className="underline">
+          Manage formats
+        </Link>
+        .
       </p>
       {state?.error && <p className="text-xs text-[var(--color-negative)]">{state.error}</p>}
     </form>

@@ -13,8 +13,8 @@ export default async function FormatsPage() {
       <PageHeader title="Formats" subtitle="Padel" />
       <main className="mx-auto max-w-xl px-4 sm:px-6">
         <p className="text-xs text-white/40 mb-6 text-center">
-          Save your usual group counts here so you can pick one when you draw groups for a tournament, instead of
-          typing a number each time.
+          Save your usual tournament shapes here — group sizes, how many qualify per group, wildcard slots, and
+          optionally a court-fee preset — so you can pick one when you draw groups instead of retyping it every time.
         </p>
 
         <ul className="flex flex-col gap-1 mb-6">

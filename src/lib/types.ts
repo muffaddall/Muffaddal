@@ -1148,6 +1148,9 @@ export type Tourney = {
   name: string;
   date: string; // YYYY-MM-DD
   status: TourneyStatus;
+  formatId: string | null;
+  qualifiersPerGroup: number;
+  wildcardCount: number;
 };
 
 export type TourneyPlayer = {
@@ -1280,13 +1283,97 @@ export type TourneyLeaderboardEntry = {
   currentLevel: TourneyLevel | null;
 };
 
-// A saved "N groups" preset, picked from a dropdown when drawing groups
-// instead of retyping a number every tourney.
+// A saved tournament-shape preset ("16 Teams", "12 Teams", ...), picked
+// from a dropdown when drawing groups instead of re-describing the same
+// group sizes and qualification rule every tourney. groupSizes no longer
+// has to be equal-sized or a power of 2 — it's the *qualifier* count
+// (qualifiersPerGroup * groups + wildcardCount) that has to come out to a
+// power of 2 to seed a bracket. wildcardCount extra knockout slots are
+// filled from the "best Nth place" cross-group comparison by point
+// differential instead of automatically from every group.
+//
+// The four court-hours/rate fields are an optional court-booking preset
+// (0 = no preset / stage doesn't apply) that "Apply Court Fees" on the
+// Budget Sheet turns into outflow lines.
 export type TourneyFormat = {
   id: string;
   name: string;
-  numGroups: number;
+  groupSizes: number[];
+  qualifiersPerGroup: number;
+  wildcardCount: number;
+  groupStageCourtHours: number;
+  quarterfinalCourtHours: number;
+  semifinalFinalCourtHours: number;
+  courtHourRate: number;
 };
+
+export function formatTeamCount(groupSizes: number[]): number {
+  return groupSizes.reduce((sum, n) => sum + n, 0);
+}
+
+export function formatQualifierCount(groupSizes: number[], qualifiersPerGroup: number, wildcardCount: number): number {
+  return groupSizes.length * qualifiersPerGroup + wildcardCount;
+}
+
+export function formatHasCourtFeePreset(format: TourneyFormat): boolean {
+  return (
+    format.courtHourRate > 0 &&
+    format.groupStageCourtHours + format.quarterfinalCourtHours + format.semifinalFinalCourtHours > 0
+  );
+}
+
+export type CourtFeePresetLine = { name: string; hours: number };
+
+/** The court-fee preset as budget-line-shaped rows (hours as units, courtHourRate as unit cost) — stages with 0 hours are omitted. */
+export function courtFeePresetLines(format: TourneyFormat): CourtFeePresetLine[] {
+  const lines: CourtFeePresetLine[] = [];
+  if (format.groupStageCourtHours > 0) lines.push({ name: "Group Stage courts", hours: format.groupStageCourtHours });
+  if (format.quarterfinalCourtHours > 0) lines.push({ name: "Quarterfinal courts", hours: format.quarterfinalCourtHours });
+  if (format.semifinalFinalCourtHours > 0) {
+    lines.push({ name: "Semifinal & Final courts", hours: format.semifinalFinalCourtHours });
+  }
+  return lines;
+}
+
+export type GroupStandingsForQualifiers = {
+  groupId: string;
+  groupName: string;
+  standings: { teamId: string; scoreDiff: number }[];
+};
+
+/** Default qualifier selection: the top `qualifiersPerGroup` teams from every group, plus the best `wildcardCount` teams (by point differential) among whoever placed exactly one spot below that in any group. Organizer-editable afterward — this is just a sensible starting checklist. */
+export function computeDefaultQualifiers(
+  groups: GroupStandingsForQualifiers[],
+  qualifiersPerGroup: number,
+  wildcardCount: number
+): Set<string> {
+  const selected = new Set<string>();
+  const wildcardCandidates: { teamId: string; scoreDiff: number }[] = [];
+  for (const g of groups) {
+    g.standings.forEach((s, i) => {
+      if (i < qualifiersPerGroup) selected.add(s.teamId);
+      else if (i === qualifiersPerGroup) wildcardCandidates.push(s);
+    });
+  }
+  wildcardCandidates.sort((a, b) => b.scoreDiff - a.scoreDiff);
+  for (const c of wildcardCandidates.slice(0, wildcardCount)) selected.add(c.teamId);
+  return selected;
+}
+
+export type BestNextPlaceCandidate = { teamId: string; groupId: string; groupName: string; scoreDiff: number };
+
+/** Every group's team ranked exactly one spot below the automatic-qualifier cutoff — e.g. every 3rd-place team when qualifiersPerGroup is 2 — sorted by point differential. This is the "best 3rd place" comparison table used to help pick wildcard qualifiers. */
+export function bestNextPlaceCandidates(
+  groups: GroupStandingsForQualifiers[],
+  qualifiersPerGroup: number
+): BestNextPlaceCandidate[] {
+  const candidates: BestNextPlaceCandidate[] = [];
+  for (const g of groups) {
+    const s = g.standings[qualifiersPerGroup];
+    if (s) candidates.push({ teamId: s.teamId, groupId: g.groupId, groupName: g.groupName, scoreDiff: s.scoreDiff });
+  }
+  return candidates.sort((a, b) => b.scoreDiff - a.scoreDiff);
+}
 
 export type TourneyPlayerStats = {
   tournamentsPlayed: number;

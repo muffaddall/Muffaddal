@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addBudgetLine, deleteBudgetLine, updateBudgetLineActual, updateBudgetLineBudgeted } from "@/lib/tourneys";
+import { addBudgetLine, applyCourtFeePreset, deleteBudgetLine, updateBudgetLineActual, updateBudgetLineBudgeted } from "@/lib/tourneys";
 import { isTourneyBudgetLineType } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
@@ -58,5 +58,14 @@ export async function updateBudgetLineActualAction(
 
 export async function deleteBudgetLineAction(id: string, level: string, tourneyId: string): Promise<void> {
   await deleteBudgetLine(id);
+  revalidateBudget(level, tourneyId);
+}
+
+export async function applyCourtFeePresetAction(level: string, tourneyId: string): Promise<{ error: string } | void> {
+  try {
+    await applyCourtFeePreset(tourneyId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to apply court fees." };
+  }
   revalidateBudget(level, tourneyId);
 }

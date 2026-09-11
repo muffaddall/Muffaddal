@@ -823,6 +823,15 @@ create table if not exists tourneys (
   created_at timestamptz not null default now()
 );
 
+-- The qualification rule the group draw used — copied onto the tourney
+-- itself at draw time rather than re-read from tourney_formats, so
+-- editing/deleting a format later never changes how an already-drawn
+-- tourney qualifies teams. format_id (added further below, once
+-- tourney_formats exists) is kept only so the Budget Sheet can offer that
+-- format's court-fee preset.
+alter table tourneys add column if not exists qualifiers_per_group int not null default 1;
+alter table tourneys add column if not exists wildcard_count int not null default 0;
+
 -- A doubles pairing entered into one specific tourney. Partners are
 -- re-entered fresh each tourney (not a standing partnership you reuse) —
 -- the two player profiles are what persists, not the pairing itself.
@@ -898,16 +907,48 @@ create table if not exists tourney_points_events (
 
 create index if not exists tourney_points_events_player_idx on tourney_points_events (player_id);
 
--- Saved group-count presets ("4 Groups", "8 Groups Small", ...) so you
--- don't have to remember/retype a number every time you draw groups for
--- a new tourney — pick a saved format on the tourney page instead. Not
+-- Saved tournament-shape presets ("16 Teams", "12 Teams", ...) so you don't
+-- have to re-describe the same group draw and qualification rule every
+-- time — pick a saved format on the Pre-Tournament page instead. Not
 -- scoped to a level; the same presets show up everywhere.
+--
+-- group_sizes is a comma-separated list of exact group sizes, e.g.
+-- "4,4,4,4" (4 groups of 4) or "3,3,4" (two groups of 3, one of 4) — groups
+-- no longer have to be equal-sized or a power-of-2 count, since it's the
+-- *qualifier* count (qualifiers_per_group * groups + wildcard_count) that
+-- has to come out to a power of 2 to seed a bracket, not the group count.
+-- wildcard_count is how many extra knockout slots are filled from the
+-- "best Nth place" cross-group comparison (by point differential) instead
+-- of automatically from every group.
+--
+-- The four *_court_hours + court_hour_rate fields are an optional
+-- court-booking preset: how many court-hours each stage needs (0 = that
+-- stage doesn't apply / no preset set) and the AED rate per court-hour.
+-- "Apply Court Fees" on the Budget Sheet turns these into outflow lines.
 create table if not exists tourney_formats (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  num_groups int not null,
+  group_sizes text not null default '',
+  qualifiers_per_group int not null default 2,
+  wildcard_count int not null default 0,
+  group_stage_court_hours numeric not null default 0,
+  quarterfinal_court_hours numeric not null default 0,
+  semifinal_final_court_hours numeric not null default 0,
+  court_hour_rate numeric not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Migrates a table already created under the old num_groups-only shape.
+alter table tourney_formats add column if not exists group_sizes text not null default '';
+alter table tourney_formats add column if not exists qualifiers_per_group int not null default 2;
+alter table tourney_formats add column if not exists wildcard_count int not null default 0;
+alter table tourney_formats add column if not exists group_stage_court_hours numeric not null default 0;
+alter table tourney_formats add column if not exists quarterfinal_court_hours numeric not null default 0;
+alter table tourney_formats add column if not exists semifinal_final_court_hours numeric not null default 0;
+alter table tourney_formats add column if not exists court_hour_rate numeric not null default 0;
+alter table tourney_formats drop column if exists num_groups;
+
+alter table tourneys add column if not exists format_id uuid references tourney_formats(id) on delete set null;
 
 -- Loyalty program: every 5 tournaments played earns a free entry into
 -- the next one. Each row is one free entry actually handed out — logged
