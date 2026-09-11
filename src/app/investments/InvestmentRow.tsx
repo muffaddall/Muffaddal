@@ -20,7 +20,7 @@ export default function InvestmentRow({ row }: { row: InvestmentMonthComputed })
   if (editing) {
     return (
       <tr className="bg-white/5">
-        <td colSpan={7} className="p-2">
+        <td colSpan={8} className="p-2">
           <form action={formAction} className="grid grid-cols-2 gap-2 sm:grid-cols-[10rem_10rem_10rem_auto_auto]">
             <input type="hidden" name="month" value={monthToInputValue(row.month)} />
             <span className="flex items-center text-sm text-[var(--color-fg-dim)]">
@@ -63,6 +63,9 @@ export default function InvestmentRow({ row }: { row: InvestmentMonthComputed })
     <tr className="border-b border-[var(--color-border)] last:border-0">
       <td className="py-2 pr-3 text-sm whitespace-nowrap">{formatMonth(row.month)}</td>
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.contribution, "USD")}</td>
+      <td className="py-2 pr-3 text-sm tabular-nums" style={{ color: row.withdrawn > 0 ? "var(--color-negative)" : undefined }}>
+        {row.withdrawn > 0 ? formatMoney(row.withdrawn, "USD") : "—"}
+      </td>
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.total_invested, "USD")}</td>
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.portfolio_value_eom, "USD")}</td>
       <td

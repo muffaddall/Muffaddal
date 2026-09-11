@@ -112,7 +112,11 @@ const EXPENSE_SEED: SeedNode[] = [
   },
 ];
 
-const INCOME_SEED: SeedNode[] = [{ name: "Extra money given" }, { name: "Eidi" }];
+const INCOME_SEED: SeedNode[] = [
+  { name: "Extra money given" },
+  { name: "Eidi" },
+  { name: "Investment withdrawal" },
+];
 
 async function insertNode(
   node: SeedNode,
@@ -191,6 +195,19 @@ export async function addDdCategory(input: {
     sort_order: count ?? 0,
   });
   if (error) throw new Error(error.message);
+}
+
+/** Finds a top-level income category by name, creating it if this install was seeded before it existed (same top-up idea as accounts.ts's Physical Cash backfill). */
+export async function ensureIncomeCategory(name: string): Promise<DdCategory> {
+  const categories = await getDdCategories("income");
+  const existing = categories.find((c) => c.parentId === null && c.name === name);
+  if (existing) return existing;
+
+  await addDdCategory({ parentId: null, kind: "income", name });
+  const refreshed = await getDdCategories("income");
+  const created = refreshed.find((c) => c.parentId === null && c.name === name);
+  if (!created) throw new Error(`Failed to create category "${name}".`);
+  return created;
 }
 
 export async function deleteDdCategory(id: string): Promise<void> {

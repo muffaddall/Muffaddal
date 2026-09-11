@@ -1,8 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { deleteInvestmentMonth, setAedPerUsdRate, upsertInvestmentMonth } from "@/lib/investments";
+import {
+  addInvestmentWithdrawal,
+  deleteInvestmentMonth,
+  deleteInvestmentWithdrawal,
+  setAedPerUsdRate,
+  upsertInvestmentMonth,
+} from "@/lib/investments";
 import { inputValueToMonth } from "@/lib/format";
+
+function revalidateInvestments(): void {
+  revalidatePath("/investments");
+  revalidatePath("/day-to-day");
+  revalidatePath("/");
+}
 
 export type FormState = { error: string } | undefined;
 
@@ -44,4 +56,29 @@ export async function saveAedPerUsdRate(
   await setAedPerUsdRate(rate);
   revalidatePath("/investments");
   revalidatePath("/");
+}
+
+export async function saveWithdrawal(_prev: FormState, formData: FormData): Promise<FormState> {
+  const date = String(formData.get("date") ?? "");
+  const amountUsd = Number(formData.get("amountUsd"));
+  const exchangeRate = Number(formData.get("exchangeRate"));
+  const accountId = String(formData.get("accountId") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!date) return { error: "Date is required." };
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0) return { error: "Enter a valid USD amount." };
+  if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) return { error: "Enter a valid exchange rate." };
+  if (!accountId) return { error: "Choose a destination account." };
+
+  try {
+    await addInvestmentWithdrawal({ date, amountUsd, exchangeRate, accountId, note });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to save withdrawal." };
+  }
+  revalidateInvestments();
+}
+
+export async function removeWithdrawal(id: string): Promise<void> {
+  await deleteInvestmentWithdrawal(id);
+  revalidateInvestments();
 }

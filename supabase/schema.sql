@@ -414,6 +414,28 @@ alter table dd_transactions enable row level security;
 -- column existed.
 alter table dd_transactions add column if not exists to_amount numeric;
 
+-- One withdrawal out of the investment portfolio (in USD), converted to
+-- the destination Day-to-Day account's currency at the given rate and
+-- logged there as an income transaction (transaction_id) — the exchange
+-- rate is asked for per withdrawal rather than reusing the saved AED/USD
+-- rate on app_settings, since it isn't necessarily the same rate the
+-- broker/bank actually applied that day. Deleting the withdrawal also
+-- deletes that transaction so the two stay in sync.
+create table if not exists investment_withdrawals (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  amount_usd numeric not null,
+  exchange_rate numeric not null,
+  account_id uuid not null references accounts(id) on delete cascade,
+  transaction_id uuid references dd_transactions(id) on delete set null,
+  note text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists investment_withdrawals_date_idx on investment_withdrawals (date);
+
+alter table investment_withdrawals enable row level security;
+
 -- Planned Expenses are per-account (each account has its own list and its
 -- own income figure) rather than one shared household list. Existing rows
 -- predate this, so they're backfilled onto the first account by sort

@@ -1,14 +1,22 @@
 import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
-import { getAedPerUsdRate, getInvestmentMonths } from "@/lib/investments";
+import { getAedPerUsdRate, getInvestmentMonths, getInvestmentWithdrawals } from "@/lib/investments";
+import { getAccounts } from "@/lib/accounts";
 import AddMonthForm from "./AddMonthForm";
 import InvestmentRow from "./InvestmentRow";
 import AedRateEditor from "./AedRateEditor";
+import WithdrawForm from "./WithdrawForm";
+import WithdrawalsList from "./WithdrawalsList";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvestmentsPage() {
-  const [rows, rate] = await Promise.all([getInvestmentMonths(), getAedPerUsdRate()]);
+  const [rows, rate, accounts, withdrawals] = await Promise.all([
+    getInvestmentMonths(),
+    getAedPerUsdRate(),
+    getAccounts(),
+    getInvestmentWithdrawals(),
+  ]);
 
   return (
     <div className="pb-10">
@@ -31,6 +39,7 @@ export default async function InvestmentsPage() {
               <tr className="text-left text-xs text-[var(--color-fg-dim)]">
                 <th className="pb-2 pr-3 font-medium">Month</th>
                 <th className="pb-2 pr-3 font-medium">Contribution</th>
+                <th className="pb-2 pr-3 font-medium">Withdrawn</th>
                 <th className="pb-2 pr-3 font-medium">Total invested</th>
                 <th className="pb-2 pr-3 font-medium">Portfolio value</th>
                 <th className="pb-2 pr-3 font-medium">P&amp;L %</th>
@@ -44,7 +53,7 @@ export default async function InvestmentsPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-sm text-[var(--color-fg-dim)]">
+                  <td colSpan={8} className="py-6 text-center text-sm text-[var(--color-fg-dim)]">
                     No investment months logged yet.
                   </td>
                 </tr>
@@ -54,6 +63,11 @@ export default async function InvestmentsPage() {
         </div>
 
         <AddMonthForm />
+
+        <div className="flex flex-col gap-3 mt-8">
+          <WithdrawForm accounts={accounts} />
+          <WithdrawalsList withdrawals={withdrawals} accounts={accounts} />
+        </div>
       </main>
     </div>
   );

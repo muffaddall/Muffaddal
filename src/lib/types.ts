@@ -136,11 +136,31 @@ export type InvestmentMonth = {
 };
 
 export type InvestmentMonthComputed = InvestmentMonth & {
+  withdrawn: number;
   total_invested: number;
   growth_pct: number | null;
   pnl_pct: number | null;
   dollar_pl: number | null;
 };
+
+// A withdrawal out of the investment portfolio (in USD) — converted to the
+// destination Day-to-Day account's currency at the given rate (asked for
+// at withdrawal time, since it isn't necessarily the saved AED/USD rate
+// above) and logged there as an income transaction. Reduces total_invested
+// the same month it's dated, same as a contribution but negative.
+export type InvestmentWithdrawal = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  amountUsd: number;
+  exchangeRate: number; // destination currency per 1 USD
+  accountId: string;
+  transactionId: string | null;
+  note: string;
+};
+
+export function investmentWithdrawalLocalAmount(withdrawal: InvestmentWithdrawal): number {
+  return withdrawal.amountUsd * withdrawal.exchangeRate;
+}
 
 // A purchase made using money from the Big Purchase Fund — logged on the
 // Savings tab, and netted against that month's fund contributions.
