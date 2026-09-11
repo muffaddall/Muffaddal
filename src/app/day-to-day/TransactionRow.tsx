@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { removeTransaction } from "./transactionActions";
+import { removeTransaction, toggleTransactionCleared } from "./transactionActions";
 import { formatMoney } from "@/lib/format";
 import {
   categoryPath,
@@ -31,6 +31,7 @@ export default function TransactionRow({
   perspectiveAccountId?: string;
 }) {
   const [isDeleting, startDelete] = useTransition();
+  const [isToggling, startToggle] = useTransition();
 
   const accountIds = tx.toAccountId ? [tx.accountId, tx.toAccountId] : [tx.accountId];
   const currency: Currency = accountsById.get(tx.accountId)?.currency ?? "AED";
@@ -62,12 +63,23 @@ export default function TransactionRow({
   }
 
   return (
-    <tr className="border-t border-[var(--color-border)] text-sm">
+    <tr className={`border-t border-[var(--color-border)] text-sm ${tx.cleared ? "" : "opacity-60"}`}>
+      <td className="py-2 pr-2">
+        <input
+          type="checkbox"
+          checked={tx.cleared}
+          disabled={isToggling}
+          onChange={(e) => startToggle(() => toggleTransactionCleared(tx.id, e.target.checked, accountIds))}
+          className="h-4 w-4 accent-[var(--color-accent)]"
+          aria-label={tx.cleared ? "Mark as pending" : "Mark as cleared"}
+        />
+      </td>
       <td className="py-2 pr-3 whitespace-nowrap">{tx.date}</td>
       <td className="py-2 pr-3 capitalize">{tx.type}</td>
       <td className="py-2 pr-3">{detail}</td>
       <td className="py-2 pr-3 text-[var(--color-fg-dim)] max-w-[10rem] truncate">
         {tx.note || "—"}
+        {!tx.cleared && <span className="ml-1 text-[10px] uppercase tracking-wide text-[var(--color-fg-dim)]">Pending</span>}
       </td>
       <td className="py-2 pr-3 text-right tabular-nums font-medium" style={{ color }}>
         {sign}

@@ -690,6 +690,12 @@ export type Transaction = {
   categoryId: string | null; // only set for income/expense
   note: string;
   createdAt: string;
+  // Whether the money has actually landed yet — false excludes it from
+  // the account balance until ticked, same idea as Planned Expenses'
+  // "paid" tick. Almost everything is logged after the fact and should
+  // stay true; false is for the rare "I know this is coming but it
+  // hasn't cleared" case.
+  cleared: boolean;
 };
 
 export type TransactionInput = {
@@ -701,10 +707,12 @@ export type TransactionInput = {
   toAmount: number | null;
   categoryId: string | null;
   note: string;
+  cleared: boolean;
 };
 
-/** Net change to one account's balance from a single transaction. */
+/** Net change to one account's balance from a single transaction — zero for anything not yet cleared. */
 export function transactionAccountDelta(tx: Transaction, accountId: string): number {
+  if (!tx.cleared) return 0;
   if (tx.type === "income" && tx.accountId === accountId) return tx.amount;
   if (tx.type === "expense" && tx.accountId === accountId) return -tx.amount;
   if (tx.type === "transfer") {
@@ -1496,3 +1504,12 @@ export function computeBudgetSummary(lines: TourneyBudgetLine[]): TourneyBudgetS
     actualNetflow: actualIncome - actualOutflow,
   };
 }
+
+// ---- Notes: a free-form scratchpad, unscoped to any one feature ----
+
+export type Note = {
+  id: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+};

@@ -109,6 +109,7 @@ export default async function AccountDetailPage(
             <table className="w-full min-w-[560px] border-collapse">
               <thead>
                 <tr className="text-left text-xs text-[var(--color-fg-dim)]">
+                  <th className="pb-2 pr-2 font-medium" title="Cleared">✓</th>
                   <th className="pb-2 pr-3 font-medium">Date</th>
                   <th className="pb-2 pr-3 font-medium">Type</th>
                   <th className="pb-2 pr-3 font-medium">Category / To</th>

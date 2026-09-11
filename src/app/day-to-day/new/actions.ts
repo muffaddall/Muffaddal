@@ -18,6 +18,7 @@ function parseTransactionForm(formData: FormData):
       toAmount: number | null;
       categoryId: string | null;
       note: string;
+      cleared: boolean;
     } {
   const type = String(formData.get("type") ?? "");
   const date = String(formData.get("date") ?? "");
@@ -27,6 +28,7 @@ function parseTransactionForm(formData: FormData):
   const toAmountRaw = String(formData.get("toAmount") ?? "").trim();
   const categoryId = String(formData.get("categoryId") ?? "") || null;
   const note = String(formData.get("note") ?? "").trim();
+  const cleared = formData.get("cleared") === "true";
 
   if (!isTransactionType(type)) return { error: "Invalid type." };
   if (!date) return { error: "Date is required." };
@@ -60,6 +62,7 @@ function parseTransactionForm(formData: FormData):
     toAmount: type === "transfer" ? toAmount : null,
     categoryId: type === "transfer" ? null : categoryId,
     note,
+    cleared,
   };
 }
 

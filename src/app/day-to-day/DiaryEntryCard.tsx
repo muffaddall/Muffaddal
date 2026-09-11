@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { removeTransaction } from "./transactionActions";
+import { removeTransaction, toggleTransactionCleared } from "./transactionActions";
 import { formatMoney } from "@/lib/format";
 import { MaskedAmount } from "@/components/AmountVisibility";
 import {
@@ -31,6 +31,7 @@ export default function DiaryEntryCard({
   outstandingOwed?: number;
 }) {
   const [isDeleting, startDelete] = useTransition();
+  const [isToggling, startToggle] = useTransition();
   const account = accountsById.get(tx.accountId);
   const toAccount = accountsById.get(tx.toAccountId ?? "");
   const currency: Currency = account?.currency ?? "AED";
@@ -80,14 +81,27 @@ export default function DiaryEntryCard({
   }`;
 
   return (
-    <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5">
+    <div className={`rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5 ${tx.cleared ? "" : "opacity-60"}`}>
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium truncate capitalize">{tx.type}</p>
-          <p className="text-xs text-[var(--color-fg-dim)] truncate">
-            {detail}
-            {tx.note ? ` — ${tx.note}` : ""}
-          </p>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <input
+            type="checkbox"
+            checked={tx.cleared}
+            disabled={isToggling}
+            onChange={(e) => startToggle(() => toggleTransactionCleared(tx.id, e.target.checked, accountIds))}
+            className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+            aria-label={tx.cleared ? "Mark as pending" : "Mark as cleared"}
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate capitalize">
+              {tx.type}
+              {!tx.cleared && <span className="ml-1.5 text-[10px] uppercase tracking-wide text-[var(--color-fg-dim)]">Pending</span>}
+            </p>
+            <p className="text-xs text-[var(--color-fg-dim)] truncate">
+              {detail}
+              {tx.note ? ` — ${tx.note}` : ""}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-sm font-semibold tabular-nums" style={{ color }}>

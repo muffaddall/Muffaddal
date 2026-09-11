@@ -143,7 +143,10 @@ export async function getInvestmentWithdrawals(): Promise<InvestmentWithdrawal[]
  * income transaction on the chosen Day-to-Day account, using the exchange
  * rate given for this withdrawal specifically (not the saved AED/USD rate,
  * since that's for regular contributions and may not match what the
- * broker/bank actually applied that day).
+ * broker/bank actually applied that day). The transaction starts
+ * un-cleared — a brokerage withdrawal typically takes a few days to
+ * actually land — so it won't count toward the account balance until
+ * ticked off on the Day-to-Day side once the funds arrive.
  */
 export async function addInvestmentWithdrawal(input: {
   date: string;
@@ -166,6 +169,7 @@ export async function addInvestmentWithdrawal(input: {
       to_amount: null,
       category_id: category.id,
       note: input.note || `Investment withdrawal ($${input.amountUsd} @ ${input.exchangeRate})`,
+      cleared: false,
     })
     .select("id")
     .single();

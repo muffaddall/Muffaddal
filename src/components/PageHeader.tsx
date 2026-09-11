@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { MenuButton } from "@/components/MenuButton";
 import { HomeButton } from "@/components/HomeButton";
 import { BackButton } from "@/components/BackButton";
+import { NotesButton } from "@/components/NotesButton";
 
 export function PageHeader({
   title,
@@ -20,6 +21,7 @@ export function PageHeader({
         <BackButton />
         {showHome && <HomeButton />}
         <MenuButton />
+        <NotesButton />
       </div>
       <div className="flex-1 min-w-0 text-center">
         {subtitle && <p className="text-sm text-white/40 mb-0.5 truncate">{subtitle}</p>}

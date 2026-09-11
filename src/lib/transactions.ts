@@ -13,6 +13,7 @@ type TransactionRow = {
   category_id: string | null;
   note: string;
   created_at: string;
+  cleared?: boolean;
 };
 
 function fromRow(row: TransactionRow): Transaction {
@@ -27,6 +28,7 @@ function fromRow(row: TransactionRow): Transaction {
     categoryId: row.category_id,
     note: row.note,
     createdAt: row.created_at,
+    cleared: row.cleared ?? true,
   };
 }
 
@@ -93,6 +95,7 @@ export async function addTransaction(input: TransactionInput): Promise<void> {
     to_amount: input.toAmount,
     category_id: input.categoryId,
     note: input.note,
+    cleared: input.cleared,
   });
   if (error) throw new Error(error.message);
 }
@@ -109,8 +112,14 @@ export async function updateTransaction(id: string, input: TransactionInput): Pr
       to_amount: input.toAmount,
       category_id: input.categoryId,
       note: input.note,
+      cleared: input.cleared,
     })
     .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function setTransactionCleared(id: string, cleared: boolean): Promise<void> {
+  const { error } = await supabase.from("dd_transactions").update({ cleared }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 

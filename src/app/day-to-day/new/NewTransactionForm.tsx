@@ -306,6 +306,20 @@ export default function NewTransactionForm({
         />
       </Field>
 
+      <label className="flex items-center gap-2 text-sm text-white/70">
+        <input
+          name="cleared"
+          type="checkbox"
+          value="true"
+          defaultChecked={transaction?.cleared ?? true}
+          className="h-4 w-4 accent-[var(--color-accent)]"
+        />
+        Money has already landed in the account
+      </label>
+      <p className="-mt-2 text-xs text-[var(--color-fg-dim)]">
+        Uncheck this if it&apos;s still pending — it won&apos;t count toward the balance until you tick it off.
+      </p>
+
       <button
         type="submit"
         disabled={pending}

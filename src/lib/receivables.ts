@@ -111,6 +111,7 @@ export async function markReceivablePaidBack(
       to_account_id: null,
       category_id: null,
       note,
+      cleared: true,
     })
     .select("id")
     .single();

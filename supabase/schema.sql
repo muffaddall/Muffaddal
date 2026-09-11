@@ -1016,3 +1016,24 @@ alter table tourney_budget_lines drop column if exists budgeted_amount;
 alter table tourney_budget_lines drop column if exists actual_amount;
 
 create index if not exists tourney_budget_lines_tourney_idx on tourney_budget_lines (tourney_id);
+
+-- A general-purpose scratchpad — free-form notes on anything, reachable
+-- from every page rather than scoped to any one feature.
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  body text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists notes_updated_idx on notes (updated_at);
+
+alter table notes enable row level security;
+
+-- Whether a logged transaction's money has actually landed yet — an
+-- expense/income/transfer you know is coming but hasn't cleared the
+-- account should stay ticked off until it does, the same idea as Planned
+-- Expenses' "paid" tick. Defaults true so every existing transaction
+-- keeps counting in the balance exactly as before this column existed;
+-- only new transactions you explicitly mark as pending are excluded.
+alter table dd_transactions add column if not exists cleared boolean not null default true;

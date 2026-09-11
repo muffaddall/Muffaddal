@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MenuButton } from "@/components/MenuButton";
 import { HomeButton } from "@/components/HomeButton";
 import { BackButton } from "@/components/BackButton";
+import { NotesButton } from "@/components/NotesButton";
 
 export function TopBar({ active }: { active: "day" | "week" | "month" }) {
   return (
@@ -10,6 +11,7 @@ export function TopBar({ active }: { active: "day" | "week" | "month" }) {
         <BackButton />
         <HomeButton />
         <MenuButton />
+        <NotesButton />
 
         <Link
           href="/new-idea?from=/schedule/day"
