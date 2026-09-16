@@ -24,6 +24,7 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   ]);
   const computed = log ? computeCalorieLog(log) : null;
   const { avgIntake, avgBurned, avgWater } = computeCalorieAverages(allLogs);
+  const plannedIntake = entries.reduce((sum, e) => sum + e.calories, 0);
 
   return (
     <div className="pb-10">
@@ -68,7 +69,7 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
 
         {computed && (
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <Stat label="Intake" value={`${computed.intake} kcal`} />
+            <Stat label="Intake" value={`${computed.intake} kcal`} sub={`Planned: ${plannedIntake} kcal`} />
             <Stat label="Burned" value={`${computed.burned} kcal`} />
             <Stat
               label={computed.isDeficit ? "Deficit" : "Surplus"}
@@ -114,7 +115,17 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
+function Stat({
+  label,
+  value,
+  color,
+  sub,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  sub?: string;
+}) {
   const labelColor = color ?? "var(--color-fitness)";
   return (
     <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
@@ -124,6 +135,7 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
       <p className="font-display text-xl" style={color ? { color } : undefined}>
         {value}
       </p>
+      {sub && <p className="text-[10px] text-white/40 mt-0.5">{sub}</p>}
     </div>
   );
 }
