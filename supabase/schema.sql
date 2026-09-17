@@ -876,6 +876,17 @@ create table if not exists tourneys (
 alter table tourneys add column if not exists qualifiers_per_group int not null default 1;
 alter table tourneys add column if not exists wildcard_count int not null default 0;
 
+-- Per-tourney points config — editable from the Pre-Tournament page instead
+-- of one fixed scale for every tourney. Defaults match the original fixed
+-- scale (join 5, group win 2, QF 4, SF 7, Final 10). Editing these only
+-- affects points awarded from here on — already-awarded tourney_points_events
+-- rows aren't retroactively recomputed.
+alter table tourneys add column if not exists join_points int not null default 5;
+alter table tourneys add column if not exists group_win_points int not null default 2;
+alter table tourneys add column if not exists quarterfinal_points int not null default 4;
+alter table tourneys add column if not exists semifinal_points int not null default 7;
+alter table tourneys add column if not exists final_points int not null default 10;
+
 -- A doubles pairing entered into one specific tourney. Partners are
 -- re-entered fresh each tourney (not a standing partnership you reuse) —
 -- the two player profiles are what persists, not the pairing itself.

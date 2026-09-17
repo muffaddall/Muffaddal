@@ -11,6 +11,7 @@ import {
   setAllMatchScores,
   setMatchScore,
   setTeamPaid,
+  updateTourneyPoints,
   type MatchScoreInput,
 } from "@/lib/tourneys";
 
@@ -140,5 +141,24 @@ export async function clearKnockoutBracketAction(level: string, tourneyId: strin
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to regenerate bracket." };
   }
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function updateTourneyPointsAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const tourneyId = String(formData.get("tourneyId") ?? "");
+  const level = String(formData.get("level") ?? "");
+  const joinPoints = Number(formData.get("joinPoints"));
+  const groupWinPoints = Number(formData.get("groupWinPoints"));
+  const quarterfinalPoints = Number(formData.get("quarterfinalPoints"));
+  const semifinalPoints = Number(formData.get("semifinalPoints"));
+  const finalPoints = Number(formData.get("finalPoints"));
+
+  if (!tourneyId) return { error: "Missing tournament." };
+  const values = [joinPoints, groupWinPoints, quarterfinalPoints, semifinalPoints, finalPoints];
+  if (!values.every((n) => Number.isFinite(n) && n >= 0)) {
+    return { error: "All point values must be zero or a positive number." };
+  }
+
+  await updateTourneyPoints(tourneyId, { joinPoints, groupWinPoints, quarterfinalPoints, semifinalPoints, finalPoints });
   revalidateTourneyPaths(level, tourneyId);
 }

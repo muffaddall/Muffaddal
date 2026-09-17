@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import { getAllFormats, getGroupsWithStandings, getTeamsForTourney, getTourney } from "@/lib/tourneys";
+import { getAllFormats, getAllPlayers, getGroupsWithStandings, getTeamsForTourney, getTourney } from "@/lib/tourneys";
 import { isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import { TourneySectionTabs } from "../TourneySectionTabs";
 import TeamEntrySection from "../TeamEntrySection";
+import PointsSettingsForm from "../PointsSettingsForm";
 import GroupsSummary from "./GroupsSummary";
 import RegenerateGroupsButton from "./RegenerateGroupsButton";
 
@@ -20,10 +21,11 @@ export default async function PreTournamentPage(
   if (!tourney || tourney.level !== level) notFound();
 
   const hasGroups = tourney.status !== "setup";
-  const [teams, groups, formats] = await Promise.all([
+  const [teams, groups, formats, players] = await Promise.all([
     getTeamsForTourney(tourneyId),
     hasGroups ? getGroupsWithStandings(tourneyId) : Promise.resolve([]),
     tourney.status === "setup" ? getAllFormats() : Promise.resolve([]),
+    getAllPlayers(),
   ]);
 
   return (
@@ -42,8 +44,16 @@ export default async function PreTournamentPage(
             tourneyId={tourneyId}
             teams={teams}
             formats={formats}
+            players={players}
             locked={tourney.status !== "setup"}
           />
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
+            Points
+          </h2>
+          <PointsSettingsForm level={level} tourneyId={tourneyId} tourney={tourney} />
         </section>
 
         {hasGroups && (

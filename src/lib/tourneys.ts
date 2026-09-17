@@ -19,7 +19,12 @@ import type {
   TourneyTeam,
 } from "@/lib/types";
 import {
-  TOURNEY_JOIN_POINTS,
+  DEFAULT_TOURNEY_POINTS,
+  TOURNEY_DEFAULT_FINAL_POINTS,
+  TOURNEY_DEFAULT_GROUP_WIN_POINTS,
+  TOURNEY_DEFAULT_JOIN_POINTS,
+  TOURNEY_DEFAULT_QUARTERFINAL_POINTS,
+  TOURNEY_DEFAULT_SEMIFINAL_POINTS,
   computeGroupStandings,
   computeLoyaltyStatus,
   courtFeePresetLines,
@@ -27,6 +32,7 @@ import {
   isValidBracketSize,
   pointsForMatchWin,
   roundNameForSize,
+  type TourneyPointsConfig,
 } from "@/lib/types";
 
 // ---- Row types + mappers ----
@@ -40,6 +46,11 @@ type TourneyRow = {
   format_id?: string | null;
   qualifiers_per_group?: number;
   wildcard_count?: number;
+  join_points?: number;
+  group_win_points?: number;
+  quarterfinal_points?: number;
+  semifinal_points?: number;
+  final_points?: number;
 };
 function tourneyFromRow(row: TourneyRow): Tourney {
   return {
@@ -51,6 +62,11 @@ function tourneyFromRow(row: TourneyRow): Tourney {
     formatId: row.format_id ?? null,
     qualifiersPerGroup: row.qualifiers_per_group ?? 1,
     wildcardCount: row.wildcard_count ?? 0,
+    joinPoints: row.join_points ?? TOURNEY_DEFAULT_JOIN_POINTS,
+    groupWinPoints: row.group_win_points ?? TOURNEY_DEFAULT_GROUP_WIN_POINTS,
+    quarterfinalPoints: row.quarterfinal_points ?? TOURNEY_DEFAULT_QUARTERFINAL_POINTS,
+    semifinalPoints: row.semifinal_points ?? TOURNEY_DEFAULT_SEMIFINAL_POINTS,
+    finalPoints: row.final_points ?? TOURNEY_DEFAULT_FINAL_POINTS,
   };
 }
 
@@ -140,11 +156,39 @@ export async function getTourney(id: string): Promise<Tourney | null> {
 export async function createTourney(level: TourneyLevel, name: string, date: string): Promise<string> {
   const { data, error } = await supabase
     .from("tourneys")
-    .insert({ level, name, date, status: "setup", format_id: null, qualifiers_per_group: 1, wildcard_count: 0 })
+    .insert({
+      level,
+      name,
+      date,
+      status: "setup",
+      format_id: null,
+      qualifiers_per_group: 1,
+      wildcard_count: 0,
+      join_points: TOURNEY_DEFAULT_JOIN_POINTS,
+      group_win_points: TOURNEY_DEFAULT_GROUP_WIN_POINTS,
+      quarterfinal_points: TOURNEY_DEFAULT_QUARTERFINAL_POINTS,
+      semifinal_points: TOURNEY_DEFAULT_SEMIFINAL_POINTS,
+      final_points: TOURNEY_DEFAULT_FINAL_POINTS,
+    })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
   return (data as { id: string }).id;
+}
+
+/** Edits this tourney's own points scale. Only affects points awarded from here on — matches/joins already recorded keep whatever points they were given at the time. */
+export async function updateTourneyPoints(tourneyId: string, points: TourneyPointsConfig): Promise<void> {
+  const { error } = await supabase
+    .from("tourneys")
+    .update({
+      join_points: points.joinPoints,
+      group_win_points: points.groupWinPoints,
+      quarterfinal_points: points.quarterfinalPoints,
+      semifinal_points: points.semifinalPoints,
+      final_points: points.finalPoints,
+    })
+    .eq("id", tourneyId);
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -309,8 +353,12 @@ export async function createTeam(input: {
   playerBName: string;
   playerBCountry: string | null;
 }): Promise<void> {
-  const playerAId = await findOrCreatePlayer(input.playerAName, input.playerACountry);
-  const playerBId = await findOrCreatePlayer(input.playerBName, input.playerBCountry);
+  const [playerAId, playerBId, tourney] = await Promise.all([
+    findOrCreatePlayer(input.playerAName, input.playerACountry),
+    findOrCreatePlayer(input.playerBName, input.playerBCountry),
+    getTourney(input.tourneyId),
+  ]);
+  const joinPoints = tourney?.joinPoints ?? TOURNEY_DEFAULT_JOIN_POINTS;
 
   const { data, error } = await supabase
     .from("tourney_teams")
@@ -327,8 +375,8 @@ export async function createTeam(input: {
   const teamId = (data as { id: string }).id;
 
   const { error: pointsError } = await supabase.from("tourney_points_events").insert([
-    { player_id: playerAId, tourney_id: input.tourneyId, team_id: teamId, reason: "join", points: TOURNEY_JOIN_POINTS },
-    { player_id: playerBId, tourney_id: input.tourneyId, team_id: teamId, reason: "join", points: TOURNEY_JOIN_POINTS },
+    { player_id: playerAId, tourney_id: input.tourneyId, team_id: teamId, reason: "join", points: joinPoints },
+    { player_id: playerBId, tourney_id: input.tourneyId, team_id: teamId, reason: "join", points: joinPoints },
   ]);
   if (pointsError) throw new Error(pointsError.message);
 }
@@ -542,11 +590,14 @@ async function recomputeMatchPoints(
   const { error: deleteError } = await supabase.from("tourney_points_events").delete().eq("match_id", matchId);
   if (deleteError) throw new Error(deleteError.message);
 
-  const { data: teamRow, error } = await supabase.from("tourney_teams").select("*").eq("id", winnerTeamId).maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!teamRow) return;
-  const team = teamRow as TeamRow;
-  const points = pointsForMatchWin(stage, roundName);
+  const [teamRes, tourney] = await Promise.all([
+    supabase.from("tourney_teams").select("*").eq("id", winnerTeamId).maybeSingle(),
+    getTourney(tourneyId),
+  ]);
+  if (teamRes.error) throw new Error(teamRes.error.message);
+  if (!teamRes.data) return;
+  const team = teamRes.data as TeamRow;
+  const points = pointsForMatchWin(tourney ?? DEFAULT_TOURNEY_POINTS, stage, roundName);
 
   const { error: insertError } = await supabase.from("tourney_points_events").insert([
     { player_id: team.player_a_id, tourney_id: tourneyId, match_id: matchId, reason: "win", points },

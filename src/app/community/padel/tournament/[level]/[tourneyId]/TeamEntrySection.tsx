@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { addTeamAction, generateGroupsAction, removeTeamAction } from "./actions";
+import PlayerCombobox from "./PlayerCombobox";
 import { formatTeamCount } from "@/lib/types";
-import type { TourneyFormat, TourneyLevel, TourneyTeam } from "@/lib/types";
+import type { TourneyFormat, TourneyLevel, TourneyPlayer, TourneyTeam } from "@/lib/types";
 
 const inputCls =
   "rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-community)]";
@@ -14,12 +15,14 @@ export default function TeamEntrySection({
   tourneyId,
   teams,
   formats,
+  players,
   locked,
 }: {
   level: TourneyLevel;
   tourneyId: string;
   teams: TourneyTeam[];
   formats: TourneyFormat[];
+  players: TourneyPlayer[];
   locked: boolean;
 }) {
   return (
@@ -31,7 +34,7 @@ export default function TeamEntrySection({
         ))}
       </div>
 
-      {!locked && <AddTeamForm level={level} tourneyId={tourneyId} />}
+      {!locked && <AddTeamForm level={level} tourneyId={tourneyId} players={players} />}
       {!locked && teams.length >= 2 && (
         <GenerateGroupsForm level={level} tourneyId={tourneyId} teamCount={teams.length} formats={formats} />
       )}
@@ -70,30 +73,45 @@ function TeamRow({
   );
 }
 
-function AddTeamForm({ level, tourneyId }: { level: TourneyLevel; tourneyId: string }) {
+function AddTeamForm({
+  level,
+  tourneyId,
+  players,
+}: {
+  level: TourneyLevel;
+  tourneyId: string;
+  players: TourneyPlayer[];
+}) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [formKey, setFormKey] = useState(0);
   const [state, formAction, pending] = useActionState(async (
     prev: { error: string } | undefined,
     formData: FormData
   ) => {
     const result = await addTeamAction(prev, formData);
-    if (!result) formRef.current?.reset();
+    if (!result) {
+      formRef.current?.reset();
+      setFormKey((k) => k + 1); // remounts the comboboxes so their typed query clears too
+    }
     return result;
   }, undefined);
 
   return (
     <form
+      key={formKey}
       ref={formRef}
       action={formAction}
       className="flex flex-col gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3"
     >
       <input type="hidden" name="tourneyId" value={tourneyId} />
       <input type="hidden" name="level" value={level} />
-      <p className="text-xs uppercase tracking-wide text-white/40">Add team</p>
+      <p className="text-xs uppercase tracking-wide text-white/40">
+        Add team — pick an existing player or type a new name
+      </p>
       <div className="grid grid-cols-2 gap-2">
-        <input name="playerAName" placeholder="Player 1 name" required className={inputCls} />
+        <PlayerCombobox name="playerAName" players={players} placeholder="Player 1 name" />
         <input name="playerACountry" placeholder="Country (optional)" className={inputCls} />
-        <input name="playerBName" placeholder="Player 2 name" required className={inputCls} />
+        <PlayerCombobox name="playerBName" players={players} placeholder="Player 2 name" />
         <input name="playerBCountry" placeholder="Country (optional)" className={inputCls} />
       </div>
       <button

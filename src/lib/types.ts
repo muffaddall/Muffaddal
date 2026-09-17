@@ -1196,6 +1196,11 @@ export type Tourney = {
   formatId: string | null;
   qualifiersPerGroup: number;
   wildcardCount: number;
+  joinPoints: number;
+  groupWinPoints: number;
+  quarterfinalPoints: number;
+  semifinalPoints: number;
+  finalPoints: number;
 };
 
 export type TourneyPlayer = {
@@ -1251,18 +1256,49 @@ export type TourneyPointsEvent = {
   points: number;
 };
 
-export const TOURNEY_JOIN_POINTS = 5;
-export const TOURNEY_GROUP_WIN_POINTS = 2;
-export const TOURNEY_KNOCKOUT_ROUND_POINTS: Record<string, number> = {
-  Quarterfinal: 4,
-  Semifinal: 7,
-  Final: 10,
+// Fall-back values for a brand-new tourney (and for rows saved before the
+// per-tourney points columns existed) — each tourney's own join/group-win/
+// quarterfinal/semifinal/final points are otherwise fully editable from the
+// Pre-Tournament page, see updateTourneyPoints in lib/tourneys.ts.
+export const TOURNEY_DEFAULT_JOIN_POINTS = 5;
+export const TOURNEY_DEFAULT_GROUP_WIN_POINTS = 2;
+export const TOURNEY_DEFAULT_QUARTERFINAL_POINTS = 4;
+export const TOURNEY_DEFAULT_SEMIFINAL_POINTS = 7;
+export const TOURNEY_DEFAULT_FINAL_POINTS = 10;
+
+export type TourneyPointsConfig = {
+  joinPoints: number;
+  groupWinPoints: number;
+  quarterfinalPoints: number;
+  semifinalPoints: number;
+  finalPoints: number;
 };
 
-/** Points for winning a match at this stage/round — the full value for that round, not stacked on top of the group-stage win value. */
-export function pointsForMatchWin(stage: TourneyMatchStage, roundName: string | null): number {
-  if (stage === "group" || roundName === null) return TOURNEY_GROUP_WIN_POINTS;
-  return TOURNEY_KNOCKOUT_ROUND_POINTS[roundName] ?? TOURNEY_GROUP_WIN_POINTS;
+export const DEFAULT_TOURNEY_POINTS: TourneyPointsConfig = {
+  joinPoints: TOURNEY_DEFAULT_JOIN_POINTS,
+  groupWinPoints: TOURNEY_DEFAULT_GROUP_WIN_POINTS,
+  quarterfinalPoints: TOURNEY_DEFAULT_QUARTERFINAL_POINTS,
+  semifinalPoints: TOURNEY_DEFAULT_SEMIFINAL_POINTS,
+  finalPoints: TOURNEY_DEFAULT_FINAL_POINTS,
+};
+
+/** Points for winning a match at this stage/round, using this tourney's own point values — the full value for that round, not stacked on top of the group-stage win value. Round names outside Quarterfinal/Semifinal/Final (e.g. "Round of 16" in a bigger bracket) fall back to the group-win value, same as before per-tourney points existed. */
+export function pointsForMatchWin(
+  config: TourneyPointsConfig,
+  stage: TourneyMatchStage,
+  roundName: string | null
+): number {
+  if (stage === "group" || roundName === null) return config.groupWinPoints;
+  switch (roundName) {
+    case "Quarterfinal":
+      return config.quarterfinalPoints;
+    case "Semifinal":
+      return config.semifinalPoints;
+    case "Final":
+      return config.finalPoints;
+    default:
+      return config.groupWinPoints;
+  }
 }
 
 const KNOCKOUT_ROUND_NAMES: Record<number, string> = {
