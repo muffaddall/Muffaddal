@@ -2,12 +2,15 @@ import { PageHeader } from "@/components/PageHeader";
 import { FinanceSectionTabs } from "@/components/FinanceSectionTabs";
 import {
   getBpfPurchases,
+  getElevatePurchases,
   getMoneyInfluxes,
   getSavingsMonths,
   getSavingsPurchases,
   totalBpfPurchases,
+  totalElevatePurchases,
   totalMoneyInfluxes,
   totalPlannedBpfPurchases,
+  totalPlannedElevatePurchases,
   totalPlannedSavingsPurchases,
   totalSavingsPurchases,
 } from "@/lib/savings";
@@ -16,6 +19,8 @@ import BpfPurchaseRow from "./BpfPurchaseRow";
 import AddBpfPurchaseForm from "./AddBpfPurchaseForm";
 import SavingsPurchaseRow from "./SavingsPurchaseRow";
 import AddSavingsPurchaseForm from "./AddSavingsPurchaseForm";
+import ElevatePurchaseRow from "./ElevatePurchaseRow";
+import AddElevatePurchaseForm from "./AddElevatePurchaseForm";
 import SavingsMonthRow from "./SavingsMonthRow";
 import MoneyInfluxRow from "./MoneyInfluxRow";
 import AddMoneyInfluxForm from "./AddMoneyInfluxForm";
@@ -23,18 +28,22 @@ import AddMoneyInfluxForm from "./AddMoneyInfluxForm";
 export const dynamic = "force-dynamic";
 
 export default async function SavingsPage() {
-  const [purchases, savingsPurchases, influxes, months] = await Promise.all([
+  const [purchases, savingsPurchases, elevatePurchases, influxes, months] = await Promise.all([
     getBpfPurchases(),
     getSavingsPurchases(),
+    getElevatePurchases(),
     getMoneyInfluxes(),
     getSavingsMonths(),
   ]);
   const purchaseTotal = totalBpfPurchases(purchases);
   const savingsPurchaseTotal = totalSavingsPurchases(savingsPurchases);
+  const elevatePurchaseTotal = totalElevatePurchases(elevatePurchases);
   const plannedBpfTotal = totalPlannedBpfPurchases(purchases);
   const plannedSavingsTotal = totalPlannedSavingsPurchases(savingsPurchases);
+  const plannedElevateTotal = totalPlannedElevatePurchases(elevatePurchases);
   const influxSavingsTotal = totalMoneyInfluxes(influxes, "savings");
   const influxBpfTotal = totalMoneyInfluxes(influxes, "bpf");
+  const influxElevateTotal = totalMoneyInfluxes(influxes, "elevate");
 
   const thisMonth = currentMonth();
   const pastMonths = months.filter((m) => m.month <= thisMonth);
@@ -49,7 +58,7 @@ export default async function SavingsPage() {
       </div>
       <main className="mx-auto max-w-5xl px-4 sm:px-6">
         {current && (
-          <div className="grid grid-cols-2 gap-3 mb-8 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 mb-8 sm:grid-cols-4">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 Debt left
@@ -81,13 +90,26 @@ export default async function SavingsPage() {
             </div>
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Elevate Padel total
+              </p>
+              <p className="font-display text-2xl">{formatMoney(current.total_elevate)}</p>
+              {plannedElevateTotal > 0 && (
+                <p className="text-xs text-[var(--color-fg-dim)] mt-0.5">
+                  {formatMoney(current.total_elevate - plannedElevateTotal)} after planned purchases
+                </p>
+              )}
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 Account total
               </p>
               <p className="font-display text-2xl">{formatMoney(current.account_total)}</p>
-              {plannedBpfTotal + plannedSavingsTotal > 0 && (
+              {plannedBpfTotal + plannedSavingsTotal + plannedElevateTotal > 0 && (
                 <p className="text-xs text-[var(--color-fg-dim)] mt-0.5">
-                  {formatMoney(current.account_total - plannedBpfTotal - plannedSavingsTotal)} after
-                  planned purchases
+                  {formatMoney(
+                    current.account_total - plannedBpfTotal - plannedSavingsTotal - plannedElevateTotal
+                  )}{" "}
+                  after planned purchases
                 </p>
               )}
             </div>
@@ -99,15 +121,16 @@ export default async function SavingsPage() {
             <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               Extra money
             </h2>
-            {(influxSavingsTotal > 0 || influxBpfTotal > 0) && (
+            {(influxSavingsTotal > 0 || influxBpfTotal > 0 || influxElevateTotal > 0) && (
               <span className="text-sm tabular-nums text-[var(--color-positive)]">
-                +{formatMoney(influxSavingsTotal)} savings · +{formatMoney(influxBpfTotal)} BPF
+                +{formatMoney(influxSavingsTotal)} savings · +{formatMoney(influxBpfTotal)} BPF · +
+                {formatMoney(influxElevateTotal)} Elevate
               </span>
             )}
           </div>
           <p className="text-xs text-[var(--color-fg-dim)] mb-3">
             Got money from anywhere unplanned — a gift, a refund, side income — and want to add
-            it straight to Savings or the Big Purchase Fund? Log it here.
+            it straight to Savings, the Big Purchase Fund, or Elevate Padel? Log it here.
           </p>
           <ul className="flex flex-col gap-1 mb-3">
             {influxes.map((influx) => (
@@ -193,6 +216,42 @@ export default async function SavingsPage() {
         </details>
 
         <details className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              Elevate Padel purchases
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-sm tabular-nums text-[var(--color-negative)]">
+                Paid: {formatMoney(elevatePurchaseTotal)}
+                {plannedElevateTotal > 0 && (
+                  <span className="text-[var(--color-fg-dim)]"> · Planned: {formatMoney(plannedElevateTotal)}</span>
+                )}
+              </span>
+              <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+            </div>
+          </summary>
+          <div className="px-4 pb-4">
+            <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+              Spent money straight from the Elevate Padel fund? Log it here — it reduces Elevate
+              Padel total above, same as Big Purchase Fund purchases reduce Debt left. Tick
+              &ldquo;Future planned purchase&rdquo; for something you haven&apos;t bought yet — it
+              won&apos;t reduce Elevate Padel total until you tick it as paid.
+            </p>
+            <ul className="flex flex-col gap-1 mb-3">
+              {elevatePurchases.map((purchase) => (
+                <ElevatePurchaseRow key={purchase.id} purchase={purchase} />
+              ))}
+              {elevatePurchases.length === 0 && (
+                <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
+                  No purchases logged.
+                </li>
+              )}
+            </ul>
+            <AddElevatePurchaseForm />
+          </div>
+        </details>
+
+        <details className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               Monthly savings progress
@@ -204,7 +263,10 @@ export default async function SavingsPage() {
               Debt paydown comes from that month&apos;s &ldquo;Big Purchase Fund&rdquo; entries on
               the Expenses tab. Savings kept comes from &ldquo;Savings contribution&rdquo; entries
               there too. Big Purchase Fund purchases and Savings purchases (above) reduce their
-              balances separately.
+              balances separately. Elevate Padel total isn&apos;t part of this monthly table — it
+              has no recurring monthly contribution, so it&apos;s the same constant total every
+              month, only moved by its purchases and extra money above (already folded into
+              Account total).
             </p>
             <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-white/[0.02] p-3">
               <table className="w-full min-w-[780px] border-collapse">

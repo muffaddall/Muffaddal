@@ -57,8 +57,9 @@ export default async function NetWorthPage() {
   const currentSavings = savingsMonths.filter((m) => m.month <= thisMonth).at(-1);
   const savingsAed = currentSavings?.total_savings ?? 0;
   const bpfAed = currentSavings?.debt_left ?? 0;
+  const elevateAed = currentSavings?.total_elevate ?? 0;
 
-  const netWorth = cashTotal + portfolioAed + savingsAed + bpfAed;
+  const netWorth = cashTotal + portfolioAed + savingsAed + bpfAed + elevateAed;
 
   return (
     <div className="pb-10">
@@ -78,7 +79,8 @@ export default async function NetWorthPage() {
             {formatMoney(netWorth)}
           </p>
           <p className="text-xs text-[var(--color-fg-dim)] mt-2">
-            Cash across every account + investment portfolio + savings + Big Purchase Fund (net of debt)
+            Cash across every account + investment portfolio + savings + Big Purchase Fund (net of
+            debt) + Elevate Padel
           </p>
         </div>
 
@@ -108,9 +110,10 @@ export default async function NetWorthPage() {
                 }
               />
 
-              <CategoryRow label="Savings and BPF" total={savingsAed + bpfAed} />
+              <CategoryRow label="Savings and BPF" total={savingsAed + bpfAed + elevateAed} />
               <ItemRow label="Savings" value={formatMoney(savingsAed)} />
               <ItemRow label="BPF" value={formatMoney(bpfAed)} negative={bpfAed < 0} />
+              <ItemRow label="Elevate Padel" value={formatMoney(elevateAed)} negative={elevateAed < 0} />
             </tbody>
           </table>
         </div>

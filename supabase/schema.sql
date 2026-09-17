@@ -196,17 +196,39 @@ alter table savings_purchases add column if not exists paid boolean not null def
 
 alter table savings_purchases enable row level security;
 
--- Impromptu / one-off money from anywhere, added straight to Savings or
--- the Big Purchase Fund on your own call — not tied to a month, unlike
--- the recurring Planned Expenses categories that normally feed these
--- totals.
+-- Purchases made using money from the Elevate Padel fund — the Elevate
+-- Padel equivalent of bpf_purchases/savings_purchases above. Their total
+-- is subtracted from the running Elevate Padel balance. Same
+-- paid=false/planned-purchase behavior.
+create table if not exists elevate_purchases (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  amount numeric not null default 0,
+  paid boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table elevate_purchases enable row level security;
+
+-- Impromptu / one-off money from anywhere, added straight to Savings, the
+-- Big Purchase Fund, or the Elevate Padel fund on your own call — not tied
+-- to a month, unlike the recurring Planned Expenses categories that
+-- normally feed Savings/BPF.
 create table if not exists money_influxes (
   id uuid primary key default gen_random_uuid(),
   name text not null default '',
   amount numeric not null default 0,
-  destination text not null default 'savings' check (destination in ('savings', 'bpf')),
+  destination text not null default 'savings',
   created_at timestamptz not null default now()
 );
+
+-- The destination check is a separate, explicitly-named constraint (never
+-- inlined into the column) specifically so it can be widened later just by
+-- dropping and re-adding it — Postgres has no "alter check" form, and an
+-- inlined check gets an auto-generated name that's a guess to rely on.
+alter table money_influxes drop constraint if exists money_influxes_destination_check;
+alter table money_influxes add constraint money_influxes_destination_check
+  check (destination in ('savings', 'bpf', 'elevate'));
 
 alter table money_influxes enable row level security;
 

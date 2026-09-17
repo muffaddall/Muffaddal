@@ -3,15 +3,19 @@
 import { revalidatePath } from "next/cache";
 import {
   addBpfPurchase,
+  addElevatePurchase,
   addMoneyInflux,
   addSavingsPurchase,
   deleteBpfPurchase,
+  deleteElevatePurchase,
   deleteMoneyInflux,
   deleteSavingsMonth,
   deleteSavingsPurchase,
   setBpfPurchasePaid,
+  setElevatePurchasePaid,
   setSavingsPurchasePaid,
   updateBpfPurchase,
+  updateElevatePurchase,
   updateMoneyInflux,
   updateSavingsPurchase,
   upsertSavingsMonth,
@@ -109,6 +113,52 @@ export async function toggleSavingsPurchasePaid(id: string, paid: boolean): Prom
 
 export async function removeSavingsPurchase(id: string): Promise<void> {
   await deleteSavingsPurchase(id);
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function createElevatePurchase(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const amount = Number(formData.get("amount"));
+  const planned = formData.get("planned") === "on";
+
+  if (!name) return { error: "Name is required." };
+  if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
+
+  await addElevatePurchase({ name, amount, paid: !planned });
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function editElevatePurchase(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const amount = Number(formData.get("amount"));
+  const planned = formData.get("planned") === "on";
+
+  if (!id) return { error: "Missing purchase." };
+  if (!name) return { error: "Name is required." };
+  if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
+
+  await updateElevatePurchase(id, { name, amount, paid: !planned });
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function toggleElevatePurchasePaid(id: string, paid: boolean): Promise<void> {
+  await setElevatePurchasePaid(id, paid);
+  revalidatePath("/savings");
+  revalidatePath("/");
+}
+
+export async function removeElevatePurchase(id: string): Promise<void> {
+  await deleteElevatePurchase(id);
   revalidatePath("/savings");
   revalidatePath("/");
 }

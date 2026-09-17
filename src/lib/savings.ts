@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { getExpenseAmountByMonthForCategory } from "@/lib/expenses";
 import type {
   BpfPurchase,
+  ElevatePurchase,
   MoneyInflux,
   MoneyInfluxDestination,
   SavingsMonth,
@@ -102,6 +103,52 @@ export async function deleteSavingsPurchase(id: string): Promise<void> {
   if (error) throw error;
 }
 
+// Purchases made using money from the Elevate Padel fund. Their total is
+// subtracted from the running Elevate Padel balance — mirrors
+// bpf_purchases/savings_purchases exactly.
+export async function getElevatePurchases(): Promise<ElevatePurchase[]> {
+  const { data, error } = await supabase
+    .from("elevate_purchases")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Only paid purchases reduce the actual running balance — planned
+// (paid=false) ones are projected separately, see totalPlannedElevatePurchases.
+export function totalElevatePurchases(purchases: ElevatePurchase[]): number {
+  return purchases.reduce((sum, p) => (p.paid ? sum + p.amount : sum), 0);
+}
+
+/** Sum of future planned (not yet paid) Elevate Padel purchases — what the balance would drop by if you made them all today. */
+export function totalPlannedElevatePurchases(purchases: ElevatePurchase[]): number {
+  return purchases.reduce((sum, p) => (p.paid ? sum : sum + p.amount), 0);
+}
+
+export async function addElevatePurchase(input: { name: string; amount: number; paid: boolean }): Promise<void> {
+  const { error } = await supabase.from("elevate_purchases").insert(input);
+  if (error) throw error;
+}
+
+export async function updateElevatePurchase(
+  id: string,
+  input: { name: string; amount: number; paid: boolean }
+): Promise<void> {
+  const { error } = await supabase.from("elevate_purchases").update(input).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setElevatePurchasePaid(id: string, paid: boolean): Promise<void> {
+  const { error } = await supabase.from("elevate_purchases").update({ paid }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteElevatePurchase(id: string): Promise<void> {
+  const { error } = await supabase.from("elevate_purchases").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // Impromptu / one-off money from anywhere, added straight to Savings or
 // the Big Purchase Fund whenever you want — not tied to a month, unlike
 // the recurring Planned Expenses categories that normally feed these
@@ -151,9 +198,10 @@ export async function deleteMoneyInflux(id: string): Promise<void> {
 // BPF purchases (below); savings kept is the sum of "Savings contribution"
 // expense entries. The Expenses tab is the single source of truth for both.
 export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
-  const [purchases, savingsPurchases, influxes, monthsRes, debtPaydownByMonth, savingsKeptByMonth] = await Promise.all([
+  const [purchases, savingsPurchases, elevatePurchases, influxes, monthsRes, debtPaydownByMonth, savingsKeptByMonth] = await Promise.all([
     getBpfPurchases(),
     getSavingsPurchases(),
+    getElevatePurchases(),
     getMoneyInfluxes(),
     supabase.from("savings_months").select("*").order("month", { ascending: true }),
     getExpenseAmountByMonthForCategory("debt"),
@@ -179,6 +227,11 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
   let runningDebt = startingDebt;
   let runningSavings = totalMoneyInfluxes(influxes, "savings") - totalSavingsPurchases(savingsPurchases);
 
+  // Elevate Padel has no monthly recurring contribution (no Planned Expenses
+  // category feeds it) — its balance is a constant, folded into every
+  // month's account_total the same way.
+  const totalElevate = totalMoneyInfluxes(influxes, "elevate") - totalElevatePurchases(elevatePurchases);
+
   return allMonths.map((month) => {
     const saved = savingsByMonth.get(month);
     const debt_paydown = debtPaydownByMonth.get(month) ?? 0;
@@ -190,7 +243,7 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
     const debt_left = debt_owed_start + debt_paydown;
     runningSavings += savings_kept;
     const total_savings = runningSavings;
-    const account_total = money_kept + total_savings + debt_left + big_payment;
+    const account_total = money_kept + total_savings + debt_left + big_payment + totalElevate;
 
     runningDebt = debt_left;
 
@@ -203,6 +256,7 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
       debt_owed_start,
       debt_left,
       total_savings,
+      total_elevate: totalElevate,
       account_total,
     };
   });

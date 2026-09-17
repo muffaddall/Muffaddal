@@ -185,11 +185,26 @@ export type SavingsPurchase = {
   created_at: string;
 };
 
+// A purchase made using money from the Elevate Padel fund — same idea as
+// SavingsPurchase, netted against the running Elevate Padel balance
+// instead. Elevate Padel has no monthly recurring contribution the way
+// BPF/Savings do (there's no "pay yourself into it every month" line on
+// Planned Expenses) — its balance only moves via these purchases and the
+// money influxes below, so unlike debt_left/total_savings it doesn't
+// chain month over month.
+export type ElevatePurchase = {
+  id: string;
+  name: string;
+  amount: number;
+  paid: boolean;
+  created_at: string;
+};
+
 // Impromptu / one-off money you receive from anywhere and choose to add
-// straight to Savings or the Big Purchase Fund — not tied to a month,
-// unlike the recurring Planned Expenses categories that normally feed
-// these totals.
-export type MoneyInfluxDestination = "savings" | "bpf";
+// straight to Savings, the Big Purchase Fund, or the Elevate Padel fund —
+// not tied to a month, unlike the recurring Planned Expenses categories
+// that normally feed Savings/BPF.
+export type MoneyInfluxDestination = "savings" | "bpf" | "elevate";
 
 export type MoneyInflux = {
   id: string;
@@ -200,7 +215,7 @@ export type MoneyInflux = {
 };
 
 export function isMoneyInfluxDestination(value: string): value is MoneyInfluxDestination {
-  return value === "savings" || value === "bpf";
+  return value === "savings" || value === "bpf" || value === "elevate";
 }
 
 export type SavingsMonth = {
@@ -215,6 +230,8 @@ export type SavingsMonthComputed = SavingsMonth & {
   debt_owed_start: number;
   debt_left: number;
   total_savings: number;
+  /** Elevate Padel's running balance — constant across every month (see ElevatePurchase), already folded into account_total. */
+  total_elevate: number;
   account_total: number;
 };
 
