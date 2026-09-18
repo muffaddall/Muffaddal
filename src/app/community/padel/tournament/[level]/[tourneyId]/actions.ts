@@ -17,6 +17,7 @@ import {
   setTeamDisqualified,
   setTeamFee,
   setTeamPaid,
+  swapKnockoutTeams,
   updateTourneyPoints,
   type MatchScoreInput,
 } from "@/lib/tourneys";
@@ -209,6 +210,20 @@ export async function generateBracketAction(
     await generateKnockoutBracket(tourneyId, advancingTeamIds);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to generate bracket." };
+  }
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function swapKnockoutTeamsAction(
+  teamAId: string,
+  teamBId: string,
+  level: string,
+  tourneyId: string
+): Promise<{ error: string } | void> {
+  try {
+    await swapKnockoutTeams(tourneyId, teamAId, teamBId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to move team." };
   }
   revalidateTourneyPaths(level, tourneyId);
 }

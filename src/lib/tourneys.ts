@@ -925,6 +925,44 @@ export async function generateKnockoutBracket(tourneyId: string, advancingTeamId
 }
 
 /**
+ * Swaps two teams' bracket slots in the first knockout round, before either
+ * of their round-0 matches has a score — lets the organizer fix a seeding
+ * mistake or reshuffle who plays whom without regenerating the whole
+ * bracket. Later rounds don't exist yet at this point, so there's nothing
+ * else to touch.
+ */
+export async function swapKnockoutTeams(tourneyId: string, teamAId: string, teamBId: string): Promise<void> {
+  if (teamAId === teamBId) return;
+
+  const { data: matchRows, error: matchFetchError } = await supabase
+    .from("tourney_matches")
+    .select("*")
+    .eq("tourney_id", tourneyId)
+    .eq("stage", "knockout")
+    .eq("round_index", 0)
+    .or(`team_a_id.eq.${teamAId},team_b_id.eq.${teamAId},team_a_id.eq.${teamBId},team_b_id.eq.${teamBId}`);
+  if (matchFetchError) throw new Error(matchFetchError.message);
+
+  const matches = (matchRows ?? []).map((r) => matchFromRow(r as MatchRow));
+  const matchA = matches.find((m) => m.teamAId === teamAId || m.teamBId === teamAId);
+  const matchB = matches.find((m) => m.teamAId === teamBId || m.teamBId === teamBId);
+  if (!matchA || !matchB) throw new Error("Both teams must be in the first knockout round.");
+  if (matchA.id === matchB.id) return; // already paired against each other — nothing to move
+
+  if (matchA.teamAScore !== null || matchA.teamBScore !== null || matchB.teamAScore !== null || matchB.teamBScore !== null) {
+    throw new Error("Can't move a team once its first-round match has a score.");
+  }
+
+  const updateA = matchA.teamAId === teamAId ? { team_a_id: teamBId } : { team_b_id: teamBId };
+  const updateB = matchB.teamAId === teamBId ? { team_a_id: teamAId } : { team_b_id: teamAId };
+
+  const { error: errorA } = await supabase.from("tourney_matches").update(updateA).eq("id", matchA.id);
+  if (errorA) throw new Error(errorA.message);
+  const { error: errorB } = await supabase.from("tourney_matches").update(updateB).eq("id", matchB.id);
+  if (errorB) throw new Error(errorB.message);
+}
+
+/**
  * Undoes the knockout bracket entirely — deletes every knockout match
  * (any round) and any points already awarded from them — so you can
  * re-confirm the advancing teams and reseed. Group-stage results are

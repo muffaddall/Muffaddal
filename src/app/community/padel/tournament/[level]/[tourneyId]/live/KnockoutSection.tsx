@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { clearKnockoutBracketAction, setMatchScoreAction } from "../actions";
+import { clearKnockoutBracketAction, setMatchScoreAction, swapKnockoutTeamsAction } from "../actions";
 import type { TourneyLevel, TourneyMatch, TourneyStatus, TourneyTeam } from "@/lib/types";
 
 export default function KnockoutSection({
@@ -31,9 +31,16 @@ export default function KnockoutSection({
   const finalMatch = matches.find((m) => m.roundName === "Final");
   const champion = status === "completed" && finalMatch?.winnerTeamId ? teamsById.get(finalMatch.winnerTeamId) : null;
 
+  const round0Matches = rounds.get(0) ?? [];
+  const round0Started = round0Matches.some((m) => m.teamAScore !== null || m.teamBScore !== null);
+
   return (
     <div className="flex flex-col gap-5">
       <RegenerateBracketButton level={level} tourneyId={tourneyId} />
+
+      {!locked && !round0Started && round0Matches.length > 1 && (
+        <KnockoutBracketEditor level={level} tourneyId={tourneyId} matches={round0Matches} teams={teams} />
+      )}
 
       {champion && (
         <div className="rounded-xl border border-[var(--color-community)] bg-[var(--color-community)]/10 p-4 text-center">
@@ -156,6 +163,92 @@ function KnockoutMatchRow({
           {isSaving ? "Saving…" : match.winnerTeamId ? "Update Score" : "Save Score"}
         </button>
       )}
+      {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
+    </div>
+  );
+}
+
+function KnockoutBracketEditor({
+  level,
+  tourneyId,
+  matches,
+  teams,
+}: {
+  level: TourneyLevel;
+  tourneyId: string;
+  matches: TourneyMatch[];
+  teams: TourneyTeam[];
+}) {
+  const teamsById = new Map(teams.map((t) => [t.id, t]));
+  const slots = matches.flatMap((m) => [m.teamAId, m.teamBId]).filter((id): id is string => !!id);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isMoving, startMove] = useTransition();
+
+  const swap = (teamAId: string, teamBId: string) => {
+    if (teamAId === teamBId) return;
+    setError(null);
+    startMove(async () => {
+      const result = await swapKnockoutTeamsAction(teamAId, teamBId, level, tourneyId);
+      if (result?.error) setError(result.error);
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
+      <p className="text-xs uppercase tracking-wide text-white/40">
+        Move a team into a different bracket slot — drag it onto another team to swap, or use the dropdown on mobile
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {matches.map((m) => (
+          <div
+            key={m.id}
+            className="rounded-lg bg-white/5 border border-dashed border-white/15 p-2 flex flex-col gap-1 min-h-[3rem]"
+          >
+            {[m.teamAId, m.teamBId]
+              .filter((id): id is string => !!id)
+              .map((teamId) => {
+                const t = teamsById.get(teamId);
+                if (!t) return null;
+                return (
+                  <div
+                    key={teamId}
+                    draggable
+                    onDragStart={() => setDragging(teamId)}
+                    onDragEnd={() => setDragging(null)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => dragging && swap(dragging, teamId)}
+                    className="flex items-center justify-between gap-2 rounded bg-white/10 px-2 py-1 cursor-grab active:cursor-grabbing"
+                  >
+                    <span className="text-xs truncate">
+                      {t.playerAName} &amp; {t.playerBName}
+                    </span>
+                    <select
+                      aria-label={`Swap ${t.playerAName} & ${t.playerBName} with another team`}
+                      value=""
+                      disabled={isMoving}
+                      onChange={(e) => e.target.value && swap(teamId, e.target.value)}
+                      className="shrink-0 rounded bg-white/10 border border-white/15 text-[10px] px-1 py-0.5 outline-none"
+                    >
+                      <option value="">Swap with…</option>
+                      {slots
+                        .filter((otherId) => otherId !== teamId && otherId !== m.teamAId && otherId !== m.teamBId)
+                        .map((otherId) => {
+                          const other = teamsById.get(otherId);
+                          return other ? (
+                            <option key={otherId} value={otherId}>
+                              {other.playerAName} &amp; {other.playerBName}
+                            </option>
+                          ) : null;
+                        })}
+                    </select>
+                  </div>
+                );
+              })}
+          </div>
+        ))}
+      </div>
+      {isMoving && <p className="text-xs text-white/40">Moving…</p>}
       {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
     </div>
   );
