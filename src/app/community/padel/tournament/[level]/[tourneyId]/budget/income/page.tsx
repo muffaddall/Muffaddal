@@ -1,10 +1,18 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { getBudgetLines, getTeamsForTourney, getTourney } from "@/lib/tourneys";
-import { isTourneyLevel, registrationsActualTotal, registrationsBudgetedTotal, TOURNEY_LEVEL_LABELS } from "@/lib/types";
+import {
+  budgetLineActualTotal,
+  budgetLineBudgetedTotal,
+  isTourneyLevel,
+  registrationsActualTotal,
+  registrationsBudgetedTotal,
+  TOURNEY_LEVEL_LABELS,
+} from "@/lib/types";
 import { TourneySectionTabs } from "../../TourneySectionTabs";
 import { BudgetSectionTabs } from "../BudgetSectionTabs";
 import BudgetTypeTable from "../BudgetTypeTable";
+import ProfitAndLossTable from "../ProfitAndLossTable";
 import RegistrationsSection from "./RegistrationsSection";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +29,13 @@ export default async function BudgetIncomePage(
 
   const [lines, teams] = await Promise.all([getBudgetLines(tourneyId), getTeamsForTourney(tourneyId)]);
   const income = lines.filter((l) => l.type === "income");
+  const outflow = lines.filter((l) => l.type === "outflow");
   const registrationsBudgeted = registrationsBudgetedTotal(teams);
   const registrationsActual = registrationsActualTotal(teams);
+  const incomeBudgeted = registrationsBudgeted + income.reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
+  const incomeActual = registrationsActual + income.reduce((s, l) => s + budgetLineActualTotal(l), 0);
+  const outflowBudgeted = outflow.reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
+  const outflowActual = outflow.reduce((s, l) => s + budgetLineActualTotal(l), 0);
 
   return (
     <div className="pb-10">
@@ -56,6 +69,12 @@ export default async function BudgetIncomePage(
           extraLabel="Team Registrations"
           extraBudgeted={registrationsBudgeted}
           extraActual={registrationsActual}
+        />
+        <ProfitAndLossTable
+          incomeBudgeted={incomeBudgeted}
+          incomeActual={incomeActual}
+          outflowBudgeted={outflowBudgeted}
+          outflowActual={outflowActual}
         />
       </main>
     </div>
