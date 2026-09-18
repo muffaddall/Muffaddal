@@ -1202,8 +1202,6 @@ type BudgetLineRow = {
   name: string;
   budgeted_units: number;
   budgeted_unit_cost: number;
-  actual_units: number;
-  actual_unit_cost: number;
   sort_order: number;
 };
 
@@ -1215,8 +1213,6 @@ function budgetLineFromRow(row: BudgetLineRow): TourneyBudgetLine {
     name: row.name,
     budgetedUnits: row.budgeted_units,
     budgetedUnitCost: row.budgeted_unit_cost,
-    actualUnits: row.actual_units,
-    actualUnitCost: row.actual_unit_cost,
     sortOrder: row.sort_order,
   };
 }
@@ -1251,8 +1247,6 @@ export async function addBudgetLine(input: {
     name: input.name,
     budgeted_units: input.budgetedUnits,
     budgeted_unit_cost: input.budgetedUnitCost,
-    actual_units: input.budgetedUnits,
-    actual_unit_cost: 0,
     sort_order: count ?? 0,
   });
   if (error) throw new Error(error.message);
@@ -1262,14 +1256,6 @@ export async function updateBudgetLineBudgeted(id: string, units: number, unitCo
   const { error } = await supabase
     .from("tourney_budget_lines")
     .update({ budgeted_units: units, budgeted_unit_cost: unitCost })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
-export async function updateBudgetLineActual(id: string, units: number, unitCost: number): Promise<void> {
-  const { error } = await supabase
-    .from("tourney_budget_lines")
-    .update({ actual_units: units, actual_unit_cost: unitCost })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -1312,7 +1298,7 @@ export async function applyCourtFeePreset(tourneyId: string): Promise<void> {
   }
 }
 
-/** Copies another tourney's budget lines as a starting point — name/type/budgeted units+cost only. Actual starts at the same units with cost 0, since this tourney hasn't happened yet. */
+/** Copies another tourney's budget lines as a starting point — name/type/budgeted units+cost only. */
 export async function copyBudgetFromTourney(sourceTourneyId: string, destTourneyId: string): Promise<void> {
   const sourceLines = await getBudgetLines(sourceTourneyId);
   if (sourceLines.length === 0) return;
@@ -1324,8 +1310,6 @@ export async function copyBudgetFromTourney(sourceTourneyId: string, destTourney
       name: l.name,
       budgeted_units: l.budgetedUnits,
       budgeted_unit_cost: l.budgetedUnitCost,
-      actual_units: l.budgetedUnits,
-      actual_unit_cost: 0,
       sort_order: l.sortOrder,
     }))
   );

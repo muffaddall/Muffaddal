@@ -1225,12 +1225,12 @@ export type TourneyTeam = {
   playerBFee: number;
 };
 
-/** Total registration income if every team's set fee actually comes in — what the Budget Income page calls "Budgeted". */
-export function registrationsBudgetedTotal(teams: TourneyTeam[]): number {
+/** Total registration income expected if every team's set fee comes in — shown on the Budget Income page. */
+export function registrationsTotal(teams: TourneyTeam[]): number {
   return teams.reduce((sum, t) => sum + t.playerAFee + t.playerBFee, 0);
 }
 
-/** Registration money actually collected so far (only fees where that player is marked paid) — what the Budget Income page calls "Actual". */
+/** Registration money actually collected so far (only fees where that player is marked paid) — shown on the During Event payments screen. */
 export function registrationsActualTotal(teams: TourneyTeam[]): number {
   return teams.reduce(
     (sum, t) => sum + (t.playerAPaid ? t.playerAFee : 0) + (t.playerBPaid ? t.playerBFee : 0),
@@ -1536,8 +1536,6 @@ export function isTourneyBudgetLineType(value: string): value is TourneyBudgetLi
 }
 
 // P&L-style: a line's total is units * unit cost, never stored directly.
-// Budgeted and actual are independent unit/cost pairs on the same line
-// so the sheet can show two separate P&L tables from one set of lines.
 export type TourneyBudgetLine = {
   id: string;
   tourneyId: string;
@@ -1545,41 +1543,11 @@ export type TourneyBudgetLine = {
   name: string;
   budgetedUnits: number;
   budgetedUnitCost: number;
-  actualUnits: number;
-  actualUnitCost: number;
   sortOrder: number;
 };
 
-export function budgetLineBudgetedTotal(line: TourneyBudgetLine): number {
+export function budgetLineTotal(line: TourneyBudgetLine): number {
   return line.budgetedUnits * line.budgetedUnitCost;
-}
-
-export function budgetLineActualTotal(line: TourneyBudgetLine): number {
-  return line.actualUnits * line.actualUnitCost;
-}
-
-export type TourneyBudgetSummary = {
-  budgetedIncome: number;
-  actualIncome: number;
-  budgetedOutflow: number;
-  actualOutflow: number;
-  budgetedNetflow: number;
-  actualNetflow: number;
-};
-
-export function computeBudgetSummary(lines: TourneyBudgetLine[]): TourneyBudgetSummary {
-  const budgetedIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
-  const actualIncome = lines.filter((l) => l.type === "income").reduce((s, l) => s + budgetLineActualTotal(l), 0);
-  const budgetedOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
-  const actualOutflow = lines.filter((l) => l.type === "outflow").reduce((s, l) => s + budgetLineActualTotal(l), 0);
-  return {
-    budgetedIncome,
-    actualIncome,
-    budgetedOutflow,
-    actualOutflow,
-    budgetedNetflow: budgetedIncome - budgetedOutflow,
-    actualNetflow: actualIncome - actualOutflow,
-  };
 }
 
 // ---- Notes: a free-form scratchpad, unscoped to any one feature ----

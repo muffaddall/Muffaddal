@@ -1,14 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {
-  addBudgetLine,
-  applyCourtFeePreset,
-  deleteBudgetLine,
-  setTeamFee,
-  updateBudgetLineActual,
-  updateBudgetLineBudgeted,
-} from "@/lib/tourneys";
+import { addBudgetLine, applyCourtFeePreset, deleteBudgetLine, setTeamFee, updateBudgetLineBudgeted } from "@/lib/tourneys";
 import { isTourneyBudgetLineType } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
@@ -46,20 +39,6 @@ export async function updateBudgetLineBudgetedAction(
     return { error: "Enter valid numbers." };
   }
   await updateBudgetLineBudgeted(id, units, unitCost);
-  revalidateBudget(level, tourneyId);
-}
-
-export async function updateBudgetLineActualAction(
-  id: string,
-  level: string,
-  tourneyId: string,
-  units: number,
-  unitCost: number
-): Promise<{ error: string } | void> {
-  if (!Number.isFinite(units) || !Number.isFinite(unitCost)) {
-    return { error: "Enter valid numbers." };
-  }
-  await updateBudgetLineActual(id, units, unitCost);
   revalidateBudget(level, tourneyId);
 }
 

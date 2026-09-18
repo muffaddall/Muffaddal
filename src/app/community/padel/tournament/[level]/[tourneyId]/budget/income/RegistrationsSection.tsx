@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateTeamFeesAction } from "../actions";
 import { formatMoney } from "@/lib/format";
-import { registrationsActualTotal, registrationsBudgetedTotal } from "@/lib/types";
+import { registrationsTotal } from "@/lib/types";
 import type { TourneyLevel, TourneyTeam } from "@/lib/types";
 
 /** Team-by-team registration fees, tucked into a dropdown so it doesn't crowd out sponsors and other income lines below. Each team starts at 0 for both players — set the actual amount here (discounts included); the During Event payments screen reads the same numbers to show what each person owes. */
@@ -16,8 +16,7 @@ export default function RegistrationsSection({
   tourneyId: string;
   teams: TourneyTeam[];
 }) {
-  const budgeted = registrationsBudgetedTotal(teams);
-  const actual = registrationsActualTotal(teams);
+  const total = registrationsTotal(teams);
 
   return (
     <details className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
@@ -26,9 +25,7 @@ export default function RegistrationsSection({
           Team Registrations
         </span>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-xs tabular-nums text-white/50">
-            Budgeted {formatMoney(budgeted)} · Actual {formatMoney(actual)}
-          </span>
+          <span className="text-xs tabular-nums text-white/50">{formatMoney(total)}</span>
           <span className="text-xs text-white/40">▾</span>
         </div>
       </summary>

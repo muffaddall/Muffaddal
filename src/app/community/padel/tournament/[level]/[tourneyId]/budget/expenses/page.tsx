@@ -1,15 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { getBudgetLines, getFormat, getTeamsForTourney, getTourney } from "@/lib/tourneys";
-import {
-  budgetLineActualTotal,
-  budgetLineBudgetedTotal,
-  formatHasCourtFeePreset,
-  isTourneyLevel,
-  registrationsActualTotal,
-  registrationsBudgetedTotal,
-  TOURNEY_LEVEL_LABELS,
-} from "@/lib/types";
+import { budgetLineTotal, formatHasCourtFeePreset, isTourneyLevel, registrationsTotal, TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import { TourneySectionTabs } from "../../TourneySectionTabs";
 import { BudgetSectionTabs } from "../BudgetSectionTabs";
 import BudgetTypeTable from "../BudgetTypeTable";
@@ -35,10 +27,8 @@ export default async function BudgetExpensesPage(
   ]);
   const income = lines.filter((l) => l.type === "income");
   const outflow = lines.filter((l) => l.type === "outflow");
-  const incomeBudgeted = registrationsBudgetedTotal(teams) + income.reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
-  const incomeActual = registrationsActualTotal(teams) + income.reduce((s, l) => s + budgetLineActualTotal(l), 0);
-  const outflowBudgeted = outflow.reduce((s, l) => s + budgetLineBudgetedTotal(l), 0);
-  const outflowActual = outflow.reduce((s, l) => s + budgetLineActualTotal(l), 0);
+  const incomeTotal = registrationsTotal(teams) + income.reduce((s, l) => s + budgetLineTotal(l), 0);
+  const outflowTotal = outflow.reduce((s, l) => s + budgetLineTotal(l), 0);
 
   return (
     <div className="pb-10">
@@ -53,14 +43,8 @@ export default async function BudgetExpensesPage(
         {format && formatHasCourtFeePreset(format) && (
           <ApplyCourtFeesButton level={level} tourneyId={tourneyId} formatName={format.name} />
         )}
-        <BudgetTypeTable title="Budgeted" mode="budgeted" type="outflow" lines={outflow} level={level} tourneyId={tourneyId} />
-        <BudgetTypeTable title="Actual" mode="actual" type="outflow" lines={outflow} level={level} tourneyId={tourneyId} />
-        <ProfitAndLossTable
-          incomeBudgeted={incomeBudgeted}
-          incomeActual={incomeActual}
-          outflowBudgeted={outflowBudgeted}
-          outflowActual={outflowActual}
-        />
+        <BudgetTypeTable type="outflow" lines={outflow} level={level} tourneyId={tourneyId} />
+        <ProfitAndLossTable income={incomeTotal} outflow={outflowTotal} />
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deleteBudgetLineAction, updateBudgetLineActualAction, updateBudgetLineBudgetedAction } from "./actions";
+import { deleteBudgetLineAction, updateBudgetLineBudgetedAction } from "./actions";
 import { formatMoney } from "@/lib/format";
 import type { TourneyBudgetLine, TourneyLevel } from "@/lib/types";
 
@@ -12,17 +12,13 @@ export default function BudgetLineRow({
   level,
   tourneyId,
   line,
-  mode,
-  showDelete,
 }: {
   level: TourneyLevel;
   tourneyId: string;
   line: TourneyBudgetLine;
-  mode: "budgeted" | "actual";
-  showDelete: boolean;
 }) {
-  const [units, setUnits] = useState(String(mode === "budgeted" ? line.budgetedUnits : line.actualUnits));
-  const [unitCost, setUnitCost] = useState(String(mode === "budgeted" ? line.budgetedUnitCost : line.actualUnitCost));
+  const [units, setUnits] = useState(String(line.budgetedUnits));
+  const [unitCost, setUnitCost] = useState(String(line.budgetedUnitCost));
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startSave] = useTransition();
   const [isDeleting, startDelete] = useTransition();
@@ -38,14 +34,13 @@ export default function BudgetLineRow({
     }
     setError(null);
     startSave(async () => {
-      const action = mode === "budgeted" ? updateBudgetLineBudgetedAction : updateBudgetLineActualAction;
-      const result = await action(line.id, level, tourneyId, unitsNum, costNum);
+      const result = await updateBudgetLineBudgetedAction(line.id, level, tourneyId, unitsNum, costNum);
       if (result?.error) setError(result.error);
     });
   };
 
   return (
-    <tr data-testid={`budget-line-row-${mode}`}>
+    <tr data-testid="budget-line-row">
       <td className="py-1.5 pr-2 text-sm truncate max-w-[6rem] sm:max-w-none">{line.name}</td>
       <td className="py-1.5 px-1">
         <input value={units} onChange={(e) => setUnits(e.target.value)} type="number" step="any" className={inputCls} />
@@ -65,16 +60,14 @@ export default function BudgetLineRow({
             >
               {isSaving ? "…" : "Save"}
             </button>
-            {showDelete && (
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => startDelete(() => deleteBudgetLineAction(line.id, level, tourneyId))}
-                className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
-              >
-                {isDeleting ? "…" : "Delete"}
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => startDelete(() => deleteBudgetLineAction(line.id, level, tourneyId))}
+              className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+            >
+              {isDeleting ? "…" : "Delete"}
+            </button>
           </div>
           {error && <span className="text-[10px] text-[var(--color-negative)]">{error}</span>}
         </div>

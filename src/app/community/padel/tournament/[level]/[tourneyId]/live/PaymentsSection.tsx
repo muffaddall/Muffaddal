@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { setTeamPaidAction } from "../actions";
 import EditTeamForm from "../EditTeamForm";
 import { formatMoney } from "@/lib/format";
-import { registrationsActualTotal, registrationsBudgetedTotal } from "@/lib/types";
+import { registrationsActualTotal, registrationsTotal } from "@/lib/types";
 import type { TourneyLevel, TourneyPlayer, TourneyTeam } from "@/lib/types";
 
 export default function PaymentsSection({
@@ -24,7 +24,7 @@ export default function PaymentsSection({
   }
 
   const collected = registrationsActualTotal(teams);
-  const expected = registrationsBudgetedTotal(teams);
+  const expected = registrationsTotal(teams);
 
   return (
     <div className="flex flex-col gap-2">
