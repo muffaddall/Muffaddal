@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useRef, useState, useTransition } from "react";
-import { addTeamAction, generateGroupsAction, removeTeamAction } from "./actions";
+import { addTeamAction, removeTeamAction } from "./actions";
 import PlayerCombobox from "./PlayerCombobox";
-import { formatTeamCount } from "@/lib/types";
+import EditTeamForm from "./EditTeamForm";
+import GenerateGroupsForm from "./GenerateGroupsForm";
 import type { TourneyFormat, TourneyLevel, TourneyPlayer, TourneyTeam } from "@/lib/types";
 
 const inputCls =
@@ -17,6 +17,9 @@ export default function TeamEntrySection({
   formats,
   players,
   locked,
+  initialQualifiersPerGroup,
+  initialWildcardCount,
+  initialHasKnockout,
 }: {
   level: TourneyLevel;
   tourneyId: string;
@@ -24,19 +27,30 @@ export default function TeamEntrySection({
   formats: TourneyFormat[];
   players: TourneyPlayer[];
   locked: boolean;
+  initialQualifiersPerGroup: number;
+  initialWildcardCount: number;
+  initialHasKnockout: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         {teams.length === 0 && <p className="text-sm text-white/40 text-center py-2">No teams entered yet.</p>}
         {teams.map((team) => (
-          <TeamRow key={team.id} team={team} level={level} tourneyId={tourneyId} locked={locked} />
+          <TeamRow key={team.id} team={team} level={level} tourneyId={tourneyId} players={players} locked={locked} />
         ))}
       </div>
 
       {!locked && <AddTeamForm level={level} tourneyId={tourneyId} players={players} />}
       {!locked && teams.length >= 2 && (
-        <GenerateGroupsForm level={level} tourneyId={tourneyId} teamCount={teams.length} formats={formats} />
+        <GenerateGroupsForm
+          level={level}
+          tourneyId={tourneyId}
+          teamCount={teams.length}
+          formats={formats}
+          initialQualifiersPerGroup={initialQualifiersPerGroup}
+          initialWildcardCount={initialWildcardCount}
+          initialHasKnockout={initialHasKnockout}
+        />
       )}
     </div>
   );
@@ -46,29 +60,48 @@ function TeamRow({
   team,
   level,
   tourneyId,
+  players,
   locked,
 }: {
   team: TourneyTeam;
   level: TourneyLevel;
   tourneyId: string;
+  players: TourneyPlayer[];
   locked: boolean;
 }) {
   const [isRemoving, startRemove] = useTransition();
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <EditTeamForm level={level} tourneyId={tourneyId} team={team} players={players} onDone={() => setEditing(false)} />
+    );
+  }
+
   return (
     <div className="flex items-center justify-between gap-2 rounded-xl bg-[var(--color-surface)] border border-white/8 p-3">
       <span className="text-sm">
         {team.playerAName} <span className="text-white/40">&amp;</span> {team.playerBName}
       </span>
-      {!locked && (
+      <div className="flex shrink-0 items-center gap-3">
         <button
           type="button"
-          disabled={isRemoving}
-          onClick={() => startRemove(() => removeTeamAction(team.id, level, tourneyId))}
-          className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60 shrink-0"
+          onClick={() => setEditing(true)}
+          className="text-xs text-white/50 hover:text-white/80"
         >
-          {isRemoving ? "…" : "Remove"}
+          Edit
         </button>
-      )}
+        {!locked && (
+          <button
+            type="button"
+            disabled={isRemoving}
+            onClick={() => startRemove(() => removeTeamAction(team.id, level, tourneyId))}
+            className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+          >
+            {isRemoving ? "…" : "Remove"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -126,111 +159,3 @@ function AddTeamForm({
   );
 }
 
-function GenerateGroupsForm({
-  level,
-  tourneyId,
-  teamCount,
-  formats,
-}: {
-  level: TourneyLevel;
-  tourneyId: string;
-  teamCount: number;
-  formats: TourneyFormat[];
-}) {
-  const [state, formAction, pending] = useActionState(generateGroupsAction, undefined);
-  const [selection, setSelection] = useState<string>(formats.length > 0 ? formats[0].id : "custom");
-  const selectedFormat = formats.find((f) => f.id === selection);
-  const showCustomInput = formats.length === 0 || selection === "custom";
-
-  const [customGroupSizes, setCustomGroupSizes] = useState("");
-  const [customQualifiers, setCustomQualifiers] = useState("1");
-  const [customWildcard, setCustomWildcard] = useState("0");
-
-  const groupSizesValue = showCustomInput ? customGroupSizes : selectedFormat?.groupSizes.join(",") ?? "";
-  const qualifiersValue = showCustomInput ? customQualifiers : String(selectedFormat?.qualifiersPerGroup ?? "");
-  const wildcardValue = showCustomInput ? customWildcard : String(selectedFormat?.wildcardCount ?? 0);
-
-  const formatMismatch = !showCustomInput && selectedFormat && formatTeamCount(selectedFormat.groupSizes) !== teamCount;
-
-  return (
-    <form
-      action={formAction}
-      className="flex flex-col gap-2 rounded-xl border border-[var(--color-community)] p-3"
-    >
-      <input type="hidden" name="tourneyId" value={tourneyId} />
-      <input type="hidden" name="level" value={level} />
-      <input type="hidden" name="groupSizes" value={groupSizesValue} />
-      <input type="hidden" name="qualifiersPerGroup" value={qualifiersValue} />
-      <input type="hidden" name="wildcardCount" value={wildcardValue} />
-      {!showCustomInput && selectedFormat && <input type="hidden" name="formatId" value={selectedFormat.id} />}
-      <p className="text-xs uppercase tracking-wide text-white/40">
-        Generate groups — {teamCount} team{teamCount === 1 ? "" : "s"} entered
-      </p>
-
-      {formats.length > 0 && (
-        <select value={selection} onChange={(e) => setSelection(e.target.value)} className={inputCls}>
-          {formats.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name} ({formatTeamCount(f.groupSizes)} teams · groups of {f.groupSizes.join("+")})
-            </option>
-          ))}
-          <option value="custom">Custom…</option>
-        </select>
-      )}
-
-      {formatMismatch && (
-        <p className="text-xs text-[var(--color-negative)]">
-          This format expects {formatTeamCount(selectedFormat!.groupSizes)} teams, but {teamCount} are entered.
-        </p>
-      )}
-
-      {showCustomInput && (
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            value={customGroupSizes}
-            onChange={(e) => setCustomGroupSizes(e.target.value)}
-            placeholder="Group sizes (e.g. 4,4,4,4)"
-            required
-            className={`${inputCls} col-span-2`}
-          />
-          <input
-            value={customQualifiers}
-            onChange={(e) => setCustomQualifiers(e.target.value)}
-            type="number"
-            min={1}
-            step={1}
-            placeholder="Qualifiers/group"
-            required
-            className={inputCls}
-          />
-          <input
-            value={customWildcard}
-            onChange={(e) => setCustomWildcard(e.target.value)}
-            type="number"
-            min={0}
-            step={1}
-            placeholder="Wildcard slots"
-            className={inputCls}
-          />
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="shrink-0 rounded-lg bg-[var(--color-community)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
-      >
-        {pending ? "Generating…" : "Shuffle & Generate"}
-      </button>
-      <p className="text-xs text-white/40">
-        (Qualifiers per group × groups) + wildcard slots must add up to a power of 2 (2, 4, 8, 16…) so the qualifiers
-        seed cleanly into a bracket. Teams are randomly shuffled into the group sizes given, in order.{" "}
-        <Link href="/community/padel/formats" className="underline">
-          Manage formats
-        </Link>
-        .
-      </p>
-      {state?.error && <p className="text-xs text-[var(--color-negative)]">{state.error}</p>}
-    </form>
-  );
-}

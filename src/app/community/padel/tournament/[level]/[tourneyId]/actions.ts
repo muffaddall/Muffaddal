@@ -5,11 +5,15 @@ import {
   clearGroups,
   clearKnockoutBracket,
   createTeam,
+  editTeam,
+  finishTournamentWithoutBracket,
   generateGroups,
   generateKnockoutBracket,
+  moveTeamToGroup,
   removeTeam,
   setAllMatchScores,
   setMatchScore,
+  setTeamFee,
   setTeamPaid,
   updateTourneyPoints,
   type MatchScoreInput,
@@ -50,6 +54,39 @@ export async function removeTeamAction(teamId: string, level: string, tourneyId:
   revalidateTourneyPaths(level, tourneyId);
 }
 
+export async function editTeamAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const teamId = String(formData.get("teamId") ?? "");
+  const level = String(formData.get("level") ?? "");
+  const tourneyId = String(formData.get("tourneyId") ?? "");
+  const playerAName = String(formData.get("playerAName") ?? "").trim();
+  const playerACountry = String(formData.get("playerACountry") ?? "").trim();
+  const playerBName = String(formData.get("playerBName") ?? "").trim();
+  const playerBCountry = String(formData.get("playerBCountry") ?? "").trim();
+
+  if (!teamId) return { error: "Missing team." };
+  if (!playerAName || !playerBName) return { error: "Both player names are required." };
+
+  await editTeam({
+    teamId,
+    playerAName,
+    playerACountry: playerACountry || null,
+    playerBName,
+    playerBCountry: playerBCountry || null,
+  });
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function setTeamFeeAction(
+  teamId: string,
+  side: "a" | "b",
+  fee: number,
+  level: string,
+  tourneyId: string
+): Promise<void> {
+  await setTeamFee(teamId, side, fee);
+  revalidateTourneyPaths(level, tourneyId);
+}
+
 export async function setTeamPaidAction(
   teamId: string,
   side: "a" | "b",
@@ -68,20 +105,45 @@ export async function generateGroupsAction(_prev: FormState, formData: FormData)
     .split(",")
     .map((s) => Number(s.trim()))
     .filter((n) => Number.isFinite(n) && n > 0);
-  const qualifiersPerGroup = Number(formData.get("qualifiersPerGroup"));
-  const wildcardCount = Number(formData.get("wildcardCount") || 0);
+  const hasKnockout = formData.get("hasKnockout") === "on";
+  const qualifiersPerGroup = hasKnockout ? Number(formData.get("qualifiersPerGroup")) : 0;
+  const wildcardCount = hasKnockout ? Number(formData.get("wildcardCount") || 0) : 0;
   const formatId = String(formData.get("formatId") ?? "").trim() || null;
 
   if (!tourneyId) return { error: "Missing tournament." };
   if (groupSizes.length === 0) return { error: "Enter at least one group size." };
-  if (!Number.isFinite(qualifiersPerGroup) || qualifiersPerGroup < 1) {
+  if (hasKnockout && (!Number.isFinite(qualifiersPerGroup) || qualifiersPerGroup < 1)) {
     return { error: "Enter a valid number of qualifiers per group." };
   }
 
   try {
-    await generateGroups(tourneyId, groupSizes, qualifiersPerGroup, wildcardCount, formatId);
+    await generateGroups(tourneyId, groupSizes, qualifiersPerGroup, wildcardCount, formatId, hasKnockout);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to generate groups." };
+  }
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function moveTeamToGroupAction(
+  teamId: string,
+  fromGroupId: string,
+  toGroupId: string,
+  level: string,
+  tourneyId: string
+): Promise<{ error: string } | void> {
+  try {
+    await moveTeamToGroup(teamId, fromGroupId, toGroupId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to move team." };
+  }
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function finishTournamentAction(level: string, tourneyId: string): Promise<{ error: string } | void> {
+  try {
+    await finishTournamentWithoutBracket(tourneyId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to finish tournament." };
   }
   revalidateTourneyPaths(level, tourneyId);
 }

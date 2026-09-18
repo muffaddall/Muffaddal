@@ -1196,6 +1196,7 @@ export type Tourney = {
   formatId: string | null;
   qualifiersPerGroup: number;
   wildcardCount: number;
+  hasKnockout: boolean;
   joinPoints: number;
   groupWinPoints: number;
   quarterfinalPoints: number;
@@ -1217,10 +1218,25 @@ export type TourneyTeam = {
   playerAId: string;
   playerAName: string;
   playerAPaid: boolean;
+  playerAFee: number;
   playerBId: string;
   playerBName: string;
   playerBPaid: boolean;
+  playerBFee: number;
 };
+
+/** Total registration income if every team's set fee actually comes in — what the Budget Income page calls "Budgeted". */
+export function registrationsBudgetedTotal(teams: TourneyTeam[]): number {
+  return teams.reduce((sum, t) => sum + t.playerAFee + t.playerBFee, 0);
+}
+
+/** Registration money actually collected so far (only fees where that player is marked paid) — what the Budget Income page calls "Actual". */
+export function registrationsActualTotal(teams: TourneyTeam[]): number {
+  return teams.reduce(
+    (sum, t) => sum + (t.playerAPaid ? t.playerAFee : 0) + (t.playerBPaid ? t.playerBFee : 0),
+    0
+  );
+}
 
 export type TourneyGroup = {
   id: string;
@@ -1387,6 +1403,14 @@ export type TourneyFormat = {
   semifinalFinalCourtHours: number;
   courtHourRate: number;
 };
+
+/** Even split of `teamCount` teams across `numGroups` groups, remainder going to the last group(s) — e.g. 13 teams / 3 groups -> [4, 4, 5]. Purely a starting suggestion; each size stays individually editable in the wizard. */
+export function evenGroupSizes(teamCount: number, numGroups: number): number[] {
+  if (numGroups <= 0) return [];
+  const base = Math.floor(teamCount / numGroups);
+  const remainder = teamCount % numGroups;
+  return Array.from({ length: numGroups }, (_, i) => base + (i >= numGroups - remainder ? 1 : 0));
+}
 
 export function formatTeamCount(groupSizes: number[]): number {
   return groupSizes.reduce((sum, n) => sum + n, 0);

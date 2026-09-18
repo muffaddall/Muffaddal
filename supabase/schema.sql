@@ -876,6 +876,13 @@ create table if not exists tourneys (
 alter table tourneys add column if not exists qualifiers_per_group int not null default 1;
 alter table tourneys add column if not exists wildcard_count int not null default 0;
 
+-- Whether this tourney has a knockout stage after groups at all — some
+-- events are groups-only. Copied onto the tourney at draw time just like
+-- qualifiers_per_group/wildcard_count above. When false, the During Event
+-- page skips straight to a "Finish Tournament" action instead of the
+-- qualifier-confirmation + bracket flow.
+alter table tourneys add column if not exists has_knockout boolean not null default true;
+
 -- Per-tourney points config — editable from the Pre-Tournament page instead
 -- of one fixed scale for every tourney. Defaults match the original fixed
 -- scale (join 5, group win 2, QF 4, SF 7, Final 10). Editing these only
@@ -902,6 +909,13 @@ create table if not exists tourney_teams (
 -- pays for themselves. Marked from the During Event page.
 alter table tourney_teams add column if not exists player_a_paid boolean not null default false;
 alter table tourney_teams add column if not exists player_b_paid boolean not null default false;
+
+-- What each half of the team actually owes — set per team on the Budget
+-- Income page (Registrations dropdown), not a fixed price, since discounts
+-- are common. Starts at 0 for a freshly entered team; the During Event
+-- payments screen shows this amount next to each player's paid checkbox.
+alter table tourney_teams add column if not exists player_a_fee numeric not null default 0;
+alter table tourney_teams add column if not exists player_b_fee numeric not null default 0;
 
 create index if not exists tourney_teams_tourney_idx on tourney_teams (tourney_id);
 

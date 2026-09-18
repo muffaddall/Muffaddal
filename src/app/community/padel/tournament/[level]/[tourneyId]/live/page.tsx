@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import { getGroupsWithStandings, getMatchesForTourney, getTeamsForTourney, getTourney } from "@/lib/tourneys";
+import { getAllPlayers, getGroupsWithStandings, getMatchesForTourney, getTeamsForTourney, getTourney } from "@/lib/tourneys";
 import { isTourneyLevel, TOURNEY_LEVEL_LABELS } from "@/lib/types";
 import { TourneySectionTabs } from "../TourneySectionTabs";
 import PaymentsSection from "./PaymentsSection";
@@ -21,12 +21,13 @@ export default async function DuringEventPage(
   if (!tourney || tourney.level !== level) notFound();
 
   const showGroups = tourney.status !== "setup";
-  const showKnockout = tourney.status === "knockout" || tourney.status === "completed";
+  const showKnockout = tourney.hasKnockout && (tourney.status === "knockout" || tourney.status === "completed");
 
-  const [teams, groups, matches] = await Promise.all([
+  const [teams, groups, matches, players] = await Promise.all([
     getTeamsForTourney(tourneyId),
     showGroups ? getGroupsWithStandings(tourneyId) : Promise.resolve([]),
     showKnockout ? getMatchesForTourney(tourneyId) : Promise.resolve([]),
+    getAllPlayers(),
   ]);
   const knockoutMatches = matches.filter((m) => m.stage === "knockout");
 
@@ -41,7 +42,7 @@ export default async function DuringEventPage(
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>
             Payments
           </h2>
-          <PaymentsSection level={level} tourneyId={tourneyId} teams={teams} />
+          <PaymentsSection level={level} tourneyId={tourneyId} teams={teams} players={players} />
         </section>
 
         {showGroups ? (
@@ -57,6 +58,8 @@ export default async function DuringEventPage(
                 locked={tourney.status !== "groups"}
                 qualifiersPerGroup={tourney.qualifiersPerGroup}
                 wildcardCount={tourney.wildcardCount}
+                hasKnockout={tourney.hasKnockout}
+                tourneyStatus={tourney.status}
               />
             </section>
 

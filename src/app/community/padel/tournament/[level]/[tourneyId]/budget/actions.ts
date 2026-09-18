@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addBudgetLine, applyCourtFeePreset, deleteBudgetLine, updateBudgetLineActual, updateBudgetLineBudgeted } from "@/lib/tourneys";
+import {
+  addBudgetLine,
+  applyCourtFeePreset,
+  deleteBudgetLine,
+  setTeamFee,
+  updateBudgetLineActual,
+  updateBudgetLineBudgeted,
+} from "@/lib/tourneys";
 import { isTourneyBudgetLineType } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
@@ -68,4 +75,20 @@ export async function applyCourtFeePresetAction(level: string, tourneyId: string
     return { error: e instanceof Error ? e.message : "Failed to apply court fees." };
   }
   revalidateBudget(level, tourneyId);
+}
+
+export async function updateTeamFeesAction(
+  teamId: string,
+  playerAFee: number,
+  playerBFee: number,
+  level: string,
+  tourneyId: string
+): Promise<{ error: string } | void> {
+  if (!Number.isFinite(playerAFee) || !Number.isFinite(playerBFee) || playerAFee < 0 || playerBFee < 0) {
+    return { error: "Enter valid amounts." };
+  }
+  await Promise.all([setTeamFee(teamId, "a", playerAFee), setTeamFee(teamId, "b", playerBFee)]);
+  revalidateBudget(level, tourneyId);
+  // Fees also feed the During Event payments screen's "owed" display.
+  revalidatePath(`/community/padel/tournament/${level}/${tourneyId}/live`);
 }

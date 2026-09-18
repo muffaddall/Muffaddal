@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { generateBracketAction, setAllMatchScoresAction } from "../actions";
+import { finishTournamentAction, generateBracketAction, moveTeamToGroupAction, setAllMatchScoresAction } from "../actions";
 import type { TourneyGroupWithStandings } from "@/lib/tourneys";
 import {
   bestNextPlaceCandidates,
   computeDefaultQualifiers,
   computeGroupStandings,
 } from "@/lib/types";
-import type { GroupStandingsForQualifiers, TourneyLevel, TourneyMatch, TourneyTeam } from "@/lib/types";
+import type { GroupStandingsForQualifiers, TourneyLevel, TourneyMatch, TourneyStatus, TourneyTeam } from "@/lib/types";
 
 type ScoreState = Record<string, { a: string; b: string }>;
 
@@ -29,6 +29,8 @@ export default function GroupStageSection({
   locked,
   qualifiersPerGroup,
   wildcardCount,
+  hasKnockout,
+  tourneyStatus,
 }: {
   level: TourneyLevel;
   tourneyId: string;
@@ -36,6 +38,8 @@ export default function GroupStageSection({
   locked: boolean;
   qualifiersPerGroup: number;
   wildcardCount: number;
+  hasKnockout: boolean;
+  tourneyStatus: TourneyStatus;
 }) {
   // Resets every input back to the persisted truth whenever a save lands —
   // this is the "tables pop up" moment: what you typed becomes the record.
@@ -100,6 +104,8 @@ export default function GroupStageSection({
 
   return (
     <div className="flex flex-col gap-5">
+      {!locked && groups.length > 1 && <GroupMembersEditor level={level} tourneyId={tourneyId} groups={groups} />}
+
       {previewGroups.map((g) => (
         <div key={g.group.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--color-community)" }}>
@@ -142,7 +148,7 @@ export default function GroupStageSection({
         </div>
       )}
 
-      {!locked && allScored && (
+      {!locked && allScored && hasKnockout && (
         <GenerateBracketForm
           level={level}
           tourneyId={tourneyId}
@@ -151,6 +157,134 @@ export default function GroupStageSection({
           wildcardCount={wildcardCount}
         />
       )}
+
+      {!hasKnockout && (
+        <FinishTournamentSection level={level} tourneyId={tourneyId} allScored={allScored} completed={tourneyStatus === "completed"} />
+      )}
+    </div>
+  );
+}
+
+function FinishTournamentSection({
+  level,
+  tourneyId,
+  allScored,
+  completed,
+}: {
+  level: TourneyLevel;
+  tourneyId: string;
+  allScored: boolean;
+  completed: boolean;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [isFinishing, startFinish] = useTransition();
+
+  if (completed) {
+    return (
+      <p className="text-sm text-center text-white/50 py-1">
+        Tournament finished — group standings are the final result.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={!allScored || isFinishing}
+        onClick={() =>
+          startFinish(async () => {
+            const result = await finishTournamentAction(level, tourneyId);
+            if (result?.error) setError(result.error);
+          })
+        }
+        className="rounded-lg bg-[var(--color-community)] text-black font-medium px-4 py-2 text-sm disabled:opacity-60"
+      >
+        {isFinishing ? "Finishing…" : "Finish Tournament"}
+      </button>
+      {!allScored && <p className="text-xs text-white/40">Score every group match first.</p>}
+      {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
+    </div>
+  );
+}
+
+function GroupMembersEditor({
+  level,
+  tourneyId,
+  groups,
+}: {
+  level: TourneyLevel;
+  tourneyId: string;
+  groups: TourneyGroupWithStandings[];
+}) {
+  const [dragging, setDragging] = useState<{ teamId: string; fromGroupId: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isMoving, startMove] = useTransition();
+
+  const move = (teamId: string, fromGroupId: string, toGroupId: string) => {
+    if (fromGroupId === toGroupId) return;
+    if (
+      !window.confirm(
+        "Move this team to another group? Any scores it already has in its current group will be deleted, and fresh fixtures against the new group will be created."
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    startMove(async () => {
+      const result = await moveTeamToGroupAction(teamId, fromGroupId, toGroupId, level, tourneyId);
+      if (result?.error) setError(result.error);
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col gap-2">
+      <p className="text-xs uppercase tracking-wide text-white/40">
+        Move a team into a different group — drag it, or use the dropdown on mobile
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {groups.map((g) => (
+          <div
+            key={g.group.id}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => dragging && move(dragging.teamId, dragging.fromGroupId, g.group.id)}
+            className="rounded-lg bg-white/5 border border-dashed border-white/15 p-2 flex flex-col gap-1 min-h-[3rem]"
+          >
+            <p className="text-xs font-semibold text-white/60">{g.group.name}</p>
+            {g.teams.map((t) => (
+              <div
+                key={t.id}
+                draggable
+                onDragStart={() => setDragging({ teamId: t.id, fromGroupId: g.group.id })}
+                onDragEnd={() => setDragging(null)}
+                className="flex items-center justify-between gap-2 rounded bg-white/10 px-2 py-1 cursor-grab active:cursor-grabbing"
+              >
+                <span className="text-xs truncate">
+                  {t.playerAName} &amp; {t.playerBName}
+                </span>
+                <select
+                  aria-label={`Move ${t.playerAName} & ${t.playerBName} to another group`}
+                  value=""
+                  disabled={isMoving}
+                  onChange={(e) => e.target.value && move(t.id, g.group.id, e.target.value)}
+                  className="shrink-0 rounded bg-white/10 border border-white/15 text-[10px] px-1 py-0.5 outline-none"
+                >
+                  <option value="">Move to…</option>
+                  {groups
+                    .filter((other) => other.group.id !== g.group.id)
+                    .map((other) => (
+                      <option key={other.group.id} value={other.group.id}>
+                        {other.group.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      {isMoving && <p className="text-xs text-white/40">Moving…</p>}
+      {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
     </div>
   );
 }

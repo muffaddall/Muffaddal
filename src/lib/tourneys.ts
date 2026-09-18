@@ -46,6 +46,7 @@ type TourneyRow = {
   format_id?: string | null;
   qualifiers_per_group?: number;
   wildcard_count?: number;
+  has_knockout?: boolean;
   join_points?: number;
   group_win_points?: number;
   quarterfinal_points?: number;
@@ -62,6 +63,7 @@ function tourneyFromRow(row: TourneyRow): Tourney {
     formatId: row.format_id ?? null,
     qualifiersPerGroup: row.qualifiers_per_group ?? 1,
     wildcardCount: row.wildcard_count ?? 0,
+    hasKnockout: row.has_knockout ?? true,
     joinPoints: row.join_points ?? TOURNEY_DEFAULT_JOIN_POINTS,
     groupWinPoints: row.group_win_points ?? TOURNEY_DEFAULT_GROUP_WIN_POINTS,
     quarterfinalPoints: row.quarterfinal_points ?? TOURNEY_DEFAULT_QUARTERFINAL_POINTS,
@@ -82,6 +84,8 @@ type TeamRow = {
   player_b_id: string;
   player_a_paid?: boolean;
   player_b_paid?: boolean;
+  player_a_fee?: number;
+  player_b_fee?: number;
 };
 
 type GroupRow = { id: string; tourney_id: string; name: string; sort_order: number };
@@ -164,6 +168,7 @@ export async function createTourney(level: TourneyLevel, name: string, date: str
       format_id: null,
       qualifiers_per_group: 1,
       wildcard_count: 0,
+      has_knockout: true,
       join_points: TOURNEY_DEFAULT_JOIN_POINTS,
       group_win_points: TOURNEY_DEFAULT_GROUP_WIN_POINTS,
       quarterfinal_points: TOURNEY_DEFAULT_QUARTERFINAL_POINTS,
@@ -340,9 +345,11 @@ export async function getTeamsForTourney(tourneyId: string): Promise<TourneyTeam
     playerAId: row.player_a_id,
     playerAName: byId.get(row.player_a_id)?.name ?? "Unknown",
     playerAPaid: row.player_a_paid ?? false,
+    playerAFee: row.player_a_fee ?? 0,
     playerBId: row.player_b_id,
     playerBName: byId.get(row.player_b_id)?.name ?? "Unknown",
     playerBPaid: row.player_b_paid ?? false,
+    playerBFee: row.player_b_fee ?? 0,
   }));
 }
 
@@ -368,6 +375,8 @@ export async function createTeam(input: {
       player_b_id: playerBId,
       player_a_paid: false,
       player_b_paid: false,
+      player_a_fee: 0,
+      player_b_fee: 0,
     })
     .select("id")
     .single();
@@ -392,6 +401,69 @@ export async function setTeamPaid(teamId: string, side: "a" | "b", paid: boolean
   if (error) throw new Error(error.message);
 }
 
+/** Sets what one half of a team owes — edited from the Budget Income page's Registrations dropdown, not a fixed price, since discounts are common. */
+export async function setTeamFee(teamId: string, side: "a" | "b", fee: number): Promise<void> {
+  const column = side === "a" ? "player_a_fee" : "player_b_fee";
+  const { error } = await supabase.from("tourney_teams").update({ [column]: fee }).eq("id", teamId);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Swaps out one or both halves of an already-entered team — for when a
+ * partner changes. Resolves each name the same way team entry does
+ * (findOrCreatePlayer), so picking an existing player from the combobox
+ * reuses their profile. A genuinely new player brought in this way gets
+ * the tourney's current join-points credit, same as joining fresh; the
+ * outgoing player keeps whatever points they already earned on this team
+ * (past matches happened as actually played, so that history isn't
+ * touched or reassigned).
+ */
+export async function editTeam(input: {
+  teamId: string;
+  playerAName: string;
+  playerACountry: string | null;
+  playerBName: string;
+  playerBCountry: string | null;
+}): Promise<void> {
+  const { data: teamRow, error: fetchError } = await supabase
+    .from("tourney_teams")
+    .select("*")
+    .eq("id", input.teamId)
+    .maybeSingle();
+  if (fetchError) throw new Error(fetchError.message);
+  if (!teamRow) throw new Error("Team not found.");
+  const team = teamRow as TeamRow;
+
+  const [newPlayerAId, newPlayerBId, tourney] = await Promise.all([
+    findOrCreatePlayer(input.playerAName, input.playerACountry),
+    findOrCreatePlayer(input.playerBName, input.playerBCountry),
+    getTourney(team.tourney_id),
+  ]);
+  const joinPoints = tourney?.joinPoints ?? TOURNEY_DEFAULT_JOIN_POINTS;
+
+  const { error: updateError } = await supabase
+    .from("tourney_teams")
+    .update({ player_a_id: newPlayerAId, player_b_id: newPlayerBId })
+    .eq("id", input.teamId);
+  if (updateError) throw new Error(updateError.message);
+
+  const newlyJoined: string[] = [];
+  if (newPlayerAId !== team.player_a_id) newlyJoined.push(newPlayerAId);
+  if (newPlayerBId !== team.player_b_id) newlyJoined.push(newPlayerBId);
+  if (newlyJoined.length > 0) {
+    const { error: pointsError } = await supabase.from("tourney_points_events").insert(
+      newlyJoined.map((playerId) => ({
+        player_id: playerId,
+        tourney_id: team.tourney_id,
+        team_id: input.teamId,
+        reason: "join",
+        points: joinPoints,
+      }))
+    );
+    if (pointsError) throw new Error(pointsError.message);
+  }
+}
+
 // ---- Groups + group-stage matches ----
 
 const GROUP_NAMES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -410,7 +482,8 @@ export async function generateGroups(
   groupSizes: number[],
   qualifiersPerGroup: number,
   wildcardCount: number,
-  formatId: string | null
+  formatId: string | null,
+  hasKnockout: boolean = true
 ): Promise<void> {
   const teams = await getTeamsForTourney(tourneyId);
   if (groupSizes.length === 0 || groupSizes.some((n) => n < 1)) {
@@ -420,11 +493,13 @@ export async function generateGroups(
   if (totalSize !== teams.length) {
     throw new Error(`Group sizes add up to ${totalSize}, but ${teams.length} teams are entered.`);
   }
-  const qualifierCount = formatQualifierCount(groupSizes, qualifiersPerGroup, wildcardCount);
-  if (!isValidBracketSize(qualifierCount)) {
-    throw new Error(
-      "Qualifiers per group × groups + wildcards must be a power of 2 (2, 4, 8, 16…) so it can seed a bracket."
-    );
+  if (hasKnockout) {
+    const qualifierCount = formatQualifierCount(groupSizes, qualifiersPerGroup, wildcardCount);
+    if (!isValidBracketSize(qualifierCount)) {
+      throw new Error(
+        "Qualifiers per group × groups + wildcards must be a power of 2 (2, 4, 8, 16…) so it can seed a bracket."
+      );
+    }
   }
 
   const shuffled = shuffle(teams);
@@ -474,9 +549,32 @@ export async function generateGroups(
 
   const { error: statusError } = await supabase
     .from("tourneys")
-    .update({ status: "groups", qualifiers_per_group: qualifiersPerGroup, wildcard_count: wildcardCount, format_id: formatId })
+    .update({
+      status: "groups",
+      qualifiers_per_group: qualifiersPerGroup,
+      wildcard_count: wildcardCount,
+      format_id: formatId,
+      has_knockout: hasKnockout,
+    })
     .eq("id", tourneyId);
   if (statusError) throw new Error(statusError.message);
+}
+
+/**
+ * Marks a groups-only tourney (hasKnockout=false) as finished directly from
+ * the group stage — group standings are the final result, there's no
+ * bracket to generate. Requires every group match to have a score first.
+ */
+export async function finishTournamentWithoutBracket(tourneyId: string): Promise<void> {
+  const matches = await getMatchesForTourney(tourneyId);
+  const hasUnscoredGroupMatch = matches.some(
+    (m) => m.stage === "group" && (m.teamAScore === null || m.teamBScore === null)
+  );
+  if (hasUnscoredGroupMatch) {
+    throw new Error("Every group match needs a score before finishing the tournament.");
+  }
+  const { error } = await supabase.from("tourneys").update({ status: "completed" }).eq("id", tourneyId);
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -524,6 +622,75 @@ export async function clearGroups(tourneyId: string): Promise<void> {
 
   const { error: statusError } = await supabase.from("tourneys").update({ status: "setup" }).eq("id", tourneyId);
   if (statusError) throw new Error(statusError.message);
+}
+
+/**
+ * Moves a team into a different group — for special requests or seeding
+ * changes after the draw. Always allowed, even mid-group-stage: any
+ * matches (and points) that team already has in its old group are deleted,
+ * and fresh round-robin fixtures are generated against whoever is
+ * currently in the new group. Matches among the new group's other members
+ * are untouched.
+ */
+export async function moveTeamToGroup(teamId: string, fromGroupId: string, toGroupId: string): Promise<void> {
+  if (fromGroupId === toGroupId) return;
+
+  const { data: groupRow, error: groupError } = await supabase
+    .from("tourney_groups")
+    .select("*")
+    .eq("id", toGroupId)
+    .maybeSingle();
+  if (groupError) throw new Error(groupError.message);
+  if (!groupRow) throw new Error("Group not found.");
+  const tourneyId = (groupRow as GroupRow).tourney_id;
+
+  const { data: oldMatchRows, error: oldMatchFetchError } = await supabase
+    .from("tourney_matches")
+    .select("id")
+    .eq("group_id", fromGroupId)
+    .or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`);
+  if (oldMatchFetchError) throw new Error(oldMatchFetchError.message);
+  const oldMatchIds = (oldMatchRows ?? []).map((r) => (r as { id: string }).id);
+  if (oldMatchIds.length > 0) {
+    const { error: pointsError } = await supabase.from("tourney_points_events").delete().in("match_id", oldMatchIds);
+    if (pointsError) throw new Error(pointsError.message);
+    const { error: matchDeleteError } = await supabase.from("tourney_matches").delete().in("id", oldMatchIds);
+    if (matchDeleteError) throw new Error(matchDeleteError.message);
+  }
+
+  const { error: removeError } = await supabase
+    .from("tourney_group_teams")
+    .delete()
+    .eq("group_id", fromGroupId)
+    .eq("team_id", teamId);
+  if (removeError) throw new Error(removeError.message);
+
+  const { error: addError } = await supabase
+    .from("tourney_group_teams")
+    .insert({ group_id: toGroupId, team_id: teamId });
+  if (addError) throw new Error(addError.message);
+
+  const newGroupTeamIds = (await getGroupTeamIds(toGroupId)).filter((id) => id !== teamId);
+  if (newGroupTeamIds.length > 0) {
+    const { count, error: countError } = await supabase
+      .from("tourney_matches")
+      .select("id", { count: "exact", head: true })
+      .eq("tourney_id", tourneyId);
+    if (countError) throw new Error(countError.message);
+    let sortOrder = count ?? 0;
+
+    const { error: insertError } = await supabase.from("tourney_matches").insert(
+      newGroupTeamIds.map((opponentId) => ({
+        tourney_id: tourneyId,
+        stage: "group",
+        group_id: toGroupId,
+        team_a_id: teamId,
+        team_b_id: opponentId,
+        sort_order: sortOrder++,
+      }))
+    );
+    if (insertError) throw new Error(insertError.message);
+  }
 }
 
 export async function getGroupsForTourney(tourneyId: string): Promise<TourneyGroup[]> {
@@ -856,9 +1023,11 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
         playerAId: t.player_a_id,
         playerAName: playersById.get(t.player_a_id)?.name ?? "Unknown",
         playerAPaid: t.player_a_paid ?? false,
+        playerAFee: t.player_a_fee ?? 0,
         playerBId: t.player_b_id,
         playerBName: playersById.get(t.player_b_id)?.name ?? "Unknown",
         playerBPaid: t.player_b_paid ?? false,
+        playerBFee: t.player_b_fee ?? 0,
       };
       return { tourney, team, partnerName: playersById.get(partnerId)?.name ?? "Unknown" };
     })

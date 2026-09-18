@@ -46,6 +46,9 @@ export default async function PreTournamentPage(
             formats={formats}
             players={players}
             locked={tourney.status !== "setup"}
+            initialQualifiersPerGroup={tourney.qualifiersPerGroup}
+            initialWildcardCount={tourney.wildcardCount}
+            initialHasKnockout={tourney.hasKnockout}
           />
         </section>
 
@@ -64,7 +67,9 @@ export default async function PreTournamentPage(
             <div className="flex flex-col gap-3">
               <GroupsSummary groups={groups} />
               <p className="text-xs text-white/40">
-                Scoring and the knockout bracket happen on the During Event page once the day starts.
+                {tourney.hasKnockout
+                  ? "Scoring and the knockout bracket happen on the During Event page once the day starts."
+                  : "This tournament has no knockout stage — group standings decide the result. Score matches and finish it from the During Event page."}
               </p>
               <RegenerateGroupsButton level={level} tourneyId={tourneyId} />
             </div>
