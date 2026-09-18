@@ -24,6 +24,7 @@ export default function BudgetTypeTable({
   const total = manualTotal + extraTotal;
   const totalColor = type === "income" ? "var(--color-positive)" : "var(--color-negative)";
   const typeLabel = type === "income" ? "Income" : "Outflow";
+  const columnCount = type === "outflow" ? 6 : 5;
 
   return (
     <div className="rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4">
@@ -35,6 +36,7 @@ export default function BudgetTypeTable({
               <th className="text-right font-normal pb-1 px-1">Units</th>
               <th className="text-right font-normal pb-1 px-1">Unit Cost</th>
               <th className="text-right font-normal pb-1 pl-1">Total</th>
+              {type === "outflow" && <th className="text-center font-normal pb-1 pl-2">Paid</th>}
               <th></th>
             </tr>
           </thead>
@@ -44,6 +46,7 @@ export default function BudgetTypeTable({
                 <td className="py-1.5 text-sm">{extraLabel}</td>
                 <td colSpan={2}></td>
                 <td className="py-1.5 text-right text-sm tabular-nums whitespace-nowrap">{formatMoney(extraTotal)}</td>
+                {type === "outflow" && <td></td>}
                 <td></td>
               </tr>
             )}
@@ -52,7 +55,7 @@ export default function BudgetTypeTable({
             ))}
             {lines.length === 0 && !extraLabel && (
               <tr>
-                <td colSpan={5} className="text-xs text-white/40 text-center py-2">
+                <td colSpan={columnCount} className="text-xs text-white/40 text-center py-2">
                   No {typeLabel.toLowerCase()} lines yet.
                 </td>
               </tr>
@@ -63,6 +66,7 @@ export default function BudgetTypeTable({
               <td className="pt-1.5 text-right tabular-nums" style={{ color: totalColor }}>
                 {formatMoney(total)}
               </td>
+              {type === "outflow" && <td></td>}
               <td></td>
             </tr>
           </tbody>

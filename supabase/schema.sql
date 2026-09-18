@@ -1062,6 +1062,11 @@ alter table tourney_budget_lines add column if not exists actual_unit_cost numer
 alter table tourney_budget_lines drop column if exists budgeted_amount;
 alter table tourney_budget_lines drop column if exists actual_amount;
 
+-- Whether a budget line has actually been paid — mirrors the team
+-- registration paid flags, but for expenses (court fees, referee pay, etc.)
+-- instead of player fees. Marked from the Budget Sheet itself.
+alter table tourney_budget_lines add column if not exists paid boolean not null default false;
+
 create index if not exists tourney_budget_lines_tourney_idx on tourney_budget_lines (tourney_id);
 
 -- A general-purpose scratchpad — free-form notes on anything, reachable

@@ -1543,6 +1543,7 @@ export type TourneyBudgetLine = {
   name: string;
   budgetedUnits: number;
   budgetedUnitCost: number;
+  paid: boolean;
   sortOrder: number;
 };
 

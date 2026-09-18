@@ -1202,6 +1202,7 @@ type BudgetLineRow = {
   name: string;
   budgeted_units: number;
   budgeted_unit_cost: number;
+  paid?: boolean;
   sort_order: number;
 };
 
@@ -1213,6 +1214,7 @@ function budgetLineFromRow(row: BudgetLineRow): TourneyBudgetLine {
     name: row.name,
     budgetedUnits: row.budgeted_units,
     budgetedUnitCost: row.budgeted_unit_cost,
+    paid: row.paid ?? false,
     sortOrder: row.sort_order,
   };
 }
@@ -1247,6 +1249,7 @@ export async function addBudgetLine(input: {
     name: input.name,
     budgeted_units: input.budgetedUnits,
     budgeted_unit_cost: input.budgetedUnitCost,
+    paid: false,
     sort_order: count ?? 0,
   });
   if (error) throw new Error(error.message);
@@ -1257,6 +1260,12 @@ export async function updateBudgetLineBudgeted(id: string, units: number, unitCo
     .from("tourney_budget_lines")
     .update({ budgeted_units: units, budgeted_unit_cost: unitCost })
     .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Marks a budget line (typically an expense) as actually paid — independent of its units/cost, toggled straight from the Budget Sheet. */
+export async function setBudgetLinePaid(id: string, paid: boolean): Promise<void> {
+  const { error } = await supabase.from("tourney_budget_lines").update({ paid }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -1310,6 +1319,7 @@ export async function copyBudgetFromTourney(sourceTourneyId: string, destTourney
       name: l.name,
       budgeted_units: l.budgetedUnits,
       budgeted_unit_cost: l.budgetedUnitCost,
+      paid: false,
       sort_order: l.sortOrder,
     }))
   );

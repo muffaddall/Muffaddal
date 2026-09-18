@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addBudgetLine, applyCourtFeePreset, deleteBudgetLine, setTeamFee, updateBudgetLineBudgeted } from "@/lib/tourneys";
+import {
+  addBudgetLine,
+  applyCourtFeePreset,
+  deleteBudgetLine,
+  setBudgetLinePaid,
+  setTeamFee,
+  updateBudgetLineBudgeted,
+} from "@/lib/tourneys";
 import { isTourneyBudgetLineType } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
@@ -44,6 +51,16 @@ export async function updateBudgetLineBudgetedAction(
 
 export async function deleteBudgetLineAction(id: string, level: string, tourneyId: string): Promise<void> {
   await deleteBudgetLine(id);
+  revalidateBudget(level, tourneyId);
+}
+
+export async function setBudgetLinePaidAction(
+  id: string,
+  paid: boolean,
+  level: string,
+  tourneyId: string
+): Promise<void> {
+  await setBudgetLinePaid(id, paid);
   revalidateBudget(level, tourneyId);
 }
 
