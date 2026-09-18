@@ -917,6 +917,12 @@ alter table tourney_teams add column if not exists player_b_paid boolean not nul
 alter table tourney_teams add column if not exists player_a_fee numeric not null default 0;
 alter table tourney_teams add column if not exists player_b_fee numeric not null default 0;
 
+-- Disqualified at any point during the live event (not just at the
+-- qualifier-confirmation step). Disqualifying a team forfeits every
+-- unscored match it's still in — see tourney_matches.forfeit below — so
+-- the group stage / bracket can keep progressing without them.
+alter table tourney_teams add column if not exists disqualified boolean not null default false;
+
 create index if not exists tourney_teams_tourney_idx on tourney_teams (tourney_id);
 
 -- The random group-stage draw, generated once from the entered teams.
@@ -956,6 +962,10 @@ create table if not exists tourney_matches (
   sort_order int not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- True when this match's score was auto-decided by a disqualification
+-- (a walkover for the opponent) rather than actually played.
+alter table tourney_matches add column if not exists forfeit boolean not null default false;
 
 create index if not exists tourney_matches_tourney_idx on tourney_matches (tourney_id);
 

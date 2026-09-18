@@ -86,6 +86,7 @@ type TeamRow = {
   player_b_paid?: boolean;
   player_a_fee?: number;
   player_b_fee?: number;
+  disqualified?: boolean;
 };
 
 type GroupRow = { id: string; tourney_id: string; name: string; sort_order: number };
@@ -105,6 +106,7 @@ type MatchRow = {
   team_a_score: number | null;
   team_b_score: number | null;
   winner_team_id: string | null;
+  forfeit?: boolean;
   sort_order: number;
 };
 function matchFromRow(row: MatchRow): TourneyMatch {
@@ -120,6 +122,7 @@ function matchFromRow(row: MatchRow): TourneyMatch {
     teamAScore: row.team_a_score ?? null,
     teamBScore: row.team_b_score ?? null,
     winnerTeamId: row.winner_team_id ?? null,
+    forfeit: row.forfeit ?? false,
     sortOrder: row.sort_order,
   };
 }
@@ -350,6 +353,7 @@ export async function getTeamsForTourney(tourneyId: string): Promise<TourneyTeam
     playerBName: byId.get(row.player_b_id)?.name ?? "Unknown",
     playerBPaid: row.player_b_paid ?? false,
     playerBFee: row.player_b_fee ?? 0,
+    disqualified: row.disqualified ?? false,
   }));
 }
 
@@ -377,6 +381,7 @@ export async function createTeam(input: {
       player_b_paid: false,
       player_a_fee: 0,
       player_b_fee: 0,
+      disqualified: false,
     })
     .select("id")
     .single();
@@ -461,6 +466,64 @@ export async function editTeam(input: {
       }))
     );
     if (pointsError) throw new Error(pointsError.message);
+  }
+}
+
+/** Plain flag toggle, no side effects — used to undo a mistaken disqualification. Doesn't reopen or reverse any matches that were already forfeited. */
+export async function setTeamDisqualified(teamId: string, disqualified: boolean): Promise<void> {
+  const { error } = await supabase.from("tourney_teams").update({ disqualified }).eq("id", teamId);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Disqualifies a team at any point during the live event. Every match this
+ * team is still in but hasn't finished (group or knockout, either side)
+ * gets forfeited to the opponent as a walkover — otherwise the group stage
+ * or bracket could never finish waiting on a match that will now never be
+ * played. Matches already scored before the DQ are untouched; the
+ * disqualified side keeps whatever points it already earned.
+ */
+export async function disqualifyTeam(teamId: string): Promise<void> {
+  const { data: teamRow, error: teamError } = await supabase
+    .from("tourney_teams")
+    .select("*")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (teamError) throw new Error(teamError.message);
+  if (!teamRow) throw new Error("Team not found.");
+  const tourneyId = (teamRow as TeamRow).tourney_id;
+
+  const { error: dqError } = await supabase.from("tourney_teams").update({ disqualified: true }).eq("id", teamId);
+  if (dqError) throw new Error(dqError.message);
+
+  const { data: matchRows, error: matchFetchError } = await supabase
+    .from("tourney_matches")
+    .select("*")
+    .eq("tourney_id", tourneyId)
+    .or(`team_a_id.eq.${teamId},team_b_id.eq.${teamId}`);
+  if (matchFetchError) throw new Error(matchFetchError.message);
+
+  const pending = (matchRows ?? [])
+    .map((r) => matchFromRow(r as MatchRow))
+    .filter((m) => m.teamAId && m.teamBId && (m.teamAScore === null || m.teamBScore === null));
+
+  for (const match of pending) {
+    const opponentIsA = match.teamAId !== teamId;
+    const teamAScore = opponentIsA ? 1 : 0;
+    const teamBScore = opponentIsA ? 0 : 1;
+    const winnerTeamId = (opponentIsA ? match.teamAId : match.teamBId) as string;
+
+    const { error: scoreError } = await supabase
+      .from("tourney_matches")
+      .update({ team_a_score: teamAScore, team_b_score: teamBScore, winner_team_id: winnerTeamId, forfeit: true })
+      .eq("id", match.id);
+    if (scoreError) throw new Error(scoreError.message);
+
+    await recomputeMatchPoints(tourneyId, match.id, match.stage, match.roundName, winnerTeamId);
+
+    if (match.stage === "knockout" && match.roundIndex !== null) {
+      await tryAdvanceKnockoutRound(tourneyId, match.roundIndex);
+    }
   }
 }
 
@@ -1028,6 +1091,7 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
         playerBName: playersById.get(t.player_b_id)?.name ?? "Unknown",
         playerBPaid: t.player_b_paid ?? false,
         playerBFee: t.player_b_fee ?? 0,
+        disqualified: t.disqualified ?? false,
       };
       return { tourney, team, partnerName: playersById.get(partnerId)?.name ?? "Unknown" };
     })

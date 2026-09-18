@@ -1223,6 +1223,7 @@ export type TourneyTeam = {
   playerBName: string;
   playerBPaid: boolean;
   playerBFee: number;
+  disqualified: boolean;
 };
 
 /** Total registration income expected if every team's set fee comes in — shown on the Budget Income page. */
@@ -1259,6 +1260,7 @@ export type TourneyMatch = {
   teamAScore: number | null;
   teamBScore: number | null;
   winnerTeamId: string | null;
+  forfeit: boolean;
   sortOrder: number;
 };
 

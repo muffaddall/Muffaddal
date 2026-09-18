@@ -111,8 +111,14 @@ function KnockoutMatchRow({
 
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-white/5 px-2.5 py-2" data-testid="knockout-match-row">
+      {match.forfeit && <p className="text-[10px] uppercase tracking-wide text-[var(--color-negative)]">Forfeit</p>}
       <div className="flex items-center gap-2 text-xs">
         <span className={`flex-1 truncate ${match.winnerTeamId === teamA.id ? "font-semibold" : ""}`}>
+          {teamA.disqualified && (
+            <span className="mr-1 rounded-full border border-[var(--color-negative)] px-1 py-0 text-[9px] uppercase tracking-wide text-[var(--color-negative)]">
+              DQ
+            </span>
+          )}
           {teamA.playerAName} &amp; {teamA.playerBName}
         </span>
         <input
@@ -125,6 +131,11 @@ function KnockoutMatchRow({
       </div>
       <div className="flex items-center gap-2 text-xs">
         <span className={`flex-1 truncate ${match.winnerTeamId === teamB.id ? "font-semibold" : ""}`}>
+          {teamB.disqualified && (
+            <span className="mr-1 rounded-full border border-[var(--color-negative)] px-1 py-0 text-[9px] uppercase tracking-wide text-[var(--color-negative)]">
+              DQ
+            </span>
+          )}
           {teamB.playerAName} &amp; {teamB.playerBName}
         </span>
         <input

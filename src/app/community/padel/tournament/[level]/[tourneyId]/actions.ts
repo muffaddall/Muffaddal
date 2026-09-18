@@ -5,6 +5,7 @@ import {
   clearGroups,
   clearKnockoutBracket,
   createTeam,
+  disqualifyTeam,
   editTeam,
   finishTournamentWithoutBracket,
   generateGroups,
@@ -13,6 +14,7 @@ import {
   removeTeam,
   setAllMatchScores,
   setMatchScore,
+  setTeamDisqualified,
   setTeamFee,
   setTeamPaid,
   updateTourneyPoints,
@@ -95,6 +97,29 @@ export async function setTeamPaidAction(
   tourneyId: string
 ): Promise<void> {
   await setTeamPaid(teamId, side, paid);
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function disqualifyTeamAction(
+  teamId: string,
+  level: string,
+  tourneyId: string
+): Promise<{ error: string } | void> {
+  try {
+    await disqualifyTeam(teamId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to disqualify team." };
+  }
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function setTeamDisqualifiedAction(
+  teamId: string,
+  disqualified: boolean,
+  level: string,
+  tourneyId: string
+): Promise<void> {
+  await setTeamDisqualified(teamId, disqualified);
   revalidateTourneyPaths(level, tourneyId);
 }
 

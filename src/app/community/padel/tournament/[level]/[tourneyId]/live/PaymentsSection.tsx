@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { setTeamPaidAction } from "../actions";
+import { disqualifyTeamAction, setTeamDisqualifiedAction, setTeamPaidAction } from "../actions";
 import EditTeamForm from "../EditTeamForm";
 import { formatMoney } from "@/lib/format";
 import { registrationsActualTotal, registrationsTotal } from "@/lib/types";
@@ -63,17 +63,78 @@ function TeamPaymentRow({
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--color-surface)] border border-white/8 p-3">
-      <div className="flex flex-1 min-w-0 items-center gap-3">
+      <div className="flex flex-1 min-w-0 items-center gap-2">
+        {team.disqualified && (
+          <span className="shrink-0 rounded-full border border-[var(--color-negative)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--color-negative)]">
+            DQ
+          </span>
+        )}
         <PaidToggle level={level} tourneyId={tourneyId} teamId={team.id} side="a" name={team.playerAName} fee={team.playerAFee} paid={team.playerAPaid} />
         <PaidToggle level={level} tourneyId={tourneyId} teamId={team.id} side="b" name={team.playerBName} fee={team.playerBFee} paid={team.playerBPaid} />
       </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-xs text-white/50 hover:text-white/80"
+        >
+          Edit
+        </button>
+        <DisqualifyButton level={level} tourneyId={tourneyId} team={team} />
+      </div>
+    </div>
+  );
+}
+
+function DisqualifyButton({
+  level,
+  tourneyId,
+  team,
+}: {
+  level: TourneyLevel;
+  tourneyId: string;
+  team: TourneyTeam;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  if (team.disqualified) {
+    return (
       <button
         type="button"
-        onClick={() => setEditing(true)}
-        className="text-xs text-white/50 hover:text-white/80 shrink-0"
+        disabled={isPending}
+        onClick={() => startTransition(() => setTeamDisqualifiedAction(team.id, false, level, tourneyId))}
+        className="text-xs text-white/50 hover:text-white/80 disabled:opacity-60"
       >
-        Edit
+        {isPending ? "…" : "Undo DQ"}
       </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => {
+          if (
+            !window.confirm(
+              `Disqualify ${team.playerAName} & ${team.playerBName}? Any of their matches that haven't been scored yet — group or knockout — will be forfeited to the opponent right away.`
+            )
+          ) {
+            return;
+          }
+          setError(null);
+          startTransition(async () => {
+            const result = await disqualifyTeamAction(team.id, level, tourneyId);
+            if (result?.error) setError(result.error);
+          });
+        }}
+        className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+      >
+        {isPending ? "…" : "Disqualify"}
+      </button>
+      {error && <span className="text-[10px] text-[var(--color-negative)]">{error}</span>}
     </div>
   );
 }

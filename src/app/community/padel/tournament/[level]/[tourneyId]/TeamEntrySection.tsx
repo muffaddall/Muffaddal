@@ -81,6 +81,11 @@ function TeamRow({
   return (
     <div className="flex items-center justify-between gap-2 rounded-xl bg-[var(--color-surface)] border border-white/8 p-3">
       <span className="text-sm">
+        {team.disqualified && (
+          <span className="mr-1.5 rounded-full border border-[var(--color-negative)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--color-negative)]">
+            DQ
+          </span>
+        )}
         {team.playerAName} <span className="text-white/40">&amp;</span> {team.playerBName}
       </span>
       <div className="flex shrink-0 items-center gap-3">

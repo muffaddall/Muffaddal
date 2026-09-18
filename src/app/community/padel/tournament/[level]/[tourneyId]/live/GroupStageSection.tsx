@@ -313,6 +313,11 @@ function StandingsTable({
           return (
             <tr key={s.teamId} className={i === 0 ? "font-semibold" : "text-white/70"}>
               <td className="py-0.5 truncate">
+                {team.disqualified && (
+                  <span className="mr-1 rounded-full border border-[var(--color-negative)] px-1 py-0 text-[9px] uppercase tracking-wide text-[var(--color-negative)]">
+                    DQ
+                  </span>
+                )}
                 {team.playerAName} &amp; {team.playerBName}
               </td>
               <td className="py-0.5 text-right tabular-nums">
@@ -354,6 +359,7 @@ function MatchScoreRow({
 
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-white/5 px-2.5 py-2" data-testid="group-match-row">
+      {match.forfeit && <p className="text-[10px] uppercase tracking-wide text-[var(--color-negative)]">Forfeit</p>}
       <div className="flex items-center gap-2 text-xs">
         <span className={`flex-1 truncate ${match.winnerTeamId === teamA.id ? "font-semibold" : ""}`}>
           {teamA.playerAName} &amp; {teamA.playerBName}
@@ -395,7 +401,16 @@ function GenerateBracketForm({
   qualifiersPerGroup: number;
   wildcardCount: number;
 }) {
-  const groupsForQualifiers: GroupStandingsForQualifiers[] = groups.map((g) => ({
+  // Disqualified teams can never qualify — dropped from the standings here
+  // so they never appear as a checkbox or get auto-selected below. Keeps
+  // the full standings shape (wins/losses) for rendering; groupsForQualifiers
+  // below is just the subset those helper functions need.
+  const teamsById = new Map(groups.flatMap((g) => g.teams).map((t) => [t.id, t]));
+  const eligibleGroups = groups.map((g) => ({
+    ...g,
+    standings: g.standings.filter((s) => !teamsById.get(s.teamId)?.disqualified),
+  }));
+  const groupsForQualifiers: GroupStandingsForQualifiers[] = eligibleGroups.map((g) => ({
     groupId: g.group.id,
     groupName: g.group.name,
     standings: g.standings,
@@ -418,7 +433,6 @@ function GenerateBracketForm({
   };
 
   const wildcardCandidates = wildcardCount > 0 ? bestNextPlaceCandidates(groupsForQualifiers, qualifiersPerGroup) : [];
-  const teamsById = new Map(groups.flatMap((g) => g.teams).map((t) => [t.id, t]));
   const canGenerate = selected.size === requiredCount;
 
   return (
@@ -427,7 +441,7 @@ function GenerateBracketForm({
         Confirm qualifiers — {selected.size} / {requiredCount} selected
       </p>
 
-      {groups.map((g) => (
+      {eligibleGroups.map((g) => (
         <div key={g.group.id} className="flex flex-col gap-1">
           <p className="text-xs font-semibold text-white/60">{g.group.name}</p>
           {g.standings.map((s, i) => {
@@ -482,8 +496,9 @@ function GenerateBracketForm({
       )}
 
       <p className="text-xs text-white/40">
-        Uncheck a team to disqualify it, then check another anywhere above to fill its slot — the best remaining
-        teams by point differential are listed first.
+        Uncheck a team to leave it out of the bracket, then check another anywhere above to fill its slot — the
+        best remaining teams by point differential are listed first. Disqualified teams (above) are never listed
+        here.
       </p>
 
       <button
