@@ -86,6 +86,11 @@ function TeamRow({
             DQ
           </span>
         )}
+        {team.noShow && (
+          <span className="mr-1.5 rounded-full border border-white/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/60">
+            NS
+          </span>
+        )}
         {team.playerAName} <span className="text-white/40">&amp;</span> {team.playerBName}
       </span>
       <div className="flex shrink-0 items-center gap-3">

@@ -10,12 +10,15 @@ import {
   finishTournamentWithoutBracket,
   generateGroups,
   generateKnockoutBracket,
+  markTeamNoShow,
   moveTeamToGroup,
   removeTeam,
   setAllMatchScores,
   setMatchScore,
+  setTeamCheckedIn,
   setTeamDisqualified,
   setTeamFee,
+  setTeamNoShow,
   setTeamPaid,
   swapKnockoutTeams,
   updateTourneyPoints,
@@ -121,6 +124,40 @@ export async function setTeamDisqualifiedAction(
   tourneyId: string
 ): Promise<void> {
   await setTeamDisqualified(teamId, disqualified);
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function markTeamNoShowAction(
+  teamId: string,
+  level: string,
+  tourneyId: string
+): Promise<{ error: string } | void> {
+  try {
+    await markTeamNoShow(teamId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to mark team as a no-show." };
+  }
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function setTeamNoShowAction(
+  teamId: string,
+  noShow: boolean,
+  level: string,
+  tourneyId: string
+): Promise<void> {
+  await setTeamNoShow(teamId, noShow);
+  revalidateTourneyPaths(level, tourneyId);
+}
+
+export async function setTeamCheckedInAction(
+  teamId: string,
+  side: "a" | "b",
+  checkedIn: boolean,
+  level: string,
+  tourneyId: string
+): Promise<void> {
+  await setTeamCheckedIn(teamId, side, checkedIn);
   revalidateTourneyPaths(level, tourneyId);
 }
 

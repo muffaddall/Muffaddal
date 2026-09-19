@@ -126,6 +126,11 @@ function KnockoutMatchRow({
               DQ
             </span>
           )}
+          {teamA.noShow && (
+            <span className="mr-1 rounded-full border border-white/40 px-1 py-0 text-[9px] uppercase tracking-wide text-white/60">
+              NS
+            </span>
+          )}
           {teamA.playerAName} &amp; {teamA.playerBName}
         </span>
         <input
@@ -141,6 +146,11 @@ function KnockoutMatchRow({
           {teamB.disqualified && (
             <span className="mr-1 rounded-full border border-[var(--color-negative)] px-1 py-0 text-[9px] uppercase tracking-wide text-[var(--color-negative)]">
               DQ
+            </span>
+          )}
+          {teamB.noShow && (
+            <span className="mr-1 rounded-full border border-white/40 px-1 py-0 text-[9px] uppercase tracking-wide text-white/60">
+              NS
             </span>
           )}
           {teamB.playerAName} &amp; {teamB.playerBName}

@@ -854,6 +854,13 @@ create table if not exists tourney_players (
   created_at timestamptz not null default now()
 );
 
+-- Manual correction to this player's loyalty "tournaments played" count
+-- (can be negative). Added on top of the count of tourney_teams rows they
+-- appear in when computing loyalty eligibility — e.g. to backfill history
+-- from before this system existed, or to fix a miscount — without
+-- touching the actual tournament history shown on their profile.
+alter table tourney_players add column if not exists loyalty_adjustment int not null default 0;
+
 -- One weekly (or whenever) event at a given level. Walks through
 -- setup -> groups -> knockout -> completed as you run the day:
 -- setup = entering teams, groups = round-robin group stage in progress,
@@ -922,6 +929,20 @@ alter table tourney_teams add column if not exists player_b_fee numeric not null
 -- unscored match it's still in — see tourney_matches.forfeit below — so
 -- the group stage / bracket can keep progressing without them.
 alter table tourney_teams add column if not exists disqualified boolean not null default false;
+
+-- A team that didn't turn up. Like disqualified above, this forfeits
+-- every unscored match the team is still in so the tournament can keep
+-- progressing — but the forfeited score is recorded 0-0 (see
+-- tourney_matches.forfeit) rather than a 1-0 win margin, since no match
+-- was actually played. Also excludes the team from ever being picked as
+-- a bracket qualifier, same as disqualified.
+alter table tourney_teams add column if not exists no_show boolean not null default false;
+
+-- Whether each half of the team has physically checked in on the day —
+-- tracked separately from payment (player_a_paid/player_b_paid above),
+-- since someone can pay in advance but not show up, or vice versa.
+alter table tourney_teams add column if not exists player_a_checked_in boolean not null default false;
+alter table tourney_teams add column if not exists player_b_checked_in boolean not null default false;
 
 create index if not exists tourney_teams_tourney_idx on tourney_teams (tourney_id);
 

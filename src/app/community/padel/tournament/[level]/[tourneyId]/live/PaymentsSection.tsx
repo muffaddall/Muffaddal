@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { disqualifyTeamAction, setTeamDisqualifiedAction, setTeamPaidAction } from "../actions";
+import {
+  disqualifyTeamAction,
+  markTeamNoShowAction,
+  setTeamCheckedInAction,
+  setTeamDisqualifiedAction,
+  setTeamNoShowAction,
+  setTeamPaidAction,
+} from "../actions";
 import EditTeamForm from "../EditTeamForm";
 import { formatMoney } from "@/lib/format";
 import { registrationsActualTotal, registrationsTotal } from "@/lib/types";
@@ -35,6 +42,7 @@ export default function PaymentsSection({
         </Link>
         .
       </p>
+      <p className="text-xs text-white/40">First checkbox = paid, second = checked in.</p>
       {teams.map((team) => (
         <TeamPaymentRow key={team.id} level={level} tourneyId={tourneyId} team={team} players={players} />
       ))}
@@ -69,8 +77,31 @@ function TeamPaymentRow({
             DQ
           </span>
         )}
-        <PaidToggle level={level} tourneyId={tourneyId} teamId={team.id} side="a" name={team.playerAName} fee={team.playerAFee} paid={team.playerAPaid} />
-        <PaidToggle level={level} tourneyId={tourneyId} teamId={team.id} side="b" name={team.playerBName} fee={team.playerBFee} paid={team.playerBPaid} />
+        {team.noShow && (
+          <span className="shrink-0 rounded-full border border-white/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/60">
+            NS
+          </span>
+        )}
+        <PlayerStatusRow
+          level={level}
+          tourneyId={tourneyId}
+          teamId={team.id}
+          side="a"
+          name={team.playerAName}
+          fee={team.playerAFee}
+          paid={team.playerAPaid}
+          checkedIn={team.playerACheckedIn}
+        />
+        <PlayerStatusRow
+          level={level}
+          tourneyId={tourneyId}
+          teamId={team.id}
+          side="b"
+          name={team.playerBName}
+          fee={team.playerBFee}
+          paid={team.playerBPaid}
+          checkedIn={team.playerBCheckedIn}
+        />
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <button
@@ -80,6 +111,7 @@ function TeamPaymentRow({
         >
           Edit
         </button>
+        <NoShowButton level={level} tourneyId={tourneyId} team={team} />
         <DisqualifyButton level={level} tourneyId={tourneyId} team={team} />
       </div>
     </div>
@@ -139,7 +171,60 @@ function DisqualifyButton({
   );
 }
 
-function PaidToggle({
+function NoShowButton({
+  level,
+  tourneyId,
+  team,
+}: {
+  level: TourneyLevel;
+  tourneyId: string;
+  team: TourneyTeam;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  if (team.noShow) {
+    return (
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => startTransition(() => setTeamNoShowAction(team.id, false, level, tourneyId))}
+        className="text-xs text-white/50 hover:text-white/80 disabled:opacity-60"
+      >
+        {isPending ? "…" : "Undo No Show"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => {
+          if (
+            !window.confirm(
+              `Mark ${team.playerAName} & ${team.playerBName} as a no-show? Any of their matches that haven't been scored yet — group or knockout — will be recorded 0-0 as a walkover for the opponent right away.`
+            )
+          ) {
+            return;
+          }
+          setError(null);
+          startTransition(async () => {
+            const result = await markTeamNoShowAction(team.id, level, tourneyId);
+            if (result?.error) setError(result.error);
+          });
+        }}
+        className="text-xs text-white/60 hover:opacity-80 disabled:opacity-60"
+      >
+        {isPending ? "…" : "No Show"}
+      </button>
+      {error && <span className="text-[10px] text-[var(--color-negative)]">{error}</span>}
+    </div>
+  );
+}
+
+function PlayerStatusRow({
   level,
   tourneyId,
   teamId,
@@ -147,6 +232,7 @@ function PaidToggle({
   name,
   fee,
   paid,
+  checkedIn,
 }: {
   level: TourneyLevel;
   tourneyId: string;
@@ -155,20 +241,35 @@ function PaidToggle({
   name: string;
   fee: number;
   paid: boolean;
+  checkedIn: boolean;
 }) {
-  const [isSaving, startSave] = useTransition();
+  const [isSavingPaid, startSavePaid] = useTransition();
+  const [isSavingCheckedIn, startSaveCheckedIn] = useTransition();
 
   return (
-    <label className="flex flex-1 min-w-0 items-center gap-2 text-sm">
-      <input
-        type="checkbox"
-        checked={paid}
-        disabled={isSaving}
-        onChange={(e) => startSave(() => setTeamPaidAction(teamId, side, e.target.checked, level, tourneyId))}
-        className="h-4 w-4 shrink-0 accent-[var(--color-community)]"
-      />
-      <span className={`truncate ${paid ? "" : "text-white/50"}`}>{name}</span>
+    <div className="flex flex-1 min-w-0 items-center gap-2 text-sm">
+      <label className="flex items-center gap-1 shrink-0" title="Paid">
+        <input
+          type="checkbox"
+          checked={paid}
+          disabled={isSavingPaid}
+          onChange={(e) => startSavePaid(() => setTeamPaidAction(teamId, side, e.target.checked, level, tourneyId))}
+          className="h-4 w-4 accent-[var(--color-community)]"
+        />
+      </label>
+      <label className="flex items-center gap-1 shrink-0" title="Checked in">
+        <input
+          type="checkbox"
+          checked={checkedIn}
+          disabled={isSavingCheckedIn}
+          onChange={(e) =>
+            startSaveCheckedIn(() => setTeamCheckedInAction(teamId, side, e.target.checked, level, tourneyId))
+          }
+          className="h-4 w-4 accent-[var(--color-positive)]"
+        />
+      </label>
+      <span className={`truncate flex-1 min-w-0 ${paid ? "" : "text-white/50"}`}>{name}</span>
       <span className="text-xs text-white/40 tabular-nums shrink-0">{formatMoney(fee)}</span>
-    </label>
+    </div>
   );
 }

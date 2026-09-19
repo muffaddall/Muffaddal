@@ -72,9 +72,9 @@ function tourneyFromRow(row: TourneyRow): Tourney {
   };
 }
 
-type PlayerRow = { id: string; name: string; country: string | null };
+type PlayerRow = { id: string; name: string; country: string | null; loyalty_adjustment?: number };
 function playerFromRow(row: PlayerRow): TourneyPlayer {
-  return { id: row.id, name: row.name, country: row.country };
+  return { id: row.id, name: row.name, country: row.country, loyaltyAdjustment: row.loyalty_adjustment ?? 0 };
 }
 
 type TeamRow = {
@@ -87,6 +87,9 @@ type TeamRow = {
   player_a_fee?: number;
   player_b_fee?: number;
   disqualified?: boolean;
+  no_show?: boolean;
+  player_a_checked_in?: boolean;
+  player_b_checked_in?: boolean;
 };
 
 type GroupRow = { id: string; tourney_id: string; name: string; sort_order: number };
@@ -313,6 +316,28 @@ export async function addPlayer(name: string, country: string | null): Promise<s
   return findOrCreatePlayer(name, country);
 }
 
+/** Edits a player's own name/country directly, from their profile page. Existing team rows only ever store the player id, so past tournament history and points automatically show the updated name. */
+export async function updatePlayer(playerId: string, name: string, country: string | null): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Name can't be empty.");
+  const { error } = await supabase
+    .from("tourney_players")
+    .update({ name: trimmed, country: country || null })
+    .eq("id", playerId);
+  if (error) throw new Error(error.message);
+}
+
+/** Manually nudges a player's loyalty "tournaments played" count up or down, on top of their actual tournament history — for backfilling history from before this system existed or fixing a miscount. */
+export async function adjustPlayerLoyalty(playerId: string, delta: number): Promise<void> {
+  const player = await getPlayer(playerId);
+  if (!player) throw new Error("Player not found.");
+  const { error } = await supabase
+    .from("tourney_players")
+    .update({ loyalty_adjustment: player.loyaltyAdjustment + delta })
+    .eq("id", playerId);
+  if (error) throw new Error(error.message);
+}
+
 /** Matches an existing player by name (case/whitespace-insensitive) so the same person keeps one running profile across tourneys, instead of creating a fresh one every time you type their name. */
 async function findOrCreatePlayer(name: string, country: string | null): Promise<string> {
   const trimmed = name.trim();
@@ -354,6 +379,9 @@ export async function getTeamsForTourney(tourneyId: string): Promise<TourneyTeam
     playerBPaid: row.player_b_paid ?? false,
     playerBFee: row.player_b_fee ?? 0,
     disqualified: row.disqualified ?? false,
+    noShow: row.no_show ?? false,
+    playerACheckedIn: row.player_a_checked_in ?? false,
+    playerBCheckedIn: row.player_b_checked_in ?? false,
   }));
 }
 
@@ -382,6 +410,9 @@ export async function createTeam(input: {
       player_a_fee: 0,
       player_b_fee: 0,
       disqualified: false,
+      no_show: false,
+      player_a_checked_in: false,
+      player_b_checked_in: false,
     })
     .select("id")
     .single();
@@ -476,26 +507,13 @@ export async function setTeamDisqualified(teamId: string, disqualified: boolean)
 }
 
 /**
- * Disqualifies a team at any point during the live event. Every match this
- * team is still in but hasn't finished (group or knockout, either side)
- * gets forfeited to the opponent as a walkover — otherwise the group stage
- * or bracket could never finish waiting on a match that will now never be
- * played. Matches already scored before the DQ are untouched; the
- * disqualified side keeps whatever points it already earned.
+ * Forfeits every match a team is still in but hasn't finished (group or
+ * knockout, either side) to the opponent as a walkover — shared by
+ * disqualifyTeam and markTeamNoShow, who differ only in what winning score
+ * gets recorded (1-0 for a DQ vs 0-0 for a no-show, since no match was
+ * actually played). Matches already scored are untouched.
  */
-export async function disqualifyTeam(teamId: string): Promise<void> {
-  const { data: teamRow, error: teamError } = await supabase
-    .from("tourney_teams")
-    .select("*")
-    .eq("id", teamId)
-    .maybeSingle();
-  if (teamError) throw new Error(teamError.message);
-  if (!teamRow) throw new Error("Team not found.");
-  const tourneyId = (teamRow as TeamRow).tourney_id;
-
-  const { error: dqError } = await supabase.from("tourney_teams").update({ disqualified: true }).eq("id", teamId);
-  if (dqError) throw new Error(dqError.message);
-
+async function forfeitPendingMatches(tourneyId: string, teamId: string, opponentScore: number): Promise<void> {
   const { data: matchRows, error: matchFetchError } = await supabase
     .from("tourney_matches")
     .select("*")
@@ -509,8 +527,8 @@ export async function disqualifyTeam(teamId: string): Promise<void> {
 
   for (const match of pending) {
     const opponentIsA = match.teamAId !== teamId;
-    const teamAScore = opponentIsA ? 1 : 0;
-    const teamBScore = opponentIsA ? 0 : 1;
+    const teamAScore = opponentIsA ? opponentScore : 0;
+    const teamBScore = opponentIsA ? 0 : opponentScore;
     const winnerTeamId = (opponentIsA ? match.teamAId : match.teamBId) as string;
 
     const { error: scoreError } = await supabase
@@ -525,6 +543,66 @@ export async function disqualifyTeam(teamId: string): Promise<void> {
       await tryAdvanceKnockoutRound(tourneyId, match.roundIndex);
     }
   }
+}
+
+/**
+ * Disqualifies a team at any point during the live event. Every match this
+ * team is still in but hasn't finished gets forfeited to the opponent as a
+ * 1-0 walkover — otherwise the group stage or bracket could never finish
+ * waiting on a match that will now never be played. Matches already scored
+ * before the DQ are untouched; the disqualified side keeps whatever points
+ * it already earned.
+ */
+export async function disqualifyTeam(teamId: string): Promise<void> {
+  const { data: teamRow, error: teamError } = await supabase
+    .from("tourney_teams")
+    .select("*")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (teamError) throw new Error(teamError.message);
+  if (!teamRow) throw new Error("Team not found.");
+  const tourneyId = (teamRow as TeamRow).tourney_id;
+
+  const { error: dqError } = await supabase.from("tourney_teams").update({ disqualified: true }).eq("id", teamId);
+  if (dqError) throw new Error(dqError.message);
+
+  await forfeitPendingMatches(tourneyId, teamId, 1);
+}
+
+/** Plain flag toggle, no side effects — used to undo a mistaken no-show mark. Doesn't reopen or reverse any matches that were already forfeited. */
+export async function setTeamNoShow(teamId: string, noShow: boolean): Promise<void> {
+  const { error } = await supabase.from("tourney_teams").update({ no_show: noShow }).eq("id", teamId);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Marks a team as a no-show at any point during the live event. Same
+ * forfeit mechanics as disqualifyTeam — every unfinished match is forfeited
+ * to the opponent so the tournament can keep progressing, and the team is
+ * excluded from ever being picked as a bracket qualifier — but the
+ * forfeited score is recorded 0-0 rather than a 1-0 win margin, since no
+ * match was actually played.
+ */
+export async function markTeamNoShow(teamId: string): Promise<void> {
+  const { data: teamRow, error: teamError } = await supabase
+    .from("tourney_teams")
+    .select("*")
+    .eq("id", teamId)
+    .maybeSingle();
+  if (teamError) throw new Error(teamError.message);
+  if (!teamRow) throw new Error("Team not found.");
+  const tourneyId = (teamRow as TeamRow).tourney_id;
+
+  const { error: nsError } = await supabase.from("tourney_teams").update({ no_show: true }).eq("id", teamId);
+  if (nsError) throw new Error(nsError.message);
+
+  await forfeitPendingMatches(tourneyId, teamId, 0);
+}
+
+export async function setTeamCheckedIn(teamId: string, side: "a" | "b", checkedIn: boolean): Promise<void> {
+  const column = side === "a" ? "player_a_checked_in" : "player_b_checked_in";
+  const { error } = await supabase.from("tourney_teams").update({ [column]: checkedIn }).eq("id", teamId);
+  if (error) throw new Error(error.message);
 }
 
 // ---- Groups + group-stage matches ----
@@ -1130,6 +1208,9 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
         playerBPaid: t.player_b_paid ?? false,
         playerBFee: t.player_b_fee ?? 0,
         disqualified: t.disqualified ?? false,
+        noShow: t.no_show ?? false,
+        playerACheckedIn: t.player_a_checked_in ?? false,
+        playerBCheckedIn: t.player_b_checked_in ?? false,
       };
       return { tourney, team, partnerName: playersById.get(partnerId)?.name ?? "Unknown" };
     })
@@ -1181,7 +1262,7 @@ export async function getPlayerProfile(playerId: string): Promise<TourneyPlayerP
     const row = r as { id: string; player_id: string; redeemed_at: string };
     return { id: row.id, playerId: row.player_id, redeemedAt: row.redeemed_at };
   });
-  const loyalty = computeLoyaltyStatus(history.length, rewards);
+  const loyalty = computeLoyaltyStatus(history.length + player.loyaltyAdjustment, rewards);
 
   return {
     player,

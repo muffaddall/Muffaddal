@@ -1208,6 +1208,7 @@ export type TourneyPlayer = {
   id: string;
   name: string;
   country: string | null;
+  loyaltyAdjustment: number;
 };
 
 // A doubles pairing entered into one tourney — playerA/B persist as
@@ -1224,6 +1225,9 @@ export type TourneyTeam = {
   playerBPaid: boolean;
   playerBFee: number;
   disqualified: boolean;
+  noShow: boolean;
+  playerACheckedIn: boolean;
+  playerBCheckedIn: boolean;
 };
 
 /** Total registration income expected if every team's set fee comes in — shown on the Budget Income page. */

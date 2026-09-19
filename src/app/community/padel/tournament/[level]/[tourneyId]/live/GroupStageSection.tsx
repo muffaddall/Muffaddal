@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { finishTournamentAction, generateBracketAction, moveTeamToGroupAction, setAllMatchScoresAction } from "../actions";
+import {
+  finishTournamentAction,
+  generateBracketAction,
+  moveTeamToGroupAction,
+  setAllMatchScoresAction,
+  setMatchScoreAction,
+} from "../actions";
 import type { TourneyGroupWithStandings } from "@/lib/tourneys";
 import {
   bestNextPlaceCandidates,
@@ -118,6 +124,8 @@ export default function GroupStageSection({
             {g.matches.map((m) => (
               <MatchScoreRow
                 key={m.id}
+                level={level}
+                tourneyId={tourneyId}
                 match={m}
                 teams={g.teams}
                 locked={locked}
@@ -318,6 +326,11 @@ function StandingsTable({
                     DQ
                   </span>
                 )}
+                {team.noShow && (
+                  <span className="mr-1 rounded-full border border-white/40 px-1 py-0 text-[9px] uppercase tracking-wide text-white/60">
+                    NS
+                  </span>
+                )}
                 {team.playerAName} &amp; {team.playerBName}
               </td>
               <td className="py-0.5 text-right tabular-nums">
@@ -336,6 +349,8 @@ function StandingsTable({
 }
 
 function MatchScoreRow({
+  level,
+  tourneyId,
   match,
   teams,
   locked,
@@ -344,6 +359,8 @@ function MatchScoreRow({
   onChangeA,
   onChangeB,
 }: {
+  level: TourneyLevel;
+  tourneyId: string;
   match: TourneyMatch;
   teams: TourneyTeam[];
   locked: boolean;
@@ -355,7 +372,27 @@ function MatchScoreRow({
   const teamsById = new Map(teams.map((t) => [t.id, t]));
   const teamA = match.teamAId ? teamsById.get(match.teamAId) : null;
   const teamB = match.teamBId ? teamsById.get(match.teamBId) : null;
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, startSave] = useTransition();
   if (!teamA || !teamB) return null;
+
+  const save = () => {
+    const a = Number(scoreA);
+    const b = Number(scoreB);
+    if (scoreA === "" || scoreB === "" || !Number.isFinite(a) || !Number.isFinite(b)) {
+      setError("Enter both scores.");
+      return;
+    }
+    if (a === b) {
+      setError("Scores can't be tied.");
+      return;
+    }
+    setError(null);
+    startSave(async () => {
+      const result = await setMatchScoreAction(match.id, level, tourneyId, a, b);
+      if (result?.error) setError(result.error);
+    });
+  };
 
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-white/5 px-2.5 py-2" data-testid="group-match-row">
@@ -384,6 +421,17 @@ function MatchScoreRow({
           className="w-12 rounded bg-white/5 border border-[var(--color-border)] px-1.5 py-1 text-center text-sm outline-none focus:border-[var(--color-community)] disabled:opacity-50"
         />
       </div>
+      {!locked && (
+        <button
+          type="button"
+          disabled={isSaving}
+          onClick={save}
+          className="self-end rounded-lg border border-[var(--color-border)] px-2.5 py-1 text-xs text-white/70 hover:bg-white/5 disabled:opacity-60"
+        >
+          {isSaving ? "Saving…" : match.winnerTeamId ? "Update Score" : "Save Score"}
+        </button>
+      )}
+      {error && <p className="text-xs text-[var(--color-negative)]">{error}</p>}
     </div>
   );
 }
@@ -401,14 +449,17 @@ function GenerateBracketForm({
   qualifiersPerGroup: number;
   wildcardCount: number;
 }) {
-  // Disqualified teams can never qualify — dropped from the standings here
-  // so they never appear as a checkbox or get auto-selected below. Keeps
-  // the full standings shape (wins/losses) for rendering; groupsForQualifiers
-  // below is just the subset those helper functions need.
+  // Disqualified and no-show teams can never qualify — dropped from the
+  // standings here so they never appear as a checkbox or get auto-selected
+  // below. Keeps the full standings shape (wins/losses) for rendering;
+  // groupsForQualifiers below is just the subset those helper functions need.
   const teamsById = new Map(groups.flatMap((g) => g.teams).map((t) => [t.id, t]));
   const eligibleGroups = groups.map((g) => ({
     ...g,
-    standings: g.standings.filter((s) => !teamsById.get(s.teamId)?.disqualified),
+    standings: g.standings.filter((s) => {
+      const team = teamsById.get(s.teamId);
+      return !team?.disqualified && !team?.noShow;
+    }),
   }));
   const groupsForQualifiers: GroupStandingsForQualifiers[] = eligibleGroups.map((g) => ({
     groupId: g.group.id,
@@ -497,8 +548,8 @@ function GenerateBracketForm({
 
       <p className="text-xs text-white/40">
         Uncheck a team to leave it out of the bracket, then check another anywhere above to fill its slot — the
-        best remaining teams by point differential are listed first. Disqualified teams (above) are never listed
-        here.
+        best remaining teams by point differential are listed first. Disqualified and no-show teams (above) are
+        never listed here.
       </p>
 
       <button

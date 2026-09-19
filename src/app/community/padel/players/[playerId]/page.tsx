@@ -7,6 +7,7 @@ import { formatDateShort } from "@/lib/date";
 import { PadelSectionTabs } from "../../PadelSectionTabs";
 import DeletePlayerButton from "./DeletePlayerButton";
 import LoyaltyProgress from "./LoyaltyProgress";
+import PlayerIdentity from "./PlayerIdentity";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function PlayerProfilePage(props: PageProps<"/community/pad
           <span className="rounded-full border border-[var(--color-community)] px-3 py-1 text-xs uppercase tracking-wide text-[var(--color-community)]">
             {currentLevel ? TOURNEY_LEVEL_LABELS[currentLevel] : "Unranked"}
           </span>
+          <PlayerIdentity player={player} />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -49,7 +51,7 @@ export default async function PlayerProfilePage(props: PageProps<"/community/pad
           <Stat label="2nd Place" value={stats.secondPlaceCount} />
         </div>
 
-        <LoyaltyProgress playerId={player.id} loyalty={loyalty} />
+        <LoyaltyProgress playerId={player.id} loyalty={loyalty} loyaltyAdjustment={player.loyaltyAdjustment} />
 
         <section>
           <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-community)" }}>

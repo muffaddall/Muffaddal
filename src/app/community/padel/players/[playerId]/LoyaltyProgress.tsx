@@ -1,11 +1,19 @@
 "use client";
 
 import { useTransition } from "react";
-import { redeemLoyaltyRewardAction, undoLoyaltyRewardAction } from "./actions";
+import { adjustPlayerLoyaltyAction, redeemLoyaltyRewardAction, undoLoyaltyRewardAction } from "./actions";
 import type { TourneyLoyaltyReward, TourneyLoyaltyStatus } from "@/lib/types";
 import { formatDateShort } from "@/lib/date";
 
-export default function LoyaltyProgress({ playerId, loyalty }: { playerId: string; loyalty: TourneyLoyaltyStatus }) {
+export default function LoyaltyProgress({
+  playerId,
+  loyalty,
+  loyaltyAdjustment,
+}: {
+  playerId: string;
+  loyalty: TourneyLoyaltyStatus;
+  loyaltyAdjustment: number;
+}) {
   const [isRedeeming, startRedeem] = useTransition();
   const pct = Math.min((loyalty.progressInCycle / loyalty.cycleLength) * 100, 100);
 
@@ -43,6 +51,8 @@ export default function LoyaltyProgress({ playerId, loyalty }: { playerId: strin
             } more until a free entry.`}
       </p>
 
+      <AdjustmentControls playerId={playerId} loyaltyAdjustment={loyaltyAdjustment} />
+
       {loyalty.history.length > 0 && (
         <div className="flex flex-col gap-1.5 pt-2 border-t border-white/8">
           <p className="text-xs uppercase tracking-wide text-white/40">Rewards given</p>
@@ -51,6 +61,39 @@ export default function LoyaltyProgress({ playerId, loyalty }: { playerId: strin
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AdjustmentControls({ playerId, loyaltyAdjustment }: { playerId: string; loyaltyAdjustment: number }) {
+  const [isAdjusting, startAdjust] = useTransition();
+
+  return (
+    <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/8 text-xs">
+      <span className="text-white/50">
+        Manual adjustment: {loyaltyAdjustment > 0 ? "+" : ""}
+        {loyaltyAdjustment} tournament{Math.abs(loyaltyAdjustment) === 1 ? "" : "s"}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={isAdjusting}
+          onClick={() => startAdjust(() => adjustPlayerLoyaltyAction(playerId, -1))}
+          className="h-6 w-6 rounded-full border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-60"
+          aria-label="Decrease tournament count"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          disabled={isAdjusting}
+          onClick={() => startAdjust(() => adjustPlayerLoyaltyAction(playerId, 1))}
+          className="h-6 w-6 rounded-full border border-[var(--color-border)] hover:bg-white/5 disabled:opacity-60"
+          aria-label="Increase tournament count"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }
