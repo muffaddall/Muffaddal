@@ -2,11 +2,12 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { CaloriesTabs } from "@/components/CaloriesTabs";
-import { getAllCalorieLogs, getCalorieEntriesForDate, getCalorieLog } from "@/lib/calories";
+import { getAllCalorieLogs, getCalorieEntriesForDate, getCalorieGoals, getCalorieLog } from "@/lib/calories";
 import { getFoodItems } from "@/lib/foodItems";
 import { computeCalorieAverages, computeCalorieLog, WATER_GOAL_ML } from "@/lib/types";
 import { formatDayHeading, formatMonthYear, shiftDate, todayStr } from "@/lib/date";
 import CalorieLogForm from "./CalorieLogForm";
+import GoalsForm from "./GoalsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,12 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   const date = typeof dateParam === "string" ? dateParam : todayStr();
   const isToday = date === todayStr();
 
-  const [log, allLogs, foodItems, entries] = await Promise.all([
+  const [log, allLogs, foodItems, entries, goals] = await Promise.all([
     getCalorieLog(date),
     getAllCalorieLogs(),
     getFoodItems(),
     getCalorieEntriesForDate(date),
+    getCalorieGoals(),
   ]);
   const computed = log ? computeCalorieLog(log) : null;
   const { avgIntake, avgBurned, avgWater } = computeCalorieAverages(allLogs);
@@ -67,14 +69,45 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
           </div>
         </div>
 
+        <GoalsForm goals={goals} />
+
         {computed && (
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <Stat label="Intake" value={`${computed.intake} kcal`} sub={`Planned: ${plannedIntake} kcal`} />
-            <Stat label="Burned" value={`${computed.burned} kcal`} />
+            <Stat
+              label="Intake"
+              value={`${computed.intake} / ${goals.calories} kcal`}
+              sub={`Planned: ${plannedIntake} kcal`}
+              color={computed.intake <= goals.calories ? "var(--color-positive)" : "var(--color-negative)"}
+            />
+            <Stat
+              label="Burned"
+              value={`${computed.burned} / ${goals.burned} kcal`}
+              color={computed.burned >= goals.burned ? "var(--color-positive)" : "var(--color-negative)"}
+            />
             <Stat
               label={computed.isDeficit ? "Deficit" : "Surplus"}
               value={`${computed.net > 0 ? "+" : ""}${computed.net} kcal`}
               color={computed.isDeficit ? "var(--color-positive)" : "var(--color-negative)"}
+            />
+          </div>
+        )}
+
+        {computed && (
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <Stat
+              label="Protein"
+              value={`${computed.protein} / ${goals.protein} g`}
+              color={computed.protein >= goals.protein ? "var(--color-positive)" : "var(--color-negative)"}
+            />
+            <Stat
+              label="Carbs"
+              value={`${computed.carbs} / ${goals.carbs} g`}
+              color={computed.carbs >= goals.carbs ? "var(--color-positive)" : "var(--color-negative)"}
+            />
+            <Stat
+              label="Fat"
+              value={`${computed.fat} / ${goals.fat} g`}
+              color={computed.fat >= goals.fat ? "var(--color-positive)" : "var(--color-negative)"}
             />
           </div>
         )}

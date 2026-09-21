@@ -247,6 +247,12 @@ export type CalorieLog = {
   snacks: number;
   burned: number;
   water: number; // ml
+  // Day-level macro totals in grams, summed across every eaten entry for
+  // the day — unlike breakfast/lunch/dinner/snacks these aren't split per
+  // meal (see recomputeDayMacros in src/lib/calories.ts).
+  protein: number;
+  carbs: number;
+  fat: number;
 };
 
 export type CalorieLogComputed = CalorieLog & {
@@ -286,6 +292,25 @@ export function computeCalorieAverages(logs: CalorieLog[]): CalorieAverages {
   };
 }
 
+// Daily targets shown at the top of the Calorie Tracker — editable, stored
+// in app_settings alongside the FX rates (see getCalorieGoals/
+// setCalorieGoals in src/lib/calories.ts).
+export type CalorieGoals = {
+  calories: number;
+  burned: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+export const DEFAULT_CALORIE_GOALS: CalorieGoals = {
+  calories: 2200,
+  burned: 400,
+  protein: 150,
+  carbs: 220,
+  fat: 70,
+};
+
 export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
@@ -309,6 +334,9 @@ export type FoodItem = {
   name: string;
   ingredients: string;
   calories: number;
+  protein: number; // grams
+  carbs: number; // grams
+  fat: number; // grams
   mealType: MealType;
   created_at: string;
 };
@@ -322,6 +350,9 @@ export type CalorieEntry = {
   mealType: MealType;
   name: string;
   calories: number;
+  protein: number; // grams
+  carbs: number; // grams
+  fat: number; // grams
   sortOrder: number;
   eaten: boolean;
 };
