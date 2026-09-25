@@ -54,6 +54,27 @@ export async function addWorkoutLog(input: {
   if (error) throw new Error(error.message);
 }
 
+export async function updateWorkoutLog(
+  id: string,
+  input: {
+    date: string;
+    distance: number;
+    durationMin: number;
+    equipmentId: string | null;
+  }
+): Promise<void> {
+  const { error } = await supabase
+    .from("workout_logs")
+    .update({
+      date: input.date,
+      distance: input.distance,
+      duration_min: input.durationMin,
+      equipment_id: input.equipmentId,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteWorkoutLog(id: string): Promise<void> {
   const { error } = await supabase.from("workout_logs").delete().eq("id", id);
   if (error) throw new Error(error.message);

@@ -107,6 +107,7 @@ export default async function WorkoutDisciplinePage(
                     log={log}
                     equipmentName={log.equipmentId ? equipmentById.get(log.equipmentId) ?? null : null}
                     showGear={!!equipmentType}
+                    equipmentOptions={equipmentOptions}
                   />
                 ))}
                 {logs.length === 0 && (

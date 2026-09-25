@@ -564,6 +564,17 @@ export function sumDistanceInRange(
   return Math.round(toKm(total, discipline) * 10) / 10;
 }
 
+/** Total distance logged against each piece of equipment, keyed by equipment id — only running and cycling logs ever carry an equipmentId, and both are already stored in km, so this is a plain sum with no unit conversion needed. */
+export function sumDistanceByEquipment(logs: WorkoutLog[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const log of logs) {
+    if (!log.equipmentId) continue;
+    totals.set(log.equipmentId, (totals.get(log.equipmentId) ?? 0) + log.distance);
+  }
+  for (const [id, total] of totals) totals.set(id, Math.round(total * 10) / 10);
+  return totals;
+}
+
 // A weekly training target you set for yourself (e.g. every Sunday night or
 // Monday morning) — one row per Monday-start week, split across the three
 // disciplines, always in km for easy side-by-side comparison.
