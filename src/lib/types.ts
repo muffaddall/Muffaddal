@@ -341,6 +341,18 @@ export type FoodItem = {
   created_at: string;
 };
 
+// A meal type's quick-add options: its own items plus every snack, since a
+// snack is fair game at breakfast, lunch, or dinner too — and lunch/dinner
+// also share with each other, since most lunch food is equally good for
+// dinner. The Snack dropdown itself only offers snack-tagged items.
+export function foodItemsForMealType(items: FoodItem[], mealType: MealType): FoodItem[] {
+  if (mealType === "snack") return items.filter((i) => i.mealType === "snack");
+  if (mealType === "lunch" || mealType === "dinner") {
+    return items.filter((i) => i.mealType === "lunch" || i.mealType === "dinner" || i.mealType === "snack");
+  }
+  return items.filter((i) => i.mealType === mealType || i.mealType === "snack");
+}
+
 // One named thing you ate, logged against a specific meal on a specific
 // day — e.g. "Chicken sandwich" (450 kcal, lunch, 2026-09-10). A meal's
 // total on CalorieLog is just these summed, kept in sync automatically.

@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState, useTransition } from "react";
 import { createCalorieEntry, removeCalorieEntry, saveCalorieLog, toggleCalorieEntryEaten } from "./actions";
-import type { CalorieEntry, CalorieLog, FoodItem, MealType } from "@/lib/types";
+import { foodItemsForMealType, type CalorieEntry, type CalorieLog, type FoodItem, type MealType } from "@/lib/types";
 
 const MEALS: { type: MealType; label: string; color: string }[] = [
   { type: "breakfast", label: "Breakfast", color: "var(--color-post)" },
@@ -26,10 +26,7 @@ export default function CalorieLogForm({
   foodItems: FoodItem[];
 }) {
   const entriesByMeal = (mealType: MealType) => entries.filter((e) => e.mealType === mealType);
-  const forMeal = (mealType: MealType) =>
-    mealType === "snack"
-      ? foodItems.filter((i) => i.mealType === "snack")
-      : foodItems.filter((i) => i.mealType === mealType || i.mealType === "snack");
+  const forMeal = (mealType: MealType) => foodItemsForMealType(foodItems, mealType);
 
   const [state, formAction, pending] = useActionState(saveCalorieLog, undefined);
 
