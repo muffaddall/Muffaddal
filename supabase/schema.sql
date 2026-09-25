@@ -370,6 +370,19 @@ create index if not exists weight_logs_date_idx on weight_logs (date);
 
 alter table weight_logs enable row level security;
 
+-- Your gear — running shoes and bikes — so a workout log can record which
+-- one you used (e.g. tracking mileage per pair of shoes). Managed from the
+-- Equipment page at /workouts/equipment; type constrains which discipline's
+-- quick-add dropdown offers it (swimming has none).
+create table if not exists equipment (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in ('shoe', 'bike')),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table equipment enable row level security;
+
 -- Workout entries across the three tracked disciplines. Pace, personal
 -- best, and average pace are all computed on read from distance/duration,
 -- never stored redundantly.
@@ -399,6 +412,13 @@ create index if not exists workout_logs_discipline_idx on workout_logs (discipli
 create index if not exists workout_logs_date_idx on workout_logs (date);
 
 alter table workout_logs enable row level security;
+
+-- Which piece of equipment (from the table above) this workout used —
+-- null if none was picked, or for swimming which has no equipment slot.
+-- The `time` column above is no longer collected by the app (there was no
+-- real use for a time-of-day on a workout) but is left in place rather
+-- than dropped, so any historical values aren't destroyed.
+alter table workout_logs add column if not exists equipment_id uuid references equipment(id) on delete set null;
 
 -- One row per Monday-start week: the target you set for yourself (in km,
 -- for all three disciplines including swimming — the individual Swimming

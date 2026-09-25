@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { FitnessSectionTabs } from "@/components/FitnessSectionTabs";
 import { WorkoutDisciplineTabs } from "@/components/WorkoutDisciplineTabs";
 import { getWorkoutLogs } from "@/lib/workouts";
+import { getEquipment, equipmentForType } from "@/lib/equipment";
 import {
+  DISCIPLINE_EQUIPMENT_TYPE,
   WORKOUT_DISCIPLINE_LABELS,
   computeWorkoutStats,
   computeWorkoutVolume,
@@ -26,7 +28,12 @@ export default async function WorkoutDisciplinePage(
   if (!isWorkoutDiscipline(disciplineParam)) notFound();
   const discipline = disciplineParam;
 
-  const logs = await getWorkoutLogs(discipline);
+  const equipmentType = DISCIPLINE_EQUIPMENT_TYPE[discipline];
+
+  const [logs, allEquipment] = await Promise.all([getWorkoutLogs(discipline), getEquipment()]);
+  const equipmentOptions = equipmentType ? equipmentForType(allEquipment, equipmentType) : [];
+  const equipmentById = new Map(allEquipment.map((item) => [item.id, item.name]));
+
   const { personalBestDistance, personalBestPace, averageDistance, averagePace } =
     computeWorkoutStats(logs);
   const volume = computeWorkoutVolume(logs, todayStr());
@@ -75,7 +82,7 @@ export default async function WorkoutDisciplinePage(
           <VolumeCard title="This Month" period={volume.month} discipline={discipline} />
         </div>
 
-        <AddWorkoutForm discipline={discipline} />
+        <AddWorkoutForm discipline={discipline} equipment={equipmentOptions} />
 
         <section className="mt-6">
           <h2 className="font-display text-3xl tracking-wide leading-none mb-3" style={{ color: "var(--color-fitness)" }}>
@@ -86,20 +93,25 @@ export default async function WorkoutDisciplinePage(
               <thead>
                 <tr className="text-left text-xs text-[var(--color-fg-dim)]">
                   <th className="pb-2 pr-3 font-medium">Date</th>
-                  <th className="pb-2 pr-3 font-medium">Time</th>
                   <th className="pb-2 pr-3 font-medium">Distance</th>
                   <th className="pb-2 pr-3 font-medium">Duration</th>
                   <th className="pb-2 pr-3 font-medium">Pace</th>
+                  {equipmentType && <th className="pb-2 pr-3 font-medium">Gear</th>}
                   <th className="pb-2" />
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <WorkoutRow key={log.id} log={log} />
+                  <WorkoutRow
+                    key={log.id}
+                    log={log}
+                    equipmentName={log.equipmentId ? equipmentById.get(log.equipmentId) ?? null : null}
+                    showGear={!!equipmentType}
+                  />
                 ))}
                 {logs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-sm text-[var(--color-fg-dim)]">
+                    <td colSpan={equipmentType ? 6 : 5} className="py-6 text-center text-sm text-[var(--color-fg-dim)]">
                       No workouts logged yet.
                     </td>
                   </tr>

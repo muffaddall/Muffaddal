@@ -390,13 +390,74 @@ export const WORKOUT_DISCIPLINE_UNITS: Record<
   swimming: { distanceUnit: "m", distanceLabel: "Distance (m)", paceUnit: "/100m", paceSegment: 100 },
 };
 
+// A workout's distance can be typed in any of these units at entry time —
+// converted to the discipline's own canonical unit above before it's
+// stored, so pace/volume math never has to think about units.
+export const DISTANCE_UNITS = ["km", "mi", "m"] as const;
+export type DistanceUnit = (typeof DISTANCE_UNITS)[number];
+
+export function isDistanceUnit(value: string): value is DistanceUnit {
+  return (DISTANCE_UNITS as readonly string[]).includes(value);
+}
+
+export const DISTANCE_UNIT_LABELS: Record<DistanceUnit, string> = {
+  km: "km",
+  mi: "mi",
+  m: "m",
+};
+
+const METERS_PER_DISTANCE_UNIT: Record<DistanceUnit, number> = {
+  km: 1000,
+  mi: 1609.344,
+  m: 1,
+};
+
+/** Converts a distance entered in `unit` into the discipline's canonical storage unit (km for running/cycling, meters for swimming) — so a run can be logged in miles even though it's always stored/paced in km. */
+export function convertDistanceToDisciplineUnit(
+  value: number,
+  unit: DistanceUnit,
+  discipline: WorkoutDiscipline
+): number {
+  const meters = value * METERS_PER_DISTANCE_UNIT[unit];
+  const canonicalUnit = WORKOUT_DISCIPLINE_UNITS[discipline].distanceUnit as DistanceUnit;
+  return meters / METERS_PER_DISTANCE_UNIT[canonicalUnit];
+}
+
+// Your gear — running shoes and bikes — so a run/ride log can record which
+// one you used. Swimming has no equipment slot. Managed on the Equipment
+// page at /workouts/equipment.
+export const EQUIPMENT_TYPES = ["shoe", "bike"] as const;
+export type EquipmentType = (typeof EQUIPMENT_TYPES)[number];
+
+export function isEquipmentType(value: string): value is EquipmentType {
+  return (EQUIPMENT_TYPES as readonly string[]).includes(value);
+}
+
+export const EQUIPMENT_TYPE_LABELS: Record<EquipmentType, string> = {
+  shoe: "Running Shoe",
+  bike: "Bike",
+};
+
+export type Equipment = {
+  id: string;
+  type: EquipmentType;
+  name: string;
+  createdAt: string;
+};
+
+/** Which equipment type (if any) a discipline's quick-add dropdown offers — swimming has none. */
+export const DISCIPLINE_EQUIPMENT_TYPE: Partial<Record<WorkoutDiscipline, EquipmentType>> = {
+  running: "shoe",
+  cycling: "bike",
+};
+
 export type WorkoutLog = {
   id: string;
   discipline: WorkoutDiscipline;
   date: string; // YYYY-MM-DD
-  time: string | null; // HH:MM
   distance: number; // in the discipline's distanceUnit
   durationMin: number;
+  equipmentId: string | null;
   createdAt: string;
 };
 

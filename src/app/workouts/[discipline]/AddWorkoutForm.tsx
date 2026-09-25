@@ -3,9 +3,21 @@
 import { useActionState, useRef } from "react";
 import { createWorkoutLog } from "./actions";
 import { todayStr } from "@/lib/date";
-import { WORKOUT_DISCIPLINE_UNITS, type WorkoutDiscipline } from "@/lib/types";
+import {
+  DISTANCE_UNITS,
+  DISTANCE_UNIT_LABELS,
+  WORKOUT_DISCIPLINE_UNITS,
+  type Equipment,
+  type WorkoutDiscipline,
+} from "@/lib/types";
 
-export default function AddWorkoutForm({ discipline }: { discipline: WorkoutDiscipline }) {
+export default function AddWorkoutForm({
+  discipline,
+  equipment,
+}: {
+  discipline: WorkoutDiscipline;
+  equipment: Equipment[];
+}) {
   const units = WORKOUT_DISCIPLINE_UNITS[discipline];
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(async (
@@ -21,7 +33,7 @@ export default function AddWorkoutForm({ discipline }: { discipline: WorkoutDisc
     <form
       ref={formRef}
       action={formAction}
-      className="grid grid-cols-2 gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3 sm:grid-cols-[9rem_7rem_8rem_8rem_auto]"
+      className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] p-3"
     >
       <input type="hidden" name="discipline" value={discipline} />
       <input
@@ -32,18 +44,24 @@ export default function AddWorkoutForm({ discipline }: { discipline: WorkoutDisc
         className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
       <input
-        name="time"
-        type="time"
-        className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
-      />
-      <input
         name="distance"
         type="number"
         step="any"
-        placeholder={units.distanceLabel}
+        placeholder="Distance"
         required
-        className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+        className="w-24 rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
+      <select
+        name="unit"
+        defaultValue={units.distanceUnit}
+        className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+      >
+        {DISTANCE_UNITS.map((unit) => (
+          <option key={unit} value={unit}>
+            {DISTANCE_UNIT_LABELS[unit]}
+          </option>
+        ))}
+      </select>
       <input
         name="durationMin"
         type="number"
@@ -52,15 +70,29 @@ export default function AddWorkoutForm({ discipline }: { discipline: WorkoutDisc
         required
         className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
       />
+      {equipment.length > 0 && (
+        <select
+          name="equipmentId"
+          defaultValue=""
+          className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+        >
+          <option value="">No gear</option>
+          {equipment.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-[var(--color-accent)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60 col-span-2 sm:col-span-1"
+        className="rounded-lg bg-[var(--color-accent)] text-black font-medium px-3 py-1.5 text-sm disabled:opacity-60"
       >
         {pending ? "Saving…" : "Add workout"}
       </button>
       {state?.error && (
-        <p className="col-span-full text-xs text-[var(--color-negative)]">{state.error}</p>
+        <p className="w-full text-xs text-[var(--color-negative)]">{state.error}</p>
       )}
     </form>
   );

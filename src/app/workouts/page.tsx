@@ -155,6 +155,15 @@ export default async function WorkoutsPage() {
               </p>
               <p className="text-sm text-white/55">Money spent/won and games played</p>
             </Link>
+            <Link
+              href="/workouts/equipment"
+              className="rounded-2xl bg-[var(--color-surface)] border border-white/8 p-4 active:scale-[0.99] transition-transform"
+            >
+              <p className="font-bold text-lg mb-1" style={{ color: "var(--color-fitness)" }}>
+                Equipment
+              </p>
+              <p className="text-sm text-white/55">Running shoes and bikes</p>
+            </Link>
           </div>
         </section>
       </main>
