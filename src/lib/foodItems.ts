@@ -38,14 +38,6 @@ export async function getFoodItems(): Promise<FoodItem[]> {
   return (data ?? []).map(fromRow);
 }
 
-// A meal type's quick-add options: its own items plus every snack, since
-// a snack is fair game at breakfast, lunch, or dinner too. The Snack
-// dropdown itself only offers snack-tagged items.
-export function foodItemsForMealType(items: FoodItem[], mealType: MealType): FoodItem[] {
-  if (mealType === "snack") return items.filter((i) => i.mealType === "snack");
-  return items.filter((i) => i.mealType === mealType || i.mealType === "snack");
-}
-
 export async function addFoodItem(input: {
   name: string;
   ingredients: string;
