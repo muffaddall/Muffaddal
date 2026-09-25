@@ -165,6 +165,24 @@ on conflict (key) do nothing;
 insert into app_settings (key, value) values ('aed_per_inr', 0.044)
 on conflict (key) do nothing;
 
+-- Daily targets shown at the top of the Calorie Tracker — editable from
+-- the page itself, same app_settings key/value pattern as the FX rates
+-- above (see src/lib/calories.ts getCalorieGoals/setCalorieGoals).
+insert into app_settings (key, value) values ('calorie_goal', 2200)
+on conflict (key) do nothing;
+
+insert into app_settings (key, value) values ('burned_goal', 400)
+on conflict (key) do nothing;
+
+insert into app_settings (key, value) values ('protein_goal', 150)
+on conflict (key) do nothing;
+
+insert into app_settings (key, value) values ('carbs_goal', 220)
+on conflict (key) do nothing;
+
+insert into app_settings (key, value) values ('fat_goal', 70)
+on conflict (key) do nothing;
+
 -- Purchases made using money from the Big Purchase Fund. Their total is
 -- subtracted from the fund's running balance. (Replaces the old "debts"
 -- table — those are the same thing: things bought using the fund.)
@@ -263,6 +281,13 @@ create table if not exists calorie_logs (
 -- see WATER_GOAL_ML in src/lib/types.ts).
 alter table calorie_logs add column if not exists water numeric not null default 0;
 
+-- Day-level macro totals in grams — unlike breakfast/lunch/dinner/snacks
+-- these aren't split per meal, just summed across every eaten entry for
+-- the day (see recomputeDayMacros in src/lib/calories.ts).
+alter table calorie_logs add column if not exists protein numeric not null default 0;
+alter table calorie_logs add column if not exists carbs numeric not null default 0;
+alter table calorie_logs add column if not exists fat numeric not null default 0;
+
 alter table calorie_logs enable row level security;
 
 -- Every named food you log against a meal on a given day — this is what
@@ -293,6 +318,11 @@ alter table calorie_entries enable row level security;
 -- recomputeMealTotal only sums eaten=true rows into calorie_logs.
 alter table calorie_entries add column if not exists eaten boolean not null default true;
 
+-- Macros in grams, logged alongside calories for each food entry.
+alter table calorie_entries add column if not exists protein numeric not null default 0;
+alter table calorie_entries add column if not exists carbs numeric not null default 0;
+alter table calorie_entries add column if not exists fat numeric not null default 0;
+
 -- Saved foods/meals you can quick-add to a day's log on the Calorie
 -- Tracker instead of retyping calories every time (e.g. "Apple", or a
 -- multi-ingredient combo like "Turkey and Eggs Breakfast"). A "snack"
@@ -307,6 +337,12 @@ create table if not exists food_items (
 );
 
 alter table food_items enable row level security;
+
+-- Macros in grams, saved alongside calories so a quick-add carries its
+-- macros over to the day's log too.
+alter table food_items add column if not exists protein numeric not null default 0;
+alter table food_items add column if not exists carbs numeric not null default 0;
+alter table food_items add column if not exists fat numeric not null default 0;
 
 -- Seeded once with a handful of common items — edit or delete freely from
 -- the Foods page; new ones you add there stick around the same way.
@@ -333,6 +369,19 @@ create table if not exists weight_logs (
 create index if not exists weight_logs_date_idx on weight_logs (date);
 
 alter table weight_logs enable row level security;
+
+-- Your gear — running shoes and bikes — so a workout log can record which
+-- one you used (e.g. tracking mileage per pair of shoes). Managed from the
+-- Equipment page at /workouts/equipment; type constrains which discipline's
+-- quick-add dropdown offers it (swimming has none).
+create table if not exists equipment (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in ('shoe', 'bike')),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table equipment enable row level security;
 
 -- Workout entries across the three tracked disciplines. Pace, personal
 -- best, and average pace are all computed on read from distance/duration,
@@ -363,6 +412,13 @@ create index if not exists workout_logs_discipline_idx on workout_logs (discipli
 create index if not exists workout_logs_date_idx on workout_logs (date);
 
 alter table workout_logs enable row level security;
+
+-- Which piece of equipment (from the table above) this workout used —
+-- null if none was picked, or for swimming which has no equipment slot.
+-- The `time` column above is no longer collected by the app (there was no
+-- real use for a time-of-day on a workout) but is left in place rather
+-- than dropped, so any historical values aren't destroyed.
+alter table workout_logs add column if not exists equipment_id uuid references equipment(id) on delete set null;
 
 -- One row per Monday-start week: the target you set for yourself (in km,
 -- for all three disciplines including swimming — the individual Swimming

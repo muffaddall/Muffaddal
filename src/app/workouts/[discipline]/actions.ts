@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { addWorkoutLog, deleteWorkoutLog } from "@/lib/workouts";
-import { isWorkoutDiscipline } from "@/lib/types";
+import { convertDistanceToDisciplineUnit, isDistanceUnit, isWorkoutDiscipline } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
 
@@ -12,20 +12,24 @@ export async function createWorkoutLog(
 ): Promise<FormState> {
   const discipline = String(formData.get("discipline") ?? "");
   const date = String(formData.get("date") ?? "");
-  const time = String(formData.get("time") ?? "").trim() || null;
-  const distance = Number(formData.get("distance"));
+  const distanceInput = Number(formData.get("distance"));
+  const unit = String(formData.get("unit") ?? "");
   const durationMin = Number(formData.get("durationMin"));
+  const equipmentId = String(formData.get("equipmentId") ?? "").trim() || null;
 
   if (!isWorkoutDiscipline(discipline)) return { error: "Invalid discipline." };
   if (!date) return { error: "Date is required." };
-  if (!Number.isFinite(distance) || distance <= 0) {
+  if (!isDistanceUnit(unit)) return { error: "Invalid unit." };
+  if (!Number.isFinite(distanceInput) || distanceInput <= 0) {
     return { error: "Distance must be a positive number." };
   }
   if (!Number.isFinite(durationMin) || durationMin <= 0) {
     return { error: "Duration must be a positive number." };
   }
 
-  await addWorkoutLog({ discipline, date, time, distance, durationMin });
+  const distance = convertDistanceToDisciplineUnit(distanceInput, unit, discipline);
+
+  await addWorkoutLog({ discipline, date, distance, durationMin, equipmentId });
   revalidatePath(`/workouts/${discipline}`);
   revalidatePath("/");
 }

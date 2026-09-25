@@ -6,9 +6,9 @@ type WorkoutLogRow = {
   id: string;
   discipline: WorkoutDiscipline;
   date: string;
-  time: string | null;
   distance: number;
   duration_min: number;
+  equipment_id: string | null;
   created_at: string;
 };
 
@@ -17,9 +17,9 @@ function fromRow(row: WorkoutLogRow): WorkoutLog {
     id: row.id,
     discipline: row.discipline,
     date: row.date,
-    time: row.time ? row.time.slice(0, 5) : null,
     distance: row.distance,
     durationMin: row.duration_min,
+    equipmentId: row.equipment_id,
     createdAt: row.created_at,
   };
 }
@@ -32,7 +32,7 @@ export async function getWorkoutLogs(
     .select("*")
     .eq("discipline", discipline)
     .order("date", { ascending: false })
-    .order("time", { ascending: false });
+    .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(fromRow);
 }
@@ -40,16 +40,16 @@ export async function getWorkoutLogs(
 export async function addWorkoutLog(input: {
   discipline: WorkoutDiscipline;
   date: string;
-  time: string | null;
   distance: number;
   durationMin: number;
+  equipmentId: string | null;
 }): Promise<void> {
   const { error } = await supabase.from("workout_logs").insert({
     discipline: input.discipline,
     date: input.date,
-    time: input.time,
     distance: input.distance,
     duration_min: input.durationMin,
+    equipment_id: input.equipmentId,
   });
   if (error) throw new Error(error.message);
 }
@@ -65,7 +65,7 @@ export async function getAllWorkoutLogs(): Promise<WorkoutLog[]> {
     .from("workout_logs")
     .select("*")
     .order("date", { ascending: false })
-    .order("time", { ascending: false });
+    .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(fromRow);
 }

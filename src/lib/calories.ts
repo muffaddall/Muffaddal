@@ -1,6 +1,6 @@
 import "server-only";
 import { supabase } from "@/lib/supabase";
-import type { CalorieEntry, CalorieLog, MealType } from "@/lib/types";
+import { DEFAULT_CALORIE_GOALS, type CalorieEntry, type CalorieGoals, type CalorieLog, type MealType } from "@/lib/types";
 
 type CalorieLogRow = {
   date: string;
@@ -10,6 +10,9 @@ type CalorieLogRow = {
   snacks: number;
   burned: number;
   water: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 };
 
 function fromRow(row: CalorieLogRow): CalorieLog {
@@ -21,6 +24,9 @@ function fromRow(row: CalorieLogRow): CalorieLog {
     snacks: row.snacks,
     burned: row.burned,
     water: row.water,
+    protein: row.protein,
+    carbs: row.carbs,
+    fat: row.fat,
   };
 }
 
@@ -61,12 +67,51 @@ export async function updateWaterAndBurned(date: string, water: number, burned: 
   if (error) throw new Error(error.message);
 }
 
+// Daily targets shown at the top of the Calorie Tracker — same
+// app_settings key/value pattern as the FX rates in src/lib/fx.ts.
+const GOAL_KEYS: Record<keyof CalorieGoals, string> = {
+  calories: "calorie_goal",
+  burned: "burned_goal",
+  protein: "protein_goal",
+  carbs: "carbs_goal",
+  fat: "fat_goal",
+};
+
+export async function getCalorieGoals(): Promise<CalorieGoals> {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("key, value")
+    .in("key", Object.values(GOAL_KEYS));
+  if (error) throw new Error(error.message);
+
+  const byKey = new Map((data ?? []).map((row) => [row.key, row.value]));
+  return {
+    calories: byKey.get(GOAL_KEYS.calories) ?? DEFAULT_CALORIE_GOALS.calories,
+    burned: byKey.get(GOAL_KEYS.burned) ?? DEFAULT_CALORIE_GOALS.burned,
+    protein: byKey.get(GOAL_KEYS.protein) ?? DEFAULT_CALORIE_GOALS.protein,
+    carbs: byKey.get(GOAL_KEYS.carbs) ?? DEFAULT_CALORIE_GOALS.carbs,
+    fat: byKey.get(GOAL_KEYS.fat) ?? DEFAULT_CALORIE_GOALS.fat,
+  };
+}
+
+export async function setCalorieGoals(goals: CalorieGoals): Promise<void> {
+  const rows = (Object.keys(GOAL_KEYS) as (keyof CalorieGoals)[]).map((field) => ({
+    key: GOAL_KEYS[field],
+    value: goals[field],
+  }));
+  const { error } = await supabase.from("app_settings").upsert(rows, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+}
+
 type CalorieEntryRow = {
   id: string;
   date: string;
   meal_type: MealType;
   name: string;
   calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
   sort_order: number;
   eaten: boolean;
 };
@@ -78,6 +123,9 @@ function entryFromRow(row: CalorieEntryRow): CalorieEntry {
     mealType: row.meal_type,
     name: row.name,
     calories: row.calories,
+    protein: row.protein,
+    carbs: row.carbs,
+    fat: row.fat,
     sortOrder: row.sort_order,
     eaten: row.eaten,
   };
@@ -118,11 +166,38 @@ async function recomputeMealTotal(date: string, mealType: MealType): Promise<voi
   if (upsertError) throw new Error(upsertError.message);
 }
 
+/** Re-sums this date's eaten entries' macros (across every meal) and writes the totals into calorie_logs — unlike calories, macros aren't split per meal. */
+async function recomputeDayMacros(date: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("calorie_entries")
+    .select("protein, carbs, fat")
+    .eq("date", date)
+    .eq("eaten", true);
+  if (error) throw new Error(error.message);
+
+  const totals = (data ?? []).reduce(
+    (sum, r) => ({
+      protein: sum.protein + Number(r.protein),
+      carbs: sum.carbs + Number(r.carbs),
+      fat: sum.fat + Number(r.fat),
+    }),
+    { protein: 0, carbs: 0, fat: 0 }
+  );
+
+  const { error: upsertError } = await supabase
+    .from("calorie_logs")
+    .upsert({ date, ...totals }, { onConflict: "date" });
+  if (upsertError) throw new Error(upsertError.message);
+}
+
 export async function addCalorieEntry(input: {
   date: string;
   mealType: MealType;
   name: string;
   calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 }): Promise<void> {
   const { count, error: countError } = await supabase
     .from("calorie_entries")
@@ -136,12 +211,16 @@ export async function addCalorieEntry(input: {
     meal_type: input.mealType,
     name: input.name,
     calories: input.calories,
+    protein: input.protein,
+    carbs: input.carbs,
+    fat: input.fat,
     sort_order: count ?? 0,
     eaten: false,
   });
   if (error) throw new Error(error.message);
 
   await recomputeMealTotal(input.date, input.mealType);
+  await recomputeDayMacros(input.date);
 }
 
 export async function deleteCalorieEntry(id: string, date: string, mealType: MealType): Promise<void> {
@@ -149,6 +228,7 @@ export async function deleteCalorieEntry(id: string, date: string, mealType: Mea
   if (error) throw new Error(error.message);
 
   await recomputeMealTotal(date, mealType);
+  await recomputeDayMacros(date);
 }
 
 export async function setCalorieEntryEaten(
@@ -161,4 +241,5 @@ export async function setCalorieEntryEaten(
   if (error) throw new Error(error.message);
 
   await recomputeMealTotal(date, mealType);
+  await recomputeDayMacros(date);
 }

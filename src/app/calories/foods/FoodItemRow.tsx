@@ -16,7 +16,10 @@ export default function FoodItemRow({ item }: { item: FoodItem }) {
         )}
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm tabular-nums">{item.calories} kcal</span>
+        <span className="text-sm tabular-nums">
+          {item.calories} kcal
+          <span className="text-white/40"> · P{item.protein} C{item.carbs} F{item.fat}</span>
+        </span>
         <button
           type="button"
           disabled={isDeleting}

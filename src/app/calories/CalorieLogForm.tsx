@@ -134,6 +134,7 @@ function EntryRow({ entry }: { entry: CalorieEntry }) {
       <span className="flex shrink-0 items-center gap-2">
         <span className={`tabular-nums ${entry.eaten ? "text-white/70" : "text-white/40"}`}>
           {entry.calories} kcal
+          <span className="text-white/30"> · P{entry.protein} C{entry.carbs} F{entry.fat}</span>
         </span>
         <button
           type="button"
@@ -169,7 +170,7 @@ function QuickAddFromLibrary({
       >
         {items.map((item) => (
           <option key={item.id} value={item.id}>
-            {item.name} ({item.calories} kcal)
+            {item.name} ({item.calories} kcal, P{item.protein} C{item.carbs} F{item.fat})
           </option>
         ))}
       </select>
@@ -184,6 +185,9 @@ function QuickAddFromLibrary({
           fd.set("mealType", mealType);
           fd.set("name", item.name);
           fd.set("calories", String(item.calories));
+          fd.set("protein", String(item.protein));
+          fd.set("carbs", String(item.carbs));
+          fd.set("fat", String(item.fat));
           startTransition(() => {
             createCalorieEntry(undefined, fd);
           });
@@ -224,6 +228,30 @@ function AddFoodForm({ date, mealType }: { date: string; mealType: MealType }) {
         min={0}
         placeholder="kcal"
         required
+        className={`${inputCls} w-16 py-1 text-xs`}
+      />
+      <input
+        name="protein"
+        type="number"
+        step="any"
+        min={0}
+        placeholder="P (g)"
+        className={`${inputCls} w-16 py-1 text-xs`}
+      />
+      <input
+        name="carbs"
+        type="number"
+        step="any"
+        min={0}
+        placeholder="C (g)"
+        className={`${inputCls} w-16 py-1 text-xs`}
+      />
+      <input
+        name="fat"
+        type="number"
+        step="any"
+        min={0}
+        placeholder="F (g)"
         className={`${inputCls} w-16 py-1 text-xs`}
       />
       <button
