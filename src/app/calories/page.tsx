@@ -27,6 +27,9 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
   const computed = log ? computeCalorieLog(log) : null;
   const { avgIntake, avgBurned, avgWater } = computeCalorieAverages(allLogs);
   const plannedIntake = entries.reduce((sum, e) => sum + e.calories, 0);
+  const plannedProtein = entries.reduce((sum, e) => sum + e.protein, 0);
+  const plannedCarbs = entries.reduce((sum, e) => sum + e.carbs, 0);
+  const plannedFat = entries.reduce((sum, e) => sum + e.fat, 0);
 
   return (
     <div className="pb-10">
@@ -97,16 +100,19 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
             <Stat
               label="Protein"
               value={`${computed.protein} / ${goals.protein} g`}
+              sub={`Planned: ${plannedProtein} g`}
               color={computed.protein >= goals.protein ? "var(--color-positive)" : "var(--color-negative)"}
             />
             <Stat
               label="Carbs"
               value={`${computed.carbs} / ${goals.carbs} g`}
+              sub={`Planned: ${plannedCarbs} g`}
               color={computed.carbs >= goals.carbs ? "var(--color-positive)" : "var(--color-negative)"}
             />
             <Stat
               label="Fat"
               value={`${computed.fat} / ${goals.fat} g`}
+              sub={`Planned: ${plannedFat} g`}
               color={computed.fat >= goals.fat ? "var(--color-positive)" : "var(--color-negative)"}
             />
           </div>

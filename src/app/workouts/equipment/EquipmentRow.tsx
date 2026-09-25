@@ -2,25 +2,34 @@
 
 import { useTransition } from "react";
 import { removeEquipment } from "./actions";
-import type { Equipment } from "@/lib/types";
+import { formatDateShort } from "@/lib/date";
+import type { Equipment, EquipmentStats } from "@/lib/types";
 
-export default function EquipmentRow({ item, totalKm }: { item: Equipment; totalKm: number }) {
+export default function EquipmentRow({ item, stats }: { item: Equipment; stats: EquipmentStats }) {
   const [isDeleting, startDelete] = useTransition();
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-white/5 transition-colors">
-      <div className="min-w-0">
-        <p className="text-sm font-medium truncate">{item.name}</p>
-        <p className="text-xs text-white/40">{totalKm} km logged</p>
-      </div>
-      <button
-        type="button"
-        disabled={isDeleting}
-        onClick={() => startDelete(() => removeEquipment(item.id))}
-        className="shrink-0 text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
-      >
-        {isDeleting ? "…" : "Delete"}
-      </button>
-    </li>
+    <tr className="border-t border-[var(--color-border)] text-sm">
+      <td className="py-3 pr-3">
+        <p className="font-display text-2xl leading-none">
+          {stats.totalKm} <span className="text-sm text-white/40">km</span>
+        </p>
+        <p className="text-xs text-white/40 mt-1">
+          {stats.workoutCount} workout{stats.workoutCount === 1 ? "" : "s"}
+          {stats.lastUsed && ` · last ${formatDateShort(stats.lastUsed)}`}
+        </p>
+      </td>
+      <td className="py-3 pr-3 font-medium align-top">{item.name}</td>
+      <td className="py-3 text-right align-top">
+        <button
+          type="button"
+          disabled={isDeleting}
+          onClick={() => startDelete(() => removeEquipment(item.id))}
+          className="text-xs text-[var(--color-negative)] hover:opacity-80 disabled:opacity-60"
+        >
+          {isDeleting ? "…" : "Delete"}
+        </button>
+      </td>
+    </tr>
   );
 }

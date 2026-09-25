@@ -564,15 +564,25 @@ export function sumDistanceInRange(
   return Math.round(toKm(total, discipline) * 10) / 10;
 }
 
-/** Total distance logged against each piece of equipment, keyed by equipment id — only running and cycling logs ever carry an equipmentId, and both are already stored in km, so this is a plain sum with no unit conversion needed. */
-export function sumDistanceByEquipment(logs: WorkoutLog[]): Map<string, number> {
-  const totals = new Map<string, number>();
+export type EquipmentStats = {
+  totalKm: number;
+  workoutCount: number;
+  lastUsed: string | null; // YYYY-MM-DD
+};
+
+/** Usage stats per piece of equipment, keyed by equipment id — only running and cycling logs ever carry an equipmentId, and both are already stored in km, so distance needs no unit conversion. */
+export function computeEquipmentStats(logs: WorkoutLog[]): Map<string, EquipmentStats> {
+  const stats = new Map<string, EquipmentStats>();
   for (const log of logs) {
     if (!log.equipmentId) continue;
-    totals.set(log.equipmentId, (totals.get(log.equipmentId) ?? 0) + log.distance);
+    const existing = stats.get(log.equipmentId) ?? { totalKm: 0, workoutCount: 0, lastUsed: null };
+    existing.totalKm += log.distance;
+    existing.workoutCount += 1;
+    if (!existing.lastUsed || log.date > existing.lastUsed) existing.lastUsed = log.date;
+    stats.set(log.equipmentId, existing);
   }
-  for (const [id, total] of totals) totals.set(id, Math.round(total * 10) / 10);
-  return totals;
+  for (const s of stats.values()) s.totalKm = Math.round(s.totalKm * 10) / 10;
+  return stats;
 }
 
 // A weekly training target you set for yourself (e.g. every Sunday night or
