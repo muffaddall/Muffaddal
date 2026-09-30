@@ -224,6 +224,12 @@ export default async function DayToDayPage({
             Categories
           </Link>
           <Link
+            href={`/day-to-day/stats${selectedAccountId ? `?account=${selectedAccountId}` : ""}`}
+            className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
+          >
+            Stats
+          </Link>
+          <Link
             href="/day-to-day/people"
             className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-white/5 transition-colors"
           >
