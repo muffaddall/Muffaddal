@@ -94,6 +94,43 @@ export function monthDateRange(month: string): [string, string] {
   return [fmt(start), fmt(end)];
 }
 
+// Date-range presets for the Day-to-Day Stats page — "all_time" has no
+// lower bound (fetch everything), every other preset is the trailing N
+// whole months ending with the current month.
+export const STATS_RANGE_KEYS = ["this_month", "last_2", "last_3", "last_6", "last_12", "all_time"] as const;
+export type StatsRangeKey = (typeof STATS_RANGE_KEYS)[number];
+
+export function isStatsRangeKey(value: string): value is StatsRangeKey {
+  return (STATS_RANGE_KEYS as readonly string[]).includes(value);
+}
+
+export const STATS_RANGE_LABELS: Record<StatsRangeKey, string> = {
+  this_month: "This month",
+  last_2: "Last 2 months",
+  last_3: "Last 3 months",
+  last_6: "Last 6 months",
+  last_12: "Last 12 months",
+  all_time: "All time",
+};
+
+const STATS_RANGE_MONTHS: Record<StatsRangeKey, number | null> = {
+  this_month: 1,
+  last_2: 2,
+  last_3: 3,
+  last_6: 6,
+  last_12: 12,
+  all_time: null,
+};
+
+/** [start, end] date bounds (inclusive) for a Stats range preset, or null for "all_time" (no lower bound — fetch everything). */
+export function statsRangeDates(key: StatsRangeKey): [string, string] | null {
+  const months = STATS_RANGE_MONTHS[key];
+  if (months === null) return null;
+  const end = monthDateRange(currentMonth())[1];
+  const start = monthDateRange(addMonths(currentMonth(), -(months - 1)))[0];
+  return [start, end];
+}
+
 // The 10-day budget periods reset on the 1st, 11th, and 21st of every
 // month — this returns that period's start date ("yyyy-mm-01/11/21") for
 // a given "yyyy-mm-dd" date, used as a stable, lexically-sortable key.

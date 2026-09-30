@@ -432,7 +432,7 @@ export function convertDistanceToDisciplineUnit(
 ): number {
   const meters = value * METERS_PER_DISTANCE_UNIT[unit];
   const canonicalUnit = WORKOUT_DISCIPLINE_UNITS[discipline].distanceUnit as DistanceUnit;
-  return meters / METERS_PER_DISTANCE_UNIT[canonicalUnit];
+  return Math.round((meters / METERS_PER_DISTANCE_UNIT[canonicalUnit]) * 100) / 100;
 }
 
 // Your gear — running shoes and bikes — so a run/ride log can record which
@@ -813,6 +813,15 @@ export function topLevelCategoryId(
     current = categoriesById.get(current.parentId)!;
   }
   return current.id;
+}
+
+/** This category's id plus every descendant's id — used to sum a category's spending regardless of which level under it a transaction actually got tagged at (the Day-to-Day Stats page's drill-down pie charts). */
+export function categorySubtreeIds(categoryId: string, categories: DdCategory[]): string[] {
+  const ids = [categoryId];
+  for (const child of categories.filter((c) => c.parentId === categoryId)) {
+    ids.push(...categorySubtreeIds(child.id, categories));
+  }
+  return ids;
 }
 
 export type TransactionType = "income" | "expense" | "transfer";

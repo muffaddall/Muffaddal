@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatMoney } from "@/lib/format";
 import type { Currency } from "@/lib/types";
 
@@ -18,7 +19,7 @@ export default function CategoryPieChart({
   data,
   currency,
 }: {
-  data: { label: string; value: number }[];
+  data: { label: string; value: number; href?: string }[];
   currency: Currency;
 }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
@@ -66,18 +67,33 @@ export default function CategoryPieChart({
         )}
       </svg>
       <div className="flex flex-col gap-1.5 text-xs min-w-0 w-full">
-        {slices.map((s, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span
-              className="h-2.5 w-2.5 rounded-full shrink-0"
-              style={{ background: s.color }}
-            />
-            <span className="truncate">{s.label}</span>
-            <span className="ml-auto text-white/80 tabular-nums shrink-0">
-              {formatMoney(s.value, currency)}
-            </span>
-          </div>
-        ))}
+        {slices.map((s, i) => {
+          const row = (
+            <>
+              <span
+                className="h-2.5 w-2.5 rounded-full shrink-0"
+                style={{ background: s.color }}
+              />
+              <span className="truncate">{s.label}</span>
+              <span className="ml-auto text-white/80 tabular-nums shrink-0">
+                {formatMoney(s.value, currency)}
+              </span>
+            </>
+          );
+          return s.href ? (
+            <Link
+              key={i}
+              href={s.href}
+              className="flex items-center gap-2 rounded-md -mx-1 px-1 py-0.5 hover:bg-white/5 transition-colors"
+            >
+              {row}
+            </Link>
+          ) : (
+            <div key={i} className="flex items-center gap-2">
+              {row}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

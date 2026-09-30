@@ -72,7 +72,17 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
           </div>
         </div>
 
-        <GoalsForm goals={goals} />
+        <details className="mb-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-fitness)" }}>
+              Daily Goals
+            </span>
+            <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+          </summary>
+          <div className="px-4 pb-4">
+            <GoalsForm goals={goals} />
+          </div>
+        </details>
 
         {computed && (
           <div className="grid grid-cols-3 gap-3 mb-3">
@@ -88,44 +98,49 @@ export default async function CaloriesPage(props: PageProps<"/calories">) {
               color={computed.burned >= goals.burned ? "var(--color-positive)" : "var(--color-negative)"}
             />
             <Stat
-              label={computed.isDeficit ? "Deficit" : "Surplus"}
-              value={`${computed.net > 0 ? "+" : ""}${computed.net} kcal`}
-              color={computed.isDeficit ? "var(--color-positive)" : "var(--color-negative)"}
-            />
-          </div>
-        )}
-
-        {computed && (
-          <div className="grid grid-cols-3 gap-3 mb-3">
-            <Stat
-              label="Protein"
-              value={`${computed.protein} / ${goals.protein} g`}
-              sub={`Planned: ${plannedProtein} g`}
-              color={computed.protein >= goals.protein ? "var(--color-positive)" : "var(--color-negative)"}
-            />
-            <Stat
-              label="Carbs"
-              value={`${computed.carbs} / ${goals.carbs} g`}
-              sub={`Planned: ${plannedCarbs} g`}
-              color={computed.carbs >= goals.carbs ? "var(--color-positive)" : "var(--color-negative)"}
-            />
-            <Stat
-              label="Fat"
-              value={`${computed.fat} / ${goals.fat} g`}
-              sub={`Planned: ${plannedFat} g`}
-              color={computed.fat >= goals.fat ? "var(--color-positive)" : "var(--color-negative)"}
-            />
-          </div>
-        )}
-
-        {computed && (
-          <div className="mb-6">
-            <Stat
               label="Water"
               value={`${computed.water} / ${WATER_GOAL_ML} ml`}
               color={computed.hitWaterGoal ? "var(--color-positive)" : "var(--color-negative)"}
             />
           </div>
+        )}
+
+        {computed && (
+          <details className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-semibold" style={{ color: "var(--color-fitness)" }}>
+                Deficit &amp; Macros
+              </span>
+              <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+            </summary>
+            <div className="px-4 pb-4 flex flex-col gap-3">
+              <Stat
+                label={computed.isDeficit ? "Deficit" : "Surplus"}
+                value={`${computed.net > 0 ? "+" : ""}${computed.net} kcal`}
+                color={computed.isDeficit ? "var(--color-positive)" : "var(--color-negative)"}
+              />
+              <div className="grid grid-cols-3 gap-3">
+                <Stat
+                  label="Protein"
+                  value={`${computed.protein} / ${goals.protein} g`}
+                  sub={`Planned: ${plannedProtein} g`}
+                  color={computed.protein >= goals.protein ? "var(--color-positive)" : "var(--color-negative)"}
+                />
+                <Stat
+                  label="Carbs"
+                  value={`${computed.carbs} / ${goals.carbs} g`}
+                  sub={`Planned: ${plannedCarbs} g`}
+                  color={computed.carbs >= goals.carbs ? "var(--color-positive)" : "var(--color-negative)"}
+                />
+                <Stat
+                  label="Fat"
+                  value={`${computed.fat} / ${goals.fat} g`}
+                  sub={`Planned: ${plannedFat} g`}
+                  color={computed.fat >= goals.fat ? "var(--color-positive)" : "var(--color-negative)"}
+                />
+              </div>
+            </div>
+          </details>
         )}
 
         <CalorieLogForm key={date} date={date} log={log} entries={entries} foodItems={foodItems} />
