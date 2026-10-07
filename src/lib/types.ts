@@ -133,6 +133,13 @@ export type InvestmentMonth = {
   month: string;
   contribution: number;
   portfolio_value_eom: number | null;
+  // A manual correction to that month's cumulative "Total invested" figure
+  // — set directly in the database (no UI for it), for the rare case where
+  // the auto-calculated total (from "Investment funding" expense entries)
+  // doesn't match reality and logging a corrective expense entry would
+  // wrongly affect Day-to-Day too. When set, every later month's running
+  // total continues accumulating from this corrected base instead.
+  total_invested_override: number | null;
 };
 
 export type InvestmentMonthComputed = InvestmentMonth & {
