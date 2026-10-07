@@ -141,6 +141,15 @@ create table if not exists investment_months (
   created_at timestamptz not null default now()
 );
 
+-- A manual correction to that month's cumulative "Total invested" figure —
+-- set directly here, no UI for it. For the rare case where the
+-- auto-calculated total (from "Investment funding" expense entries) is
+-- wrong and logging a corrective expense entry would also wrongly affect
+-- Day-to-Day. When set, every later month's running total accumulates
+-- from this corrected base instead. See getInvestmentMonths in
+-- src/lib/investments.ts.
+alter table investment_months add column if not exists total_invested_override numeric;
+
 alter table investment_months enable row level security;
 
 -- Small key/value store for app-wide settings — the AED-per-USD rate used to

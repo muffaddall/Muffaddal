@@ -62,6 +62,7 @@ export async function getInvestmentMonths(): Promise<InvestmentMonthComputed[]> 
     const portfolio_value_eom = stored?.portfolio_value_eom ?? null;
 
     totalInvested += contribution - withdrawn;
+    if (stored?.total_invested_override != null) totalInvested = stored.total_invested_override;
 
     const growth_pct =
       portfolio_value_eom !== null && prevPortfolioValue !== null && prevPortfolioValue !== 0
@@ -82,6 +83,7 @@ export async function getInvestmentMonths(): Promise<InvestmentMonthComputed[]> 
       contribution,
       withdrawn,
       portfolio_value_eom,
+      total_invested_override: stored?.total_invested_override ?? null,
       total_invested: totalInvested,
       growth_pct,
       pnl_pct,
