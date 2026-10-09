@@ -5,7 +5,14 @@ import { removeSavingsMonth, saveSavingsMonth } from "./actions";
 import { formatMoney, formatMonth, monthToInputValue } from "@/lib/format";
 import type { SavingsMonthComputed } from "@/lib/types";
 
-export default function SavingsMonthRow({ row }: { row: SavingsMonthComputed }) {
+export default function SavingsMonthRow({
+  row,
+  showPlanned = false,
+}: {
+  row: SavingsMonthComputed;
+  /** Shows the Planned and "Account total after planned" columns — only meaningful on the Future/not-yet-happened table. */
+  showPlanned?: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [state, formAction, pending] = useActionState(async (
@@ -20,7 +27,7 @@ export default function SavingsMonthRow({ row }: { row: SavingsMonthComputed }) 
   if (editing) {
     return (
       <tr className="bg-white/5">
-        <td colSpan={8} className="p-2">
+        <td colSpan={showPlanned ? 10 : 8} className="p-2">
           <form action={formAction} className="grid grid-cols-2 gap-2 sm:grid-cols-[8rem_10rem_8rem_10rem_8rem_auto_auto]">
             <input type="hidden" name="month" value={monthToInputValue(row.month)} />
             <span className="flex items-center text-sm text-[var(--color-fg-dim)]">
@@ -87,6 +94,16 @@ export default function SavingsMonthRow({ row }: { row: SavingsMonthComputed }) 
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.savings_kept)}</td>
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.total_savings)}</td>
       <td className="py-2 pr-3 text-sm tabular-nums font-medium">{formatMoney(row.account_total)}</td>
+      {showPlanned && (
+        <>
+          <td className="py-2 pr-3 text-sm tabular-nums" style={{ color: "var(--color-accent)" }}>
+            {row.planned_for_month > 0 ? formatMoney(row.planned_for_month) : "—"}
+          </td>
+          <td className="py-2 pr-3 text-sm tabular-nums font-medium">
+            {formatMoney(row.account_total_after_planned)}
+          </td>
+        </>
+      )}
       <td className="py-2 pl-2 text-right whitespace-nowrap">
         <button
           type="button"

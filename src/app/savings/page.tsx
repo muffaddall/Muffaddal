@@ -308,8 +308,13 @@ export default async function SavingsPage() {
               <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
             </summary>
             <div className="px-4 pb-4">
+              <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+                Planned is the total of any Big Purchase Fund / Savings purchases you&apos;ve
+                assigned to that month (above) that aren&apos;t marked paid yet — Account total
+                after planned shows what&apos;d be left once they actually happen.
+              </p>
               <div className="overflow-x-auto rounded-xl border border-dashed border-[var(--color-border)] bg-white/[0.02] p-3 opacity-70">
-                <table className="w-full min-w-[780px] border-collapse">
+                <table className="w-full min-w-[980px] border-collapse">
                   <thead>
                     <tr className="text-left text-xs text-[var(--color-fg-dim)]">
                       <th className="pb-2 pr-3 font-medium">Month</th>
@@ -319,12 +324,14 @@ export default async function SavingsPage() {
                       <th className="pb-2 pr-3 font-medium">Savings kept</th>
                       <th className="pb-2 pr-3 font-medium">Total savings</th>
                       <th className="pb-2 pr-3 font-medium">Account total</th>
+                      <th className="pb-2 pr-3 font-medium">Planned</th>
+                      <th className="pb-2 pr-3 font-medium">Account total after planned</th>
                       <th className="pb-2" />
                     </tr>
                   </thead>
                   <tbody>
                     {futureMonths.map((row) => (
-                      <SavingsMonthRow key={row.month} row={row} />
+                      <SavingsMonthRow key={row.month} row={row} showPlanned />
                     ))}
                   </tbody>
                 </table>

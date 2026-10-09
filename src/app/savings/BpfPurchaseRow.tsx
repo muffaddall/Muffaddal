@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { editBpfPurchase, removeBpfPurchase, toggleBpfPurchasePaid } from "./actions";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatMonthShort, monthToInputValue } from "@/lib/format";
 import type { BpfPurchase } from "@/lib/types";
 
 export default function BpfPurchaseRow({ purchase }: { purchase: BpfPurchase }) {
@@ -46,6 +46,13 @@ export default function BpfPurchaseRow({ purchase }: { purchase: BpfPurchase }) 
             />
             Planned
           </label>
+          <input
+            name="month"
+            type="month"
+            defaultValue={purchase.month ? monthToInputValue(purchase.month) : ""}
+            title="Which month this purchase is planned for"
+            className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+          />
           <button
             type="submit"
             disabled={pending}
@@ -84,7 +91,7 @@ export default function BpfPurchaseRow({ purchase }: { purchase: BpfPurchase }) 
         <span className="text-sm truncate">{purchase.name}</span>
         {!purchase.paid && (
           <span className="shrink-0 rounded-full border border-[var(--color-accent)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--color-accent)]">
-            Planned
+            Planned{purchase.month && ` · ${formatMonthShort(purchase.month)}`}
           </span>
         )}
       </div>

@@ -48,6 +48,14 @@ export default function AddBpfPurchaseForm() {
         />
         Future planned purchase
       </label>
+      {planned && (
+        <input
+          name="month"
+          type="month"
+          title="Which month this purchase is planned for"
+          className="rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm outline-none focus:border-[var(--color-accent)]"
+        />
+      )}
       <button
         type="submit"
         disabled={pending}

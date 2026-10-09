@@ -207,6 +207,12 @@ create table if not exists bpf_purchases (
 
 alter table bpf_purchases add column if not exists paid boolean not null default true;
 
+-- Which month this purchase is planned for — only meaningful while
+-- paid=false (a future planned purchase hasn't happened yet). Drives the
+-- Future/not-yet-happened table's per-month Planned column on the Savings
+-- page.
+alter table bpf_purchases add column if not exists month date;
+
 alter table bpf_purchases enable row level security;
 
 -- Purchases made using money from Savings — the Savings equivalent of
@@ -220,6 +226,10 @@ create table if not exists savings_purchases (
 );
 
 alter table savings_purchases add column if not exists paid boolean not null default true;
+
+-- Same idea as bpf_purchases.month above — which month this purchase is
+-- planned for, only meaningful while paid=false.
+alter table savings_purchases add column if not exists month date;
 
 alter table savings_purchases enable row level security;
 
