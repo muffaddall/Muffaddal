@@ -34,14 +34,19 @@ export function totalPlannedBpfPurchases(purchases: BpfPurchase[]): number {
   return purchases.reduce((sum, p) => (p.paid ? sum : sum + p.amount), 0);
 }
 
-export async function addBpfPurchase(input: { name: string; amount: number; paid: boolean }): Promise<void> {
+export async function addBpfPurchase(input: {
+  name: string;
+  amount: number;
+  paid: boolean;
+  month: string | null;
+}): Promise<void> {
   const { error } = await supabase.from("bpf_purchases").insert(input);
   if (error) throw error;
 }
 
 export async function updateBpfPurchase(
   id: string,
-  input: { name: string; amount: number; paid: boolean }
+  input: { name: string; amount: number; paid: boolean; month: string | null }
 ): Promise<void> {
   const { error } = await supabase.from("bpf_purchases").update(input).eq("id", id);
   if (error) throw error;
@@ -80,14 +85,19 @@ export function totalPlannedSavingsPurchases(purchases: SavingsPurchase[]): numb
   return purchases.reduce((sum, p) => (p.paid ? sum : sum + p.amount), 0);
 }
 
-export async function addSavingsPurchase(input: { name: string; amount: number; paid: boolean }): Promise<void> {
+export async function addSavingsPurchase(input: {
+  name: string;
+  amount: number;
+  paid: boolean;
+  month: string | null;
+}): Promise<void> {
   const { error } = await supabase.from("savings_purchases").insert(input);
   if (error) throw error;
 }
 
 export async function updateSavingsPurchase(
   id: string,
-  input: { name: string; amount: number; paid: boolean }
+  input: { name: string; amount: number; paid: boolean; month: string | null }
 ): Promise<void> {
   const { error } = await supabase.from("savings_purchases").update(input).eq("id", id);
   if (error) throw error;
@@ -213,11 +223,26 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
     ((monthsRes.data ?? []) as SavingsMonth[]).map((row) => [row.month, row])
   );
 
+  // Sum of not-yet-paid purchases assigned to each month — drives the
+  // Future/not-yet-happened table's Planned column.
+  const plannedByMonth = (purchasesList: { month: string | null; paid: boolean; amount: number }[]) => {
+    const byMonth = new Map<string, number>();
+    for (const p of purchasesList) {
+      if (p.paid || !p.month) continue;
+      byMonth.set(p.month, (byMonth.get(p.month) ?? 0) + p.amount);
+    }
+    return byMonth;
+  };
+  const plannedBpfByMonth = plannedByMonth(purchases);
+  const plannedSavingsByMonth = plannedByMonth(savingsPurchases);
+
   const allMonths = Array.from(
     new Set([
       ...savingsByMonth.keys(),
       ...debtPaydownByMonth.keys(),
       ...savingsKeptByMonth.keys(),
+      ...plannedBpfByMonth.keys(),
+      ...plannedSavingsByMonth.keys(),
     ])
   ).sort();
 
@@ -247,6 +272,8 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
 
     runningDebt = debt_left;
 
+    const planned_for_month = (plannedBpfByMonth.get(month) ?? 0) + (plannedSavingsByMonth.get(month) ?? 0);
+
     return {
       month,
       debt_paydown,
@@ -258,6 +285,8 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
       total_savings,
       total_elevate: totalElevate,
       account_total,
+      planned_for_month,
+      account_total_after_planned: account_total - planned_for_month,
     };
   });
 }

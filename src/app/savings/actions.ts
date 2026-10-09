@@ -32,11 +32,13 @@ export async function createBpfPurchase(
   const name = String(formData.get("name") ?? "").trim();
   const amount = Number(formData.get("amount"));
   const planned = formData.get("planned") === "on";
+  const monthInput = String(formData.get("month") ?? "").trim();
+  const month = monthInput ? inputValueToMonth(monthInput) : null;
 
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
 
-  await addBpfPurchase({ name, amount, paid: !planned });
+  await addBpfPurchase({ name, amount, paid: !planned, month });
   revalidatePath("/savings");
   revalidatePath("/");
 }
@@ -49,12 +51,14 @@ export async function editBpfPurchase(
   const name = String(formData.get("name") ?? "").trim();
   const amount = Number(formData.get("amount"));
   const planned = formData.get("planned") === "on";
+  const monthInput = String(formData.get("month") ?? "").trim();
+  const month = monthInput ? inputValueToMonth(monthInput) : null;
 
   if (!id) return { error: "Missing purchase." };
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
 
-  await updateBpfPurchase(id, { name, amount, paid: !planned });
+  await updateBpfPurchase(id, { name, amount, paid: !planned, month });
   revalidatePath("/savings");
   revalidatePath("/");
 }
@@ -78,11 +82,13 @@ export async function createSavingsPurchase(
   const name = String(formData.get("name") ?? "").trim();
   const amount = Number(formData.get("amount"));
   const planned = formData.get("planned") === "on";
+  const monthInput = String(formData.get("month") ?? "").trim();
+  const month = monthInput ? inputValueToMonth(monthInput) : null;
 
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
 
-  await addSavingsPurchase({ name, amount, paid: !planned });
+  await addSavingsPurchase({ name, amount, paid: !planned, month });
   revalidatePath("/savings");
   revalidatePath("/");
 }
@@ -95,12 +101,14 @@ export async function editSavingsPurchase(
   const name = String(formData.get("name") ?? "").trim();
   const amount = Number(formData.get("amount"));
   const planned = formData.get("planned") === "on";
+  const monthInput = String(formData.get("month") ?? "").trim();
+  const month = monthInput ? inputValueToMonth(monthInput) : null;
 
   if (!id) return { error: "Missing purchase." };
   if (!name) return { error: "Name is required." };
   if (!Number.isFinite(amount)) return { error: "Amount must be a number." };
 
-  await updateSavingsPurchase(id, { name, amount, paid: !planned });
+  await updateSavingsPurchase(id, { name, amount, paid: !planned, month });
   revalidatePath("/savings");
   revalidatePath("/");
 }

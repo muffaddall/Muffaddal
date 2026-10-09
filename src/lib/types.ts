@@ -175,7 +175,11 @@ export function investmentWithdrawalLocalAmount(withdrawal: InvestmentWithdrawal
 // balance yet, only shows as a projected deduction, until marked paid.
 export type BpfPurchase = {
   id: string;
-  month: string;
+  // Which month this purchase is planned for — only meaningful while
+  // paid=false (a future planned purchase); null means "whenever", same as
+  // before this field existed. Drives the Future/not-yet-happened table's
+  // per-month Planned column.
+  month: string | null;
   name: string;
   amount: number;
   paid: boolean;
@@ -186,6 +190,7 @@ export type BpfPurchase = {
 // netted against the running Savings balance instead of the BPF balance.
 export type SavingsPurchase = {
   id: string;
+  month: string | null;
   name: string;
   amount: number;
   paid: boolean;
@@ -240,6 +245,10 @@ export type SavingsMonthComputed = SavingsMonth & {
   /** Elevate Padel's running balance — constant across every month (see ElevatePurchase), already folded into account_total. */
   total_elevate: number;
   account_total: number;
+  /** Sum of BPF + Savings purchases planned (paid=false) specifically for this month. */
+  planned_for_month: number;
+  /** account_total minus planned_for_month — what the account would be left with after those planned purchases actually happen. */
+  account_total_after_planned: number;
 };
 
 // ---- Fitness section (calorie / weight tracking) ----
