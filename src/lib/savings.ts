@@ -257,6 +257,14 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
   // month's account_total the same way.
   const totalElevate = totalMoneyInfluxes(influxes, "elevate") - totalElevatePurchases(elevatePurchases);
 
+  // Once a month's planned purchases are subtracted from Total savings,
+  // that reduction carries into every later month too — the money's
+  // earmarked for that purchase whether or not a later month has any
+  // planned purchases of its own. planned_for_month itself (the Planned
+  // column) stays a plain per-month figure, only the cumulative deduction
+  // behind Total savings after planned runs forward.
+  let runningPlannedDeduction = 0;
+
   return allMonths.map((month) => {
     const saved = savingsByMonth.get(month);
     const debt_paydown = debtPaydownByMonth.get(month) ?? 0;
@@ -273,6 +281,7 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
     runningDebt = debt_left;
 
     const planned_for_month = (plannedBpfByMonth.get(month) ?? 0) + (plannedSavingsByMonth.get(month) ?? 0);
+    runningPlannedDeduction += planned_for_month;
 
     return {
       month,
@@ -286,7 +295,7 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
       total_elevate: totalElevate,
       account_total,
       planned_for_month,
-      total_savings_after_planned: total_savings - planned_for_month,
+      total_savings_after_planned: total_savings - runningPlannedDeduction,
     };
   });
 }
