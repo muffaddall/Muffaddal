@@ -286,7 +286,7 @@ export async function getSavingsMonths(): Promise<SavingsMonthComputed[]> {
       total_elevate: totalElevate,
       account_total,
       planned_for_month,
-      account_total_after_planned: account_total - planned_for_month,
+      total_savings_after_planned: total_savings - planned_for_month,
     };
   });
 }
