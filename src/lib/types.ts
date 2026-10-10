@@ -245,9 +245,9 @@ export type SavingsMonthComputed = SavingsMonth & {
   /** Elevate Padel's running balance — constant across every month (see ElevatePurchase), already folded into account_total. */
   total_elevate: number;
   account_total: number;
-  /** Sum of BPF + Savings purchases planned (paid=false) specifically for this month. */
+  /** Sum of BPF + Savings purchases planned (paid=false) specifically for this month — not cumulative. */
   planned_for_month: number;
-  /** total_savings minus planned_for_month — what Total savings would be left after those planned purchases actually happen. */
+  /** total_savings minus every planned_for_month up to and including this one — a running deduction that carries into later months, since a planned purchase stays earmarked whether or not a later month has planned purchases of its own. */
   total_savings_after_planned: number;
 };
 
