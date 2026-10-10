@@ -310,7 +310,7 @@ export default async function SavingsPage() {
             <div className="px-4 pb-4">
               <p className="text-xs text-[var(--color-fg-dim)] mb-3">
                 Planned is the total of any Big Purchase Fund / Savings purchases you&apos;ve
-                assigned to that month (above) that aren&apos;t marked paid yet — Account total
+                assigned to that month (above) that aren&apos;t marked paid yet — Total savings
                 after planned shows what&apos;d be left once they actually happen.
               </p>
               <div className="overflow-x-auto rounded-xl border border-dashed border-[var(--color-border)] bg-white/[0.02] p-3 opacity-70">
@@ -323,9 +323,9 @@ export default async function SavingsPage() {
                       <th className="pb-2 pr-3 font-medium">Big payment</th>
                       <th className="pb-2 pr-3 font-medium">Savings kept</th>
                       <th className="pb-2 pr-3 font-medium">Total savings</th>
-                      <th className="pb-2 pr-3 font-medium">Account total</th>
                       <th className="pb-2 pr-3 font-medium">Planned</th>
-                      <th className="pb-2 pr-3 font-medium">Account total after planned</th>
+                      <th className="pb-2 pr-3 font-medium">Total savings after planned</th>
+                      <th className="pb-2 pr-3 font-medium">Account total</th>
                       <th className="pb-2" />
                     </tr>
                   </thead>

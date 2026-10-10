@@ -10,7 +10,7 @@ export default function SavingsMonthRow({
   showPlanned = false,
 }: {
   row: SavingsMonthComputed;
-  /** Shows the Planned and "Account total after planned" columns — only meaningful on the Future/not-yet-happened table. */
+  /** Shows the Planned and "Total savings after planned" columns — only meaningful on the Future/not-yet-happened table. */
   showPlanned?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -93,17 +93,17 @@ export default function SavingsMonthRow({
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.big_payment)}</td>
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.savings_kept)}</td>
       <td className="py-2 pr-3 text-sm tabular-nums">{formatMoney(row.total_savings)}</td>
-      <td className="py-2 pr-3 text-sm tabular-nums font-medium">{formatMoney(row.account_total)}</td>
       {showPlanned && (
         <>
           <td className="py-2 pr-3 text-sm tabular-nums" style={{ color: "var(--color-accent)" }}>
             {row.planned_for_month > 0 ? formatMoney(row.planned_for_month) : "—"}
           </td>
           <td className="py-2 pr-3 text-sm tabular-nums font-medium">
-            {formatMoney(row.account_total_after_planned)}
+            {formatMoney(row.total_savings_after_planned)}
           </td>
         </>
       )}
+      <td className="py-2 pr-3 text-sm tabular-nums font-medium">{formatMoney(row.account_total)}</td>
       <td className="py-2 pl-2 text-right whitespace-nowrap">
         <button
           type="button"

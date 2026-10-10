@@ -247,8 +247,8 @@ export type SavingsMonthComputed = SavingsMonth & {
   account_total: number;
   /** Sum of BPF + Savings purchases planned (paid=false) specifically for this month. */
   planned_for_month: number;
-  /** account_total minus planned_for_month — what the account would be left with after those planned purchases actually happen. */
-  account_total_after_planned: number;
+  /** total_savings minus planned_for_month — what Total savings would be left after those planned purchases actually happen. */
+  total_savings_after_planned: number;
 };
 
 // ---- Fitness section (calorie / weight tracking) ----
