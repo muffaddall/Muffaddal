@@ -147,6 +147,23 @@ export default async function DayToDayPage({
   const currentPeriodIndex = todayDay <= 10 ? 0 : todayDay <= 20 ? 1 : 2;
   const periodLabels = ["1–10", "11–20", `21–${monthEnd.slice(8, 10)}`];
 
+  // Turns each 10-day period's leftover into a per-day number. The active
+  // period (when viewing the current month) divides what's actually left
+  // by the days remaining — including today — so it adapts as you under-
+  // or over-spend; every other period just shows its flat base/10 average
+  // as a reference, since there's no "today" to anchor a live number to.
+  const periodStartDays = [1, 11, 21] as const;
+  const periodEndDays = [10, 20, Number(monthEnd.slice(8, 10))] as const;
+  function daysLeftInPeriod(i: number): number {
+    if (!isCurrentMonth) return periodEndDays[i] - periodStartDays[i] + 1;
+    if (i < currentPeriodIndex) return 0;
+    if (i > currentPeriodIndex) return periodEndDays[i] - periodStartDays[i] + 1;
+    return periodEndDays[i] - todayDay + 1;
+  }
+  const activeDaysLeft = isCurrentMonth ? daysLeftInPeriod(currentPeriodIndex) : 0;
+  const todaysDailyBudget =
+    isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
+
   const byDate = new Map<string, typeof accountDiaryTransactions>();
   for (const tx of accountDiaryTransactions) {
     const list = byDate.get(tx.date);
@@ -253,7 +270,7 @@ export default async function DayToDayPage({
         )}
 
         {selectedAccount && (
-          <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
             <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 Planned Balance
@@ -319,6 +336,24 @@ export default async function DayToDayPage({
                 Logged in the diary this month
               </p>
             </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Daily Budget
+              </p>
+              <p
+                className="font-display text-3xl"
+                style={{ color: todaysDailyBudget !== null && todaysDailyBudget < 0 ? "var(--color-negative)" : undefined }}
+              >
+                <MaskedAmount id="daily-budget">
+                  {todaysDailyBudget !== null ? formatMoney(todaysDailyBudget, selectedAccount.currency) : "—"}
+                </MaskedAmount>
+              </p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
+                {todaysDailyBudget !== null
+                  ? `Per day through day ${periodEndDays[currentPeriodIndex]} (${activeDaysLeft} day${activeDaysLeft === 1 ? "" : "s"} left)`
+                  : "Only shown for the current month"}
+              </p>
+            </div>
           </div>
         )}
 
@@ -366,6 +401,8 @@ export default async function DayToDayPage({
           <div className="flex flex-col gap-2 px-4 pb-4">
             {monthPeriods.map((p, i) => {
               const active = isCurrentMonth && i === currentPeriodIndex;
+              const left = daysLeftInPeriod(i);
+              const dailyForPeriod = active && left > 0 ? p.remaining / left : p.base / 10;
               return (
                 <div
                   key={p.key}
@@ -395,6 +432,11 @@ export default async function DayToDayPage({
                     <MaskedAmount id={`period-${p.key}`}>
                       {formatMoney(p.remaining, selectedAccount?.currency)} left
                     </MaskedAmount>
+                  </p>
+                  <p className="text-xs text-[var(--color-fg-dim)] mt-0.5">
+                    {active && left > 0
+                      ? `${formatMoney(dailyForPeriod, selectedAccount?.currency)}/day for the next ${left} day${left === 1 ? "" : "s"}`
+                      : `${formatMoney(dailyForPeriod, selectedAccount?.currency)}/day flat average`}
                   </p>
                   {(p.expense > 0 || p.income > 0) && (
                     <p className="text-sm text-white/80 mt-1">
