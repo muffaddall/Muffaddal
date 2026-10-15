@@ -1715,3 +1715,81 @@ export type Note = {
   createdAt: string;
   updatedAt: string;
 };
+
+// ---- Travel (multi-currency trip expense tracking) ----
+// Entirely separate from the Day-to-Day ledger above — a trip has its own
+// currency wallets and its own diary. An "income" entry (cash coming in)
+// can optionally link to a real Day-to-Day account.
+
+export type Trip = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
+// One wallet per currency used on a trip — balance is never stored,
+// always computed from TripTransaction[] via computeTripWalletBalance.
+export type TripWallet = {
+  id: string;
+  tripId: string;
+  currency: string; // ISO 4217 code, e.g. "USD"
+  sortOrder: number;
+  createdAt: string;
+};
+
+export const TRIP_EXPENSE_CATEGORIES = [
+  "Food",
+  "Transport",
+  "Accommodation",
+  "Shopping",
+  "Activities",
+  "Other",
+] as const;
+export type TripExpenseCategory = (typeof TRIP_EXPENSE_CATEGORIES)[number];
+
+export function isTripExpenseCategory(value: string): value is TripExpenseCategory {
+  return (TRIP_EXPENSE_CATEGORIES as readonly string[]).includes(value);
+}
+
+export type TripTransactionType = "expense" | "income" | "transfer";
+
+export function isTripTransactionType(value: string): value is TripTransactionType {
+  return value === "expense" || value === "income" || value === "transfer";
+}
+
+// An expense, cash coming in ("income"), or a currency conversion
+// ("transfer" between two of the trip's own wallets — toWalletId/toAmount
+// mirror Transaction's cross-currency transfer fields). linkedAccountId/
+// linkedTransactionId are only ever set on an income entry tied to a real
+// Day-to-Day account — e.g. the account this trip's starting cash was
+// actually withdrawn from (see addTripTransaction in src/lib/trips.ts).
+export type TripTransaction = {
+  id: string;
+  tripId: string;
+  type: TripTransactionType;
+  date: string; // YYYY-MM-DD
+  amount: number; // in walletId's currency
+  walletId: string;
+  toWalletId: string | null; // transfer only
+  toAmount: number | null; // transfer only, in toWalletId's currency
+  category: TripExpenseCategory | null; // expense only
+  note: string;
+  linkedAccountId: string | null;
+  linkedTransactionId: string | null;
+  createdAt: string;
+};
+
+/** Net change to one wallet's balance from a single trip transaction — mirrors transactionAccountDelta for Day-to-Day accounts. */
+export function tripTransactionWalletDelta(tx: TripTransaction, walletId: string): number {
+  if (tx.type === "income" && tx.walletId === walletId) return tx.amount;
+  if (tx.type === "expense" && tx.walletId === walletId) return -tx.amount;
+  if (tx.type === "transfer") {
+    if (tx.walletId === walletId) return -tx.amount;
+    if (tx.toWalletId === walletId) return tx.toAmount ?? tx.amount;
+  }
+  return 0;
+}
+
+export function computeTripWalletBalance(transactions: TripTransaction[], walletId: string): number {
+  return transactions.reduce((sum, tx) => sum + tripTransactionWalletDelta(tx, walletId), 0);
+}
