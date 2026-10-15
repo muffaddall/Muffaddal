@@ -42,6 +42,24 @@ export function formatSignedMoney(
   return `${sign}${formatters[currency].format(value)}`;
 }
 
+// Travel wallets can hold any ISO 4217 currency, not just the 4 Day-to-Day
+// accounts use — built dynamically instead of from the fixed formatters
+// map above, and kept to 2 decimal places since foreign-currency receipts
+// are rarely round numbers.
+export function formatTripMoney(value: number | null | undefined, currencyCode: string): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+      currencyDisplay: "code",
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return `${currencyCode} ${value.toFixed(2)}`;
+  }
+}
+
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const sign = value > 0 ? "+" : "";

@@ -1195,3 +1195,58 @@ alter table notes enable row level security;
 -- keeps counting in the balance exactly as before this column existed;
 -- only new transactions you explicitly mark as pending are excluded.
 alter table dd_transactions add column if not exists cleared boolean not null default true;
+
+-- ---- Travel (multi-currency trip expense tracking) ----
+-- Entirely separate from the Day-to-Day ledger above — a trip gets its
+-- own currency wallets and its own diary of transactions. An "income"
+-- entry (cash coming in) can optionally link to a real Day-to-Day account
+-- — e.g. the account you actually withdrew a trip's starting cash from —
+-- see addTripTransaction in src/lib/trips.ts.
+
+create table if not exists trips (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table trips enable row level security;
+
+-- One wallet per currency used on a trip — e.g. a Tanzania trip might have
+-- a USD wallet (cash you brought) and a TZS wallet (cash you converted
+-- into locally). Its balance is never stored, always computed from
+-- trip_transactions, same as Day-to-Day's accounts.
+create table if not exists trip_wallets (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id) on delete cascade,
+  currency text not null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  unique (trip_id, currency)
+);
+
+alter table trip_wallets enable row level security;
+
+-- One diary entry — an expense, cash coming in ("income"), or a currency
+-- conversion ("transfer" between two of the trip's own wallets,
+-- to_wallet_id/to_amount mirroring dd_transactions' cross-currency
+-- transfer fields).
+create table if not exists trip_transactions (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references trips(id) on delete cascade,
+  type text not null check (type in ('expense', 'income', 'transfer')),
+  date date not null,
+  amount numeric not null,
+  wallet_id uuid not null references trip_wallets(id) on delete cascade,
+  to_wallet_id uuid references trip_wallets(id) on delete set null,
+  to_amount numeric,
+  category text,
+  note text not null default '',
+  linked_account_id uuid references accounts(id) on delete set null,
+  linked_transaction_id uuid references dd_transactions(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists trip_transactions_trip_idx on trip_transactions (trip_id);
+create index if not exists trip_transactions_date_idx on trip_transactions (date);
+
+alter table trip_transactions enable row level security;
