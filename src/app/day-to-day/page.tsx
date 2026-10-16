@@ -15,7 +15,7 @@ import {
 } from "@/lib/expenses";
 import { accountNetByPeriod, buildPeriodChain, type PeriodNet } from "@/lib/periods";
 import { getOutstandingReceivablesForTransactions } from "@/lib/receivables";
-import { CATEGORY_LABELS, topLevelCategoryId } from "@/lib/types";
+import { CATEGORY_LABELS, computeAccountBalance, computeAccountBalanceAfterPending, topLevelCategoryId } from "@/lib/types";
 import {
   addMonths,
   currentMonth,
@@ -163,6 +163,19 @@ export default async function DayToDayPage({
   const activeDaysLeft = isCurrentMonth ? daysLeftInPeriod(currentPeriodIndex) : 0;
   const todaysDailyBudget =
     isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
+
+  // The real current balance (only what's actually cleared) vs. what it'll
+  // be once every still-pending transaction — a planned purchase you
+  // haven't ticked as cleared yet — actually leaves the account. Pulled
+  // from this account's whole transaction history, not just this month's,
+  // since a pending transaction can be dated in any month.
+  const currentAccountBalance = selectedAccountId
+    ? computeAccountBalance(accountTransactions, selectedAccountId)
+    : 0;
+  const balanceAfterPending = selectedAccountId
+    ? computeAccountBalanceAfterPending(accountTransactions, selectedAccountId)
+    : 0;
+  const pendingNet = balanceAfterPending - currentAccountBalance;
 
   const byDate = new Map<string, typeof accountDiaryTransactions>();
   for (const tx of accountDiaryTransactions) {
@@ -352,6 +365,24 @@ export default async function DayToDayPage({
                 {todaysDailyBudget !== null
                   ? `Per day through day ${periodEndDays[currentPeriodIndex]} (${activeDaysLeft} day${activeDaysLeft === 1 ? "" : "s"} left)`
                   : "Only shown for the current month"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Balance After Pending
+              </p>
+              <p
+                className="font-display text-3xl"
+                style={{ color: balanceAfterPending < 0 ? "var(--color-negative)" : undefined }}
+              >
+                <MaskedAmount id="balance-after-pending">
+                  {formatMoney(balanceAfterPending, selectedAccount.currency)}
+                </MaskedAmount>
+              </p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
+                {pendingNet !== 0
+                  ? `${formatMoney(currentAccountBalance, selectedAccount.currency)} now, once ${formatSignedMoney(pendingNet, selectedAccount.currency)} pending clears`
+                  : "No pending transactions — matches your current balance"}
               </p>
             </div>
           </div>

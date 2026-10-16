@@ -877,9 +877,8 @@ export type TransactionInput = {
   cleared: boolean;
 };
 
-/** Net change to one account's balance from a single transaction — zero for anything not yet cleared. */
-export function transactionAccountDelta(tx: Transaction, accountId: string): number {
-  if (!tx.cleared) return 0;
+/** A transaction's effect on one account's balance once it clears — used both for the real current balance (gated on cleared below) and to project the balance once every still-pending transaction clears too. */
+function transactionAccountDeltaOnceCleared(tx: Transaction, accountId: string): number {
   if (tx.type === "income" && tx.accountId === accountId) return tx.amount;
   if (tx.type === "expense" && tx.accountId === accountId) return -tx.amount;
   if (tx.type === "transfer") {
@@ -892,8 +891,19 @@ export function transactionAccountDelta(tx: Transaction, accountId: string): num
   return 0;
 }
 
+/** Net change to one account's balance from a single transaction — zero for anything not yet cleared. */
+export function transactionAccountDelta(tx: Transaction, accountId: string): number {
+  if (!tx.cleared) return 0;
+  return transactionAccountDeltaOnceCleared(tx, accountId);
+}
+
 export function computeAccountBalance(transactions: Transaction[], accountId: string): number {
   return transactions.reduce((sum, tx) => sum + transactionAccountDelta(tx, accountId), 0);
+}
+
+/** Projects the balance once every still-pending (not yet cleared) transaction actually clears — the real current balance plus every pending expense/income/transfer's eventual effect, regardless of cleared status. */
+export function computeAccountBalanceAfterPending(transactions: Transaction[], accountId: string): number {
+  return transactions.reduce((sum, tx) => sum + transactionAccountDeltaOnceCleared(tx, accountId), 0);
 }
 
 // ---- People Owe Me (receivables) ----
