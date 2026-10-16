@@ -15,7 +15,7 @@ import {
 } from "@/lib/expenses";
 import { accountNetByPeriod, buildPeriodChain, type PeriodNet } from "@/lib/periods";
 import { getOutstandingReceivablesForTransactions } from "@/lib/receivables";
-import { CATEGORY_LABELS, computeAccountBalance, computeAccountBalanceAfterPending, topLevelCategoryId } from "@/lib/types";
+import { CATEGORY_LABELS, computePendingAccountNet, topLevelCategoryId } from "@/lib/types";
 import {
   addMonths,
   currentMonth,
@@ -164,18 +164,17 @@ export default async function DayToDayPage({
   const todaysDailyBudget =
     isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
 
-  // The real current balance (only what's actually cleared) vs. what it'll
-  // be once every still-pending transaction — a planned purchase you
-  // haven't ticked as cleared yet — actually leaves the account. Pulled
-  // from this account's whole transaction history, not just this month's,
-  // since a pending transaction can be dated in any month.
-  const currentAccountBalance = selectedAccountId
-    ? computeAccountBalance(accountTransactions, selectedAccountId)
+  // actualLeftForMonth (above) is the real current balance — Planned
+  // Expenses leftover chained with logged transactions, the same figure
+  // shown as "Actual Balance". This adds the net future effect of every
+  // still-pending (not yet cleared) transaction on top of it, to project
+  // the balance once all of them actually clear. Pulled from this
+  // account's whole transaction history, not just this month's, since a
+  // pending transaction can be dated in any month.
+  const pendingNet = selectedAccountId
+    ? computePendingAccountNet(accountTransactions, selectedAccountId)
     : 0;
-  const balanceAfterPending = selectedAccountId
-    ? computeAccountBalanceAfterPending(accountTransactions, selectedAccountId)
-    : 0;
-  const pendingNet = balanceAfterPending - currentAccountBalance;
+  const balanceAfterPending = actualLeftForMonth + pendingNet;
 
   const byDate = new Map<string, typeof accountDiaryTransactions>();
   for (const tx of accountDiaryTransactions) {
@@ -381,7 +380,7 @@ export default async function DayToDayPage({
               </p>
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 {pendingNet !== 0
-                  ? `${formatMoney(currentAccountBalance, selectedAccount.currency)} now, once ${formatSignedMoney(pendingNet, selectedAccount.currency)} pending clears`
+                  ? `${formatMoney(actualLeftForMonth, selectedAccount.currency)} now, once ${formatSignedMoney(pendingNet, selectedAccount.currency)} pending clears`
                   : "No pending transactions — matches your current balance"}
               </p>
             </div>
