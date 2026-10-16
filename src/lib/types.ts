@@ -901,9 +901,11 @@ export function computeAccountBalance(transactions: Transaction[], accountId: st
   return transactions.reduce((sum, tx) => sum + transactionAccountDelta(tx, accountId), 0);
 }
 
-/** Projects the balance once every still-pending (not yet cleared) transaction actually clears — the real current balance plus every pending expense/income/transfer's eventual effect, regardless of cleared status. */
-export function computeAccountBalanceAfterPending(transactions: Transaction[], accountId: string): number {
-  return transactions.reduce((sum, tx) => sum + transactionAccountDeltaOnceCleared(tx, accountId), 0);
+/** Net future effect of every still-pending (not yet cleared) transaction on one account — what its balance will shift by once all of them clear. Add this to a real balance figure (e.g. getActualAccountBalance) to project the balance after pending — never to a raw computeAccountBalance sum, which ignores Planned Expenses and so isn't the real balance for accounts that track income/bills there instead of as logged transactions. */
+export function computePendingAccountNet(transactions: Transaction[], accountId: string): number {
+  return transactions
+    .filter((tx) => !tx.cleared)
+    .reduce((sum, tx) => sum + transactionAccountDeltaOnceCleared(tx, accountId), 0);
 }
 
 // ---- People Owe Me (receivables) ----
