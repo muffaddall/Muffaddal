@@ -164,13 +164,6 @@ export default async function DayToDayPage({
   const todaysDailyBudget =
     isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
 
-  // Month-wide counterpart to the 10-day Daily Budget: the Planned Balance
-  // (what's left once every planned expense is paid) spread evenly over
-  // the rest of the month, including today — ignores the 10-day split so
-  // a lean or heavy period doesn't skew it.
-  const monthDaysLeft = isCurrentMonth ? periodEndDays[2] - todayDay + 1 : 0;
-  const monthDailyBudget = isCurrentMonth && monthDaysLeft > 0 ? leftForMonth / monthDaysLeft : null;
-
   // actualLeftForMonth (above) is the real current balance — Planned
   // Expenses leftover chained with logged transactions, the same figure
   // shown as "Actual Balance". This adds the net future effect of every
@@ -182,6 +175,14 @@ export default async function DayToDayPage({
     ? computePendingAccountNet(accountTransactions, selectedAccountId)
     : 0;
   const balanceAfterPending = actualLeftForMonth + pendingNet;
+
+  // Month-wide counterpart to the 10-day Daily Budget: what's left once
+  // every planned expense is paid and every pending transaction clears,
+  // spread evenly over the rest of the month, including today.
+  const leftAfterPlannedAndPending = leftForMonth + pendingNet;
+  const monthDaysLeft = isCurrentMonth ? periodEndDays[2] - todayDay + 1 : 0;
+  const monthDailyBudget =
+    isCurrentMonth && monthDaysLeft > 0 ? leftAfterPlannedAndPending / monthDaysLeft : null;
 
   const byDate = new Map<string, typeof accountDiaryTransactions>();
   for (const tx of accountDiaryTransactions) {
@@ -387,7 +388,7 @@ export default async function DayToDayPage({
               </p>
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 {monthDailyBudget !== null
-                  ? `Planned Balance over the rest of the month (${monthDaysLeft} day${monthDaysLeft === 1 ? "" : "s"} left)`
+                  ? `${formatMoney(leftAfterPlannedAndPending, selectedAccount.currency)} after planned & pending, over ${monthDaysLeft} day${monthDaysLeft === 1 ? "" : "s"} left`
                   : "Only shown for the current month"}
               </p>
             </div>
@@ -505,54 +506,59 @@ export default async function DayToDayPage({
           </div>
         </details>
 
-        {selectedAccount && expensePieData.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-              {selectedAccount.name}: spending by category
-            </h2>
-            <CategoryPieChart data={expensePieData} currency={selectedAccount.currency} />
-          </section>
-        )}
-
-        {selectedAccount && incomePieData.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-              {selectedAccount.name}: income by category
-            </h2>
-            <CategoryPieChart data={incomePieData} currency={selectedAccount.currency} />
-          </section>
-        )}
-
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
-            Diary{selectedAccount ? ` — ${selectedAccount.name}` : ""}
-          </h2>
-          <div className="flex flex-col gap-4">
-            {dates.map((date) => (
-              <div key={date}>
-                <p className="text-xs font-medium text-[var(--color-fg-dim)] mb-1.5">{date}</p>
-                <div className="flex flex-col gap-2">
-                  {byDate.get(date)!.map((tx) => (
-                    <DiaryEntryCard
-                      key={tx.id}
-                      tx={tx}
-                      accountsById={accountsById}
-                      categoriesById={categoriesById}
-                      perspectiveAccountId={selectedAccountId ?? undefined}
-                      month={monthInputValue}
-                      outstandingOwed={outstandingByTx.get(tx.id) ?? 0}
-                    />
-                  ))}
+        <details className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+              Expenses{selectedAccount ? ` — ${selectedAccount.name}` : ""}
+            </span>
+            <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+          </summary>
+          <div className="px-4 pb-4">
+            <div className="flex flex-col gap-4">
+              {dates.map((date) => (
+                <div key={date}>
+                  <p className="text-xs font-medium text-[var(--color-fg-dim)] mb-1.5">{date}</p>
+                  <div className="flex flex-col gap-2">
+                    {byDate.get(date)!.map((tx) => (
+                      <DiaryEntryCard
+                        key={tx.id}
+                        tx={tx}
+                        accountsById={accountsById}
+                        categoriesById={categoriesById}
+                        perspectiveAccountId={selectedAccountId ?? undefined}
+                        month={monthInputValue}
+                        outstandingOwed={outstandingByTx.get(tx.id) ?? 0}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {dates.length === 0 && (
-              <p className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
-                No transactions logged this month yet.
-              </p>
+              ))}
+              {dates.length === 0 && (
+                <p className="text-sm text-[var(--color-fg-dim)] py-6 text-center">
+                  No transactions logged this month yet.
+                </p>
+              )}
+            </div>
+
+            {selectedAccount && expensePieData.length > 0 && (
+              <section className="mt-6">
+                <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+                  {selectedAccount.name}: spending by category
+                </h2>
+                <CategoryPieChart data={expensePieData} currency={selectedAccount.currency} />
+              </section>
+            )}
+
+            {selectedAccount && incomePieData.length > 0 && (
+              <section className="mt-6">
+                <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--color-accent)" }}>
+                  {selectedAccount.name}: income by category
+                </h2>
+                <CategoryPieChart data={incomePieData} currency={selectedAccount.currency} />
+              </section>
             )}
           </div>
-        </section>
+        </details>
 
         <div className="border-t border-[var(--color-border)] mb-6" />
 
