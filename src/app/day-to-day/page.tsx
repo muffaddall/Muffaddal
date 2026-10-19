@@ -164,6 +164,13 @@ export default async function DayToDayPage({
   const todaysDailyBudget =
     isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
 
+  // Month-wide counterpart to the 10-day Daily Budget: the Planned Balance
+  // (what's left once every planned expense is paid) spread evenly over
+  // the rest of the month, including today — ignores the 10-day split so
+  // a lean or heavy period doesn't skew it.
+  const monthDaysLeft = isCurrentMonth ? periodEndDays[2] - todayDay + 1 : 0;
+  const monthDailyBudget = isCurrentMonth && monthDaysLeft > 0 ? leftForMonth / monthDaysLeft : null;
+
   // actualLeftForMonth (above) is the real current balance — Planned
   // Expenses leftover chained with logged transactions, the same figure
   // shown as "Actual Balance". This adds the net future effect of every
@@ -363,6 +370,24 @@ export default async function DayToDayPage({
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 {todaysDailyBudget !== null
                   ? `Per day through day ${periodEndDays[currentPeriodIndex]} (${activeDaysLeft} day${activeDaysLeft === 1 ? "" : "s"} left)`
+                  : "Only shown for the current month"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
+                Daily Budget After Planned
+              </p>
+              <p
+                className="font-display text-3xl"
+                style={{ color: monthDailyBudget !== null && monthDailyBudget < 0 ? "var(--color-negative)" : undefined }}
+              >
+                <MaskedAmount id="month-daily-budget">
+                  {monthDailyBudget !== null ? formatMoney(monthDailyBudget, selectedAccount.currency) : "—"}
+                </MaskedAmount>
+              </p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
+                {monthDailyBudget !== null
+                  ? `Planned Balance over the rest of the month (${monthDaysLeft} day${monthDaysLeft === 1 ? "" : "s"} left)`
                   : "Only shown for the current month"}
               </p>
             </div>
