@@ -15,7 +15,7 @@ import {
 } from "@/lib/expenses";
 import { accountNetByPeriod, buildPeriodChain, type PeriodNet } from "@/lib/periods";
 import { getOutstandingReceivablesForTransactions } from "@/lib/receivables";
-import { CATEGORY_LABELS, computePendingAccountNet, topLevelCategoryId } from "@/lib/types";
+import { CATEGORY_LABELS, computePendingAccountNet, topLevelCategoryId, type Currency } from "@/lib/types";
 import {
   addMonths,
   currentMonth,
@@ -160,10 +160,6 @@ export default async function DayToDayPage({
     if (i > currentPeriodIndex) return periodEndDays[i] - periodStartDays[i] + 1;
     return periodEndDays[i] - todayDay + 1;
   }
-  const activeDaysLeft = isCurrentMonth ? daysLeftInPeriod(currentPeriodIndex) : 0;
-  const todaysDailyBudget =
-    isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
-
   // actualLeftForMonth (above) is the real current balance — Planned
   // Expenses leftover chained with logged transactions, the same figure
   // shown as "Actual Balance". This adds the net future effect of every
@@ -291,59 +287,56 @@ export default async function DayToDayPage({
 
         {selectedAccount && (
           <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
-            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-                Planned Balance
-              </p>
-              <p
-                className="font-display text-3xl"
-                style={{ color: leftForMonth < 0 ? "var(--color-negative)" : undefined }}
-              >
-                <MaskedAmount id="planned-balance">
-                  {formatMoney(leftForMonth, selectedAccount.currency)}
-                </MaskedAmount>
-              </p>
-              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
-                If every planned expense gets paid
-              </p>
-              {totalOutstandingOwed > 0 && (
-                <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
-                  <MaskedAmount id="planned-personal">
-                    {formatMoney(leftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
-                  </MaskedAmount>
-                  <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
-                    incl. {formatMoney(totalOutstandingOwed, selectedAccount.currency)} owed to you
-                  </span>
-                </p>
-              )}
-            </div>
-            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-                Actual Balance
-              </p>
-              <p
-                className="font-display text-3xl"
-                style={{ color: actualLeftForMonth < 0 ? "var(--color-negative)" : undefined }}
-              >
-                <MaskedAmount id="actual-balance">
-                  {formatMoney(actualLeftForMonth, selectedAccount.currency)}
-                </MaskedAmount>
-              </p>
-              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
-                Only what you&apos;ve marked paid — matches your bank
-              </p>
-              {totalOutstandingOwed > 0 && (
-                <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
-                  <MaskedAmount id="actual-personal">
-                    {formatMoney(actualLeftForMonth + totalOutstandingOwed, selectedAccount.currency)} personal
-                  </MaskedAmount>
-                  <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
-                    incl. {formatMoney(totalOutstandingOwed, selectedAccount.currency)} owed to you
-                  </span>
-                </p>
-              )}
-            </div>
-            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
+            <StatCard
+              color={CARD_RED}
+              title="Left After Bills"
+              maskId="planned-balance"
+              value={leftForMonth}
+              currency={selectedAccount.currency}
+              caption="Once every planned expense is paid"
+              owed={totalOutstandingOwed}
+              owedMaskId="planned-personal"
+            />
+            <StatCard
+              color={CARD_BLUE}
+              title="Bank Balance"
+              maskId="actual-balance"
+              value={actualLeftForMonth}
+              currency={selectedAccount.currency}
+              caption="What your account shows right now"
+              owed={totalOutstandingOwed}
+              owedMaskId="actual-personal"
+            />
+            <StatCard
+              color={CARD_WHITE}
+              title="After Pending Clears"
+              maskId="balance-after-pending"
+              value={balanceAfterPending}
+              currency={selectedAccount.currency}
+              caption={
+                pendingNet !== 0
+                  ? `Once ${formatSignedMoney(pendingNet, selectedAccount.currency)} of pending spends go through`
+                  : "No pending transactions — matches your bank"
+              }
+              owed={totalOutstandingOwed}
+              owedMaskId="after-pending-personal"
+            />
+            <StatCard
+              color={CARD_WHITE}
+              title="Daily Spend Limit"
+              maskId="month-daily-budget"
+              value={monthDailyBudget}
+              currency={selectedAccount.currency}
+              caption={
+                monthDailyBudget !== null
+                  ? `${formatMoney(leftAfterPlannedAndPending, selectedAccount.currency)} after bills & pending, over ${monthDaysLeft} day${monthDaysLeft === 1 ? "" : "s"} left`
+                  : "Only shown for the current month"
+              }
+              owed={monthDailyBudget !== null ? totalOutstandingOwed / monthDaysLeft : 0}
+              owedMaskId="month-daily-personal"
+              owedSuffix="/day"
+            />
+            <div className="col-span-2 sm:col-span-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
               <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
                 Total Expenses
               </p>
@@ -354,60 +347,6 @@ export default async function DayToDayPage({
               </p>
               <p className="text-xs text-[var(--color-fg-dim)] mt-1">
                 Logged in the diary this month
-              </p>
-            </div>
-            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-                Daily Budget
-              </p>
-              <p
-                className="font-display text-3xl"
-                style={{ color: todaysDailyBudget !== null && todaysDailyBudget < 0 ? "var(--color-negative)" : undefined }}
-              >
-                <MaskedAmount id="daily-budget">
-                  {todaysDailyBudget !== null ? formatMoney(todaysDailyBudget, selectedAccount.currency) : "—"}
-                </MaskedAmount>
-              </p>
-              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
-                {todaysDailyBudget !== null
-                  ? `Per day through day ${periodEndDays[currentPeriodIndex]} (${activeDaysLeft} day${activeDaysLeft === 1 ? "" : "s"} left)`
-                  : "Only shown for the current month"}
-              </p>
-            </div>
-            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-                Daily Budget After Planned
-              </p>
-              <p
-                className="font-display text-3xl"
-                style={{ color: monthDailyBudget !== null && monthDailyBudget < 0 ? "var(--color-negative)" : undefined }}
-              >
-                <MaskedAmount id="month-daily-budget">
-                  {monthDailyBudget !== null ? formatMoney(monthDailyBudget, selectedAccount.currency) : "—"}
-                </MaskedAmount>
-              </p>
-              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
-                {monthDailyBudget !== null
-                  ? `${formatMoney(leftAfterPlannedAndPending, selectedAccount.currency)} after planned & pending, over ${monthDaysLeft} day${monthDaysLeft === 1 ? "" : "s"} left`
-                  : "Only shown for the current month"}
-              </p>
-            </div>
-            <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-center">
-              <p className="text-xs mb-1" style={{ color: "var(--color-accent)" }}>
-                Balance After Pending
-              </p>
-              <p
-                className="font-display text-3xl"
-                style={{ color: balanceAfterPending < 0 ? "var(--color-negative)" : undefined }}
-              >
-                <MaskedAmount id="balance-after-pending">
-                  {formatMoney(balanceAfterPending, selectedAccount.currency)}
-                </MaskedAmount>
-              </p>
-              <p className="text-xs text-[var(--color-fg-dim)] mt-1">
-                {pendingNet !== 0
-                  ? `${formatMoney(actualLeftForMonth, selectedAccount.currency)} now, once ${formatSignedMoney(pendingNet, selectedAccount.currency)} pending clears`
-                  : "No pending transactions — matches your current balance"}
               </p>
             </div>
           </div>
@@ -615,6 +554,65 @@ export default async function DayToDayPage({
         </section>
         </AmountVisibilityProvider>
       </main>
+    </div>
+  );
+}
+
+const CARD_RED = "#ff6b6b";
+const CARD_BLUE = "#4ad9ff";
+const CARD_WHITE = "#f4f6fb";
+
+/** One tinted balance card on the Day-to-Day header — title and border in the card's own colour, with an optional "personal" line adding what people owe you. */
+function StatCard({
+  color,
+  title,
+  maskId,
+  value,
+  currency,
+  caption,
+  owed,
+  owedMaskId,
+  owedSuffix = "",
+}: {
+  color: string;
+  title: string;
+  maskId: string;
+  value: number | null;
+  currency: Currency;
+  caption: string;
+  owed: number;
+  owedMaskId: string;
+  owedSuffix?: string;
+}) {
+  return (
+    <div
+      className="rounded-xl bg-[var(--color-surface)] p-4 text-center"
+      style={{ border: `1px solid ${color}`, boxShadow: `inset 0 0 0 1px ${color}33` }}
+    >
+      <p className="text-xs mb-1 font-semibold" style={{ color }}>
+        {title}
+      </p>
+      <p
+        className="font-display text-3xl"
+        style={{ color: value !== null && value < 0 ? "var(--color-negative)" : undefined }}
+      >
+        <MaskedAmount id={maskId}>
+          {value !== null ? `${formatMoney(value, currency)}${owedSuffix}` : "—"}
+        </MaskedAmount>
+      </p>
+      <p className="text-xs text-[var(--color-fg-dim)] mt-1">{caption}</p>
+      {value !== null && owed > 0 && (
+        <p className="text-sm mt-2 pt-2 border-t border-white/10" style={{ color: "var(--color-positive)" }}>
+          <MaskedAmount id={owedMaskId}>
+            {formatMoney(value + owed, currency)}
+            {owedSuffix} personal
+          </MaskedAmount>
+          <span className="block text-xs text-[var(--color-fg-dim)] mt-0.5">
+            incl. {formatMoney(owed, currency)}
+            {owedSuffix} owed to you
+          </span>
+        </p>
+      )}
     </div>
   );
 }
