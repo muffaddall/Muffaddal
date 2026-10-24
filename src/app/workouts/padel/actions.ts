@@ -6,11 +6,20 @@ import {
   deletePadelWinning,
   deletePadelYearlyGames,
   setPadelBaseline,
+  setPadelTournamentResult,
   updatePadelWinning,
   upsertPadelYearlyGames,
 } from "@/lib/padel";
 
+import { isPadelTournamentResult } from "@/lib/types";
+
 export type FormState = { error: string } | undefined;
+
+export async function savePadelTournamentResult(transactionId: string, result: string): Promise<void> {
+  if (!transactionId) return;
+  await setPadelTournamentResult(transactionId, isPadelTournamentResult(result) ? result : null);
+  revalidatePath("/workouts/padel");
+}
 
 export async function createPadelWinning(
   _prev: FormState,

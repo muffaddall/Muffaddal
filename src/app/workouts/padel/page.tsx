@@ -6,12 +6,13 @@ import { formatMoney, formatMonth } from "@/lib/format";
 import PadelWinningRow from "./PadelWinningRow";
 import AddPadelWinningForm from "./AddPadelWinningForm";
 import PadelBaselineEditor from "./PadelBaselineEditor";
+import TournamentResultRow from "./TournamentResultRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function PadelTrackerPage() {
   const stats = await getPadelStats();
-  const { baseline, yearlyGames, winnings, totalIncome, totalSpent, net, breakdown, games } = stats;
+  const { baseline, yearlyGames, winnings, totalIncome, totalSpent, net, breakdown, games, tournaments, record } = stats;
 
   return (
     <div className="pb-10">
@@ -125,11 +126,25 @@ export default async function PadelTrackerPage() {
             Tournament record
           </h2>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center">
-            <Stat label="Played" value={baseline.tournaments} />
-            <Stat label="Wins" value={baseline.wins} />
-            <Stat label="Runner-up" value={baseline.runnersUp} />
-            <Stat label="Reached knockouts" value={`${baseline.knockouts}/${baseline.tournaments}`} />
+            <Stat label="Played" value={record.played} />
+            <Stat label="Wins" value={record.wins} />
+            <Stat label="Runner-up" value={record.runnersUp} />
+            <Stat label="Reached knockouts" value={`${record.knockouts}/${record.played}`} />
           </div>
+          <p className="text-xs text-[var(--color-fg-dim)] mt-3 mb-2">
+            Every &ldquo;Padel &rsaquo; Tournaments&rdquo; expense you log in Day-to-Day counts as one
+            tournament played. Pick where you finished below to add it to the record.
+          </p>
+          <ul className="flex flex-col gap-1">
+            {tournaments.map((t) => (
+              <TournamentResultRow key={t.transactionId} tournament={t} />
+            ))}
+            {tournaments.length === 0 && (
+              <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
+                No tournament expenses logged yet.
+              </li>
+            )}
+          </ul>
         </section>
 
         <section className="mb-6">

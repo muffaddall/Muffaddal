@@ -667,6 +667,24 @@ export type PadelWinning = {
   created_at: string;
 };
 
+// Where you finished in a logged padel tournament — see the
+// padel_tournament_results table comment in schema.sql. Anything past the
+// group stage counts as reaching the knockouts.
+export const PADEL_TOURNAMENT_RESULTS = ["group", "quarter_final", "semi_final", "runner_up", "winner"] as const;
+export type PadelTournamentResult = (typeof PADEL_TOURNAMENT_RESULTS)[number];
+
+export const PADEL_TOURNAMENT_RESULT_LABELS: Record<PadelTournamentResult, string> = {
+  group: "Group stage",
+  quarter_final: "Quarter-final",
+  semi_final: "Semi-final",
+  runner_up: "Runner-up",
+  winner: "Winner",
+};
+
+export function isPadelTournamentResult(value: string): value is PadelTournamentResult {
+  return (PADEL_TOURNAMENT_RESULTS as readonly string[]).includes(value);
+}
+
 // Self-contained (no lib/date.ts dependency) Monday-start week key, so this
 // stays consistent with the rest of the app's Monday-start weeks without
 // pulling in date-fns here.

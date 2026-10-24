@@ -690,6 +690,19 @@ create table if not exists padel_winnings (
 
 alter table padel_winnings enable row level security;
 
+-- Where you finished in a tournament, keyed to the Day-to-Day "Working
+-- out > Padel > Tournaments" expense you logged for its entry fee — every
+-- such expense counts as one tournament played on the Padel Tracker, and
+-- this optional result feeds its Wins / Runner-up / Knockouts counts on
+-- top of padel_baseline's pre-tracking lump totals.
+create table if not exists padel_tournament_results (
+  transaction_id uuid primary key references dd_transactions(id) on delete cascade,
+  result text not null check (result in ('group', 'quarter_final', 'semi_final', 'runner_up', 'winner')),
+  updated_at timestamptz not null default now()
+);
+
+alter table padel_tournament_results enable row level security;
+
 -- ---- Education (Phase 1: Semester & Course core + GPA) ----
 
 -- Status is a manual field rather than derived from dates, by request —

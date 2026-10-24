@@ -20,7 +20,7 @@ import { formatDateShort } from "@/lib/date";
 export const dynamic = "force-dynamic";
 
 export default async function DayToDayStatsPage(props: {
-  searchParams: Promise<{ account?: string; range?: string; path?: string }>;
+  searchParams: Promise<{ account?: string; range?: string; path?: string; from?: string; to?: string }>;
 }) {
   const params = await props.searchParams;
 
@@ -31,7 +31,11 @@ export default async function DayToDayStatsPage(props: {
   const selectedAccount = selectedAccountId ? (accountsById.get(selectedAccountId) ?? null) : null;
 
   const rangeKey: StatsRangeKey = params.range && isStatsRangeKey(params.range) ? params.range : "this_month";
-  const bounds = statsRangeDates(rangeKey);
+  const bounds = statsRangeDates(rangeKey, { from: params.from, to: params.to });
+  const rangeLabel =
+    rangeKey === "custom" && bounds
+      ? `${formatDateShort(bounds[0])} – ${formatDateShort(bounds[1])}`
+      : STATS_RANGE_LABELS[rangeKey];
 
   const pathIds = (params.path ?? "").split(",").filter(Boolean);
   const currentParentId = pathIds.length > 0 ? pathIds[pathIds.length - 1] : null;
@@ -56,7 +60,12 @@ export default async function DayToDayStatsPage(props: {
   function buildUrl(opts: { path?: string[]; range?: StatsRangeKey } = {}): string {
     const q = new URLSearchParams();
     if (selectedAccountId) q.set("account", selectedAccountId);
-    q.set("range", opts.range ?? rangeKey);
+    const range = opts.range ?? rangeKey;
+    q.set("range", range);
+    if (range === "custom" && bounds) {
+      q.set("from", bounds[0]);
+      q.set("to", bounds[1]);
+    }
     const p = opts.path ?? pathIds;
     if (p.length > 0) q.set("path", p.join(","));
     return `/day-to-day/stats?${q.toString()}`;
@@ -104,12 +113,12 @@ export default async function DayToDayStatsPage(props: {
             accounts={accounts}
             selectedAccountId={selectedAccountId}
             basePath="/day-to-day/stats"
-            extraQuery={`range=${rangeKey}`}
+            extraQuery={`range=${rangeKey}${rangeKey === "custom" && bounds ? `&from=${bounds[0]}&to=${bounds[1]}` : ""}`}
           />
         </div>
 
-        <div className="flex flex-wrap justify-center gap-1.5 mb-6">
-          {STATS_RANGE_KEYS.map((key) => (
+        <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+          {STATS_RANGE_KEYS.filter((key) => key !== "custom").map((key) => (
             <Link
               key={key}
               href={buildUrl({ range: key })}
@@ -123,6 +132,41 @@ export default async function DayToDayStatsPage(props: {
             </Link>
           ))}
         </div>
+
+        <form
+          action="/day-to-day/stats"
+          className="flex flex-wrap items-end justify-center gap-2 mb-6"
+        >
+          {selectedAccountId && <input type="hidden" name="account" value={selectedAccountId} />}
+          <input type="hidden" name="range" value="custom" />
+          {pathIds.length > 0 && <input type="hidden" name="path" value={pathIds.join(",")} />}
+          <label className="flex flex-col text-xs text-[var(--color-fg-dim)]">
+            From
+            <input
+              type="date"
+              name="from"
+              required
+              defaultValue={rangeKey === "custom" && bounds ? bounds[0] : ""}
+              className="mt-1 rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm text-white outline-none focus:border-[var(--color-accent)]"
+            />
+          </label>
+          <label className="flex flex-col text-xs text-[var(--color-fg-dim)]">
+            To
+            <input
+              type="date"
+              name="to"
+              required
+              defaultValue={rangeKey === "custom" && bounds ? bounds[1] : ""}
+              className="mt-1 rounded-lg bg-white/5 border border-[var(--color-border)] px-2.5 py-1.5 text-sm text-white outline-none focus:border-[var(--color-accent)]"
+            />
+          </label>
+          <button
+            type="submit"
+            className="rounded-lg bg-[var(--color-accent)] text-black text-sm font-semibold px-3 py-1.5"
+          >
+            Apply
+          </button>
+        </form>
 
         {selectedAccount && (
           <>
@@ -155,7 +199,7 @@ export default async function DayToDayStatsPage(props: {
                 Total spent{breadcrumb.length > 0 ? ` — ${breadcrumb[breadcrumb.length - 1].name}` : ""}
               </p>
               <p className="font-display text-3xl">{formatMoney(totalForView, selectedAccount.currency)}</p>
-              <p className="text-xs text-[var(--color-fg-dim)] mt-1">{STATS_RANGE_LABELS[rangeKey]}</p>
+              <p className="text-xs text-[var(--color-fg-dim)] mt-1">{rangeLabel}</p>
             </div>
 
             {pieData.length > 0 && (
