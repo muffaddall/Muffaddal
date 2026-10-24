@@ -113,9 +113,19 @@ export function monthDateRange(month: string): [string, string] {
 }
 
 // Date-range presets for the Day-to-Day Stats page — "all_time" has no
-// lower bound (fetch everything), every other preset is the trailing N
-// whole months ending with the current month.
-export const STATS_RANGE_KEYS = ["this_month", "last_2", "last_3", "last_6", "last_12", "all_time"] as const;
+// lower bound (fetch everything), "custom" takes its own from/to dates,
+// and every other preset resolves to whole calendar months.
+export const STATS_RANGE_KEYS = [
+  "this_month",
+  "last_month",
+  "last_3",
+  "last_6",
+  "last_12",
+  "this_year",
+  "last_year",
+  "all_time",
+  "custom",
+] as const;
 export type StatsRangeKey = (typeof STATS_RANGE_KEYS)[number];
 
 export function isStatsRangeKey(value: string): value is StatsRangeKey {
@@ -124,29 +134,46 @@ export function isStatsRangeKey(value: string): value is StatsRangeKey {
 
 export const STATS_RANGE_LABELS: Record<StatsRangeKey, string> = {
   this_month: "This month",
-  last_2: "Last 2 months",
+  last_month: "Last month",
   last_3: "Last 3 months",
   last_6: "Last 6 months",
   last_12: "Last 12 months",
+  this_year: "This year",
+  last_year: "Last year",
   all_time: "All time",
+  custom: "Custom dates",
 };
 
-const STATS_RANGE_MONTHS: Record<StatsRangeKey, number | null> = {
-  this_month: 1,
-  last_2: 2,
-  last_3: 3,
-  last_6: 6,
-  last_12: 12,
-  all_time: null,
-};
-
-/** [start, end] date bounds (inclusive) for a Stats range preset, or null for "all_time" (no lower bound — fetch everything). */
-export function statsRangeDates(key: StatsRangeKey): [string, string] | null {
-  const months = STATS_RANGE_MONTHS[key];
-  if (months === null) return null;
-  const end = monthDateRange(currentMonth())[1];
-  const start = monthDateRange(addMonths(currentMonth(), -(months - 1)))[0];
-  return [start, end];
+/** [start, end] date bounds (inclusive) for a Stats range preset, or null for "all_time" (no lower bound — fetch everything). "custom" uses the given from/to, falling back to this month if either is missing. */
+export function statsRangeDates(
+  key: StatsRangeKey,
+  custom?: { from?: string; to?: string }
+): [string, string] | null {
+  const thisMonth = currentMonth();
+  const year = thisMonth.slice(0, 4);
+  switch (key) {
+    case "all_time":
+      return null;
+    case "this_month":
+      return monthDateRange(thisMonth);
+    case "last_month":
+      return monthDateRange(addMonths(thisMonth, -1));
+    case "last_3":
+    case "last_6":
+    case "last_12": {
+      const months = Number(key.slice(5));
+      return [monthDateRange(addMonths(thisMonth, -(months - 1)))[0], monthDateRange(thisMonth)[1]];
+    }
+    case "this_year":
+      return [`${year}-01-01`, `${year}-12-31`];
+    case "last_year":
+      return [`${Number(year) - 1}-01-01`, `${Number(year) - 1}-12-31`];
+    case "custom": {
+      const valid = (d?: string) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+      if (!valid(custom?.from) || !valid(custom?.to)) return monthDateRange(thisMonth);
+      return custom!.from! <= custom!.to! ? [custom!.from!, custom!.to!] : [custom!.to!, custom!.from!];
+    }
+  }
 }
 
 // The 10-day budget periods reset on the 1st, 11th, and 21st of every

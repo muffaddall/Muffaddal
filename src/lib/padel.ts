@@ -4,7 +4,13 @@ import { getAllTransactions } from "@/lib/transactions";
 import { getAllDdCategories } from "@/lib/ddCategories";
 import { addMonths } from "@/lib/format";
 import { todayStr } from "@/lib/date";
-import type { DdCategory, PadelBaseline, PadelWinning, PadelYearlyGames } from "@/lib/types";
+import type {
+  DdCategory,
+  PadelBaseline,
+  PadelTournamentResult,
+  PadelWinning,
+  PadelYearlyGames,
+} from "@/lib/types";
 
 export async function getPadelBaseline(): Promise<PadelBaseline> {
   const { data, error } = await supabase
@@ -91,6 +97,31 @@ export async function deletePadelWinning(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function getPadelTournamentResults(): Promise<Map<string, PadelTournamentResult>> {
+  const { data, error } = await supabase.from("padel_tournament_results").select("transaction_id, result");
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.transaction_id as string, r.result as PadelTournamentResult]));
+}
+
+/** Saves where you finished in one logged tournament, or clears it when `result` is null. */
+export async function setPadelTournamentResult(
+  transactionId: string,
+  result: PadelTournamentResult | null
+): Promise<void> {
+  if (result === null) {
+    const { error } = await supabase.from("padel_tournament_results").delete().eq("transaction_id", transactionId);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from("padel_tournament_results")
+    .upsert(
+      { transaction_id: transactionId, result, updated_at: new Date().toISOString() },
+      { onConflict: "transaction_id" }
+    );
+  if (error) throw error;
+}
+
 function findPadelCategoryId(categories: DdCategory[]): string | null {
   const byId = new Map(categories.map((c) => [c.id, c]));
   const padel = categories.find(
@@ -132,6 +163,21 @@ export type PadelGameCounts = {
   bestYear: PadelPeriodBest | null;
 };
 
+export type PadelLoggedTournament = {
+  transactionId: string;
+  date: string;
+  note: string;
+  amount: number;
+  result: PadelTournamentResult | null;
+};
+
+export type PadelTournamentRecord = {
+  played: number;
+  wins: number;
+  runnersUp: number;
+  knockouts: number;
+};
+
 export type PadelStats = {
   baseline: PadelBaseline;
   yearlyGames: PadelYearlyGames[];
@@ -141,6 +187,8 @@ export type PadelStats = {
   net: number;
   breakdown: PadelCategoryBreakdown[];
   games: PadelGameCounts;
+  tournaments: PadelLoggedTournament[];
+  record: PadelTournamentRecord;
 };
 
 function bestPeriod(counts: Map<string, number>): PadelPeriodBest | null {
@@ -162,18 +210,22 @@ function bestPeriod(counts: Map<string, number>): PadelPeriodBest | null {
  * since there's no month-level breakdown for the historical years.
  */
 export async function getPadelStats(): Promise<PadelStats> {
-  const [baseline, yearlyGames, winnings, transactions, categories] = await Promise.all([
+  const [baseline, yearlyGames, winnings, transactions, categories, results] = await Promise.all([
     getPadelBaseline(),
     getPadelYearlyGames(),
     getPadelWinnings(),
     getAllTransactions(),
     getAllDdCategories(),
+    getPadelTournamentResults(),
   ]);
 
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
   const padelRootId = findPadelCategoryId(categories);
   const padelIds = padelRootId ? collectDescendantIds(padelRootId, categories) : new Set<string>();
   const gamesId = categories.find((c) => c.parentId === padelRootId && c.name === "Games")?.id ?? null;
+  const tournamentsId =
+    categories.find((c) => c.parentId === padelRootId && c.name.toLowerCase().startsWith("tournament"))?.id ??
+    null;
 
   const padelTx = transactions.filter(
     (t) => t.type === "expense" && t.categoryId !== null && padelIds.has(t.categoryId)
@@ -229,5 +281,29 @@ export async function getPadelStats(): Promise<PadelStats> {
     bestYear: bestPeriod(byYear),
   };
 
-  return { baseline, yearlyGames, winnings, totalIncome, totalSpent, net, breakdown, games };
+  // Every "Padel > Tournaments" expense is one tournament entered — added
+  // on top of the pre-tracking baseline, with its logged finish (if any)
+  // feeding the wins / runner-up / knockouts counts the same way.
+  const tournaments: PadelLoggedTournament[] = tournamentsId
+    ? transactions
+        .filter((t) => t.type === "expense" && t.categoryId === tournamentsId)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map((t) => ({
+          transactionId: t.id,
+          date: t.date,
+          note: t.note,
+          amount: t.amount,
+          result: results.get(t.id) ?? null,
+        }))
+    : [];
+  const countResults = (pred: (r: PadelTournamentResult) => boolean) =>
+    tournaments.filter((t) => t.result !== null && pred(t.result)).length;
+  const record: PadelTournamentRecord = {
+    played: baseline.tournaments + tournaments.length,
+    wins: baseline.wins + countResults((r) => r === "winner"),
+    runnersUp: baseline.runnersUp + countResults((r) => r === "runner_up"),
+    knockouts: baseline.knockouts + countResults((r) => r !== "group"),
+  };
+
+  return { baseline, yearlyGames, winnings, totalIncome, totalSpent, net, breakdown, games, tournaments, record };
 }
