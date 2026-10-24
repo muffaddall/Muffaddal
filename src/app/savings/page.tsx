@@ -116,34 +116,39 @@ export default async function SavingsPage() {
           </div>
         )}
 
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+        <details className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
               Extra money
-            </h2>
-            {(influxSavingsTotal > 0 || influxBpfTotal > 0 || influxElevateTotal > 0) && (
-              <span className="text-sm tabular-nums text-[var(--color-positive)]">
-                +{formatMoney(influxSavingsTotal)} savings · +{formatMoney(influxBpfTotal)} BPF · +
-                {formatMoney(influxElevateTotal)} Elevate
-              </span>
-            )}
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              {(influxSavingsTotal > 0 || influxBpfTotal > 0 || influxElevateTotal > 0) && (
+                <span className="text-sm tabular-nums text-[var(--color-positive)]">
+                  +{formatMoney(influxSavingsTotal)} savings · +{formatMoney(influxBpfTotal)} BPF · +
+                  {formatMoney(influxElevateTotal)} Elevate
+                </span>
+              )}
+              <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+            </div>
+          </summary>
+          <div className="px-4 pb-4">
+            <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+              Got money from anywhere unplanned — a gift, a refund, side income — and want to add
+              it straight to Savings, the Big Purchase Fund, or Elevate Padel? Log it here.
+            </p>
+            <ul className="flex flex-col gap-1 mb-3">
+              {influxes.map((influx) => (
+                <MoneyInfluxRow key={influx.id} influx={influx} />
+              ))}
+              {influxes.length === 0 && (
+                <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
+                  No extra money logged.
+                </li>
+              )}
+            </ul>
+            <AddMoneyInfluxForm />
           </div>
-          <p className="text-xs text-[var(--color-fg-dim)] mb-3">
-            Got money from anywhere unplanned — a gift, a refund, side income — and want to add
-            it straight to Savings, the Big Purchase Fund, or Elevate Padel? Log it here.
-          </p>
-          <ul className="flex flex-col gap-1 mb-3">
-            {influxes.map((influx) => (
-              <MoneyInfluxRow key={influx.id} influx={influx} />
-            ))}
-            {influxes.length === 0 && (
-              <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
-                No extra money logged.
-              </li>
-            )}
-          </ul>
-          <AddMoneyInfluxForm />
-        </section>
+        </details>
 
         <details className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between gap-3">
