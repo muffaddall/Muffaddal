@@ -97,28 +97,51 @@ export async function deletePadelWinning(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getPadelTournamentResults(): Promise<Map<string, PadelTournamentResult>> {
-  const { data, error } = await supabase.from("padel_tournament_results").select("transaction_id, result");
+type PadelTournamentRow = {
+  id: string;
+  transaction_id: string | null;
+  name: string;
+  date: string | null;
+  entry_fee: number | null;
+  result: PadelTournamentResult | null;
+};
+
+export async function getPadelTournamentRows(): Promise<PadelTournamentRow[]> {
+  const { data, error } = await supabase.from("padel_tournaments").select("*");
   if (error) throw error;
-  return new Map((data ?? []).map((r) => [r.transaction_id as string, r.result as PadelTournamentResult]));
+  return data ?? [];
 }
 
-/** Saves where you finished in one logged tournament, or clears it when `result` is null. */
-export async function setPadelTournamentResult(
+/** Saves the name and result of a tournament tied to a Day-to-Day expense — its date and fee always come from the expense itself. */
+export async function saveLinkedPadelTournament(
   transactionId: string,
-  result: PadelTournamentResult | null
+  input: { name: string; result: PadelTournamentResult | null }
 ): Promise<void> {
-  if (result === null) {
-    const { error } = await supabase.from("padel_tournament_results").delete().eq("transaction_id", transactionId);
-    if (error) throw error;
-    return;
-  }
   const { error } = await supabase
-    .from("padel_tournament_results")
-    .upsert(
-      { transaction_id: transactionId, result, updated_at: new Date().toISOString() },
-      { onConflict: "transaction_id" }
-    );
+    .from("padel_tournaments")
+    .upsert({ transaction_id: transactionId, ...input }, { onConflict: "transaction_id" });
+  if (error) throw error;
+}
+
+export type ManualPadelTournamentInput = {
+  name: string;
+  date: string | null;
+  entry_fee: number | null;
+  result: PadelTournamentResult | null;
+};
+
+export async function addManualPadelTournament(input: ManualPadelTournamentInput): Promise<void> {
+  const { error } = await supabase.from("padel_tournaments").insert(input);
+  if (error) throw error;
+}
+
+export async function updateManualPadelTournament(id: string, input: ManualPadelTournamentInput): Promise<void> {
+  const { error } = await supabase.from("padel_tournaments").update(input).eq("id", id).is("transaction_id", null);
+  if (error) throw error;
+}
+
+export async function deleteManualPadelTournament(id: string): Promise<void> {
+  const { error } = await supabase.from("padel_tournaments").delete().eq("id", id).is("transaction_id", null);
   if (error) throw error;
 }
 
@@ -164,10 +187,12 @@ export type PadelGameCounts = {
 };
 
 export type PadelLoggedTournament = {
-  transactionId: string;
-  date: string;
-  note: string;
-  amount: number;
+  key: string;
+  id: string | null; // padel_tournaments row, null for an expense not edited yet
+  transactionId: string | null; // set when tied to a Day-to-Day expense
+  name: string;
+  date: string | null;
+  entryFee: number | null;
   result: PadelTournamentResult | null;
 };
 
@@ -210,13 +235,13 @@ function bestPeriod(counts: Map<string, number>): PadelPeriodBest | null {
  * since there's no month-level breakdown for the historical years.
  */
 export async function getPadelStats(): Promise<PadelStats> {
-  const [baseline, yearlyGames, winnings, transactions, categories, results] = await Promise.all([
+  const [baseline, yearlyGames, winnings, transactions, categories, tournamentRows] = await Promise.all([
     getPadelBaseline(),
     getPadelYearlyGames(),
     getPadelWinnings(),
     getAllTransactions(),
     getAllDdCategories(),
-    getPadelTournamentResults(),
+    getPadelTournamentRows(),
   ]);
 
   const categoriesById = new Map(categories.map((c) => [c.id, c]));
@@ -281,21 +306,40 @@ export async function getPadelStats(): Promise<PadelStats> {
     bestYear: bestPeriod(byYear),
   };
 
-  // Every "Padel > Tournaments" expense is one tournament entered — added
-  // on top of the pre-tracking baseline, with its logged finish (if any)
-  // feeding the wins / runner-up / knockouts counts the same way.
-  const tournaments: PadelLoggedTournament[] = tournamentsId
+  // Every "Padel > Tournaments" expense is one tournament entered, plus
+  // any added by hand — all added on top of the pre-tracking baseline,
+  // with each one's finish (if set) feeding wins / runner-up / knockouts.
+  const rowByTx = new Map(
+    tournamentRows.filter((r) => r.transaction_id).map((r) => [r.transaction_id!, r])
+  );
+  const linked: PadelLoggedTournament[] = tournamentsId
     ? transactions
         .filter((t) => t.type === "expense" && t.categoryId === tournamentsId)
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .map((t) => ({
-          transactionId: t.id,
-          date: t.date,
-          note: t.note,
-          amount: t.amount,
-          result: results.get(t.id) ?? null,
-        }))
+        .map((t) => {
+          const row = rowByTx.get(t.id);
+          return {
+            key: `tx-${t.id}`,
+            id: row?.id ?? null,
+            transactionId: t.id,
+            name: row?.name || t.note || "Tournament",
+            date: t.date,
+            entryFee: t.amount,
+            result: row?.result ?? null,
+          };
+        })
     : [];
+  const manual: PadelLoggedTournament[] = tournamentRows
+    .filter((r) => !r.transaction_id)
+    .map((r) => ({
+      key: r.id,
+      id: r.id,
+      transactionId: null,
+      name: r.name || "Tournament",
+      date: r.date,
+      entryFee: r.entry_fee,
+      result: r.result,
+    }));
+  const tournaments = [...linked, ...manual].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   const countResults = (pred: (r: PadelTournamentResult) => boolean) =>
     tournaments.filter((t) => t.result !== null && pred(t.result)).length;
   const record: PadelTournamentRecord = {

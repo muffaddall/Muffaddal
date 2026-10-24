@@ -6,7 +6,8 @@ import { formatMoney, formatMonth } from "@/lib/format";
 import PadelWinningRow from "./PadelWinningRow";
 import AddPadelWinningForm from "./AddPadelWinningForm";
 import PadelBaselineEditor from "./PadelBaselineEditor";
-import TournamentResultRow from "./TournamentResultRow";
+import PadelTournamentRow from "./PadelTournamentRow";
+import AddPadelTournamentForm from "./AddPadelTournamentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -131,20 +132,31 @@ export default async function PadelTrackerPage() {
             <Stat label="Runner-up" value={record.runnersUp} />
             <Stat label="Reached knockouts" value={`${record.knockouts}/${record.played}`} />
           </div>
-          <p className="text-xs text-[var(--color-fg-dim)] mt-3 mb-2">
-            Every &ldquo;Padel &rsaquo; Tournaments&rdquo; expense you log in Day-to-Day counts as one
-            tournament played. Pick where you finished below to add it to the record.
+        </section>
+
+        <section className="mb-6">
+          <h2 className="font-display text-2xl tracking-wide leading-none mb-3" style={{ color: "var(--color-accent)" }}>
+            My tournaments
+          </h2>
+          <p className="text-xs text-[var(--color-fg-dim)] mb-3">
+            Every &ldquo;Padel &rsaquo; Tournaments&rdquo; expense logged in Day-to-Day shows up here
+            automatically. Add older ones by hand below. Tap Edit to rename one or set where you
+            finished — it all counts toward the record above
+            {baseline.tournaments > 0 &&
+              ` (on top of ${baseline.tournaments} from before tracking — lower that in the history editor at the bottom if you add those here, so they aren't counted twice)`}
+            .
           </p>
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1 mb-3">
             {tournaments.map((t) => (
-              <TournamentResultRow key={t.transactionId} tournament={t} />
+              <PadelTournamentRow key={t.key} tournament={t} />
             ))}
             {tournaments.length === 0 && (
               <li className="text-sm text-[var(--color-fg-dim)] py-4 text-center">
-                No tournament expenses logged yet.
+                No tournaments yet.
               </li>
             )}
           </ul>
+          <AddPadelTournamentForm />
         </section>
 
         <section className="mb-6">
