@@ -690,18 +690,38 @@ create table if not exists padel_winnings (
 
 alter table padel_winnings enable row level security;
 
--- Where you finished in a tournament, keyed to the Day-to-Day "Working
--- out > Padel > Tournaments" expense you logged for its entry fee — every
--- such expense counts as one tournament played on the Padel Tracker, and
--- this optional result feeds its Wins / Runner-up / Knockouts counts on
--- top of padel_baseline's pre-tracking lump totals.
-create table if not exists padel_tournament_results (
-  transaction_id uuid primary key references dd_transactions(id) on delete cascade,
-  result text not null check (result in ('group', 'quarter_final', 'semi_final', 'runner_up', 'winner')),
-  updated_at timestamptz not null default now()
+-- Your full padel tournament list on the Padel Tracker. A row with a
+-- transaction_id is tied to the Day-to-Day "Working out > Padel >
+-- Tournaments" expense logged for its entry fee — its date and fee come
+-- from that expense, and every such expense shows up in the list even
+-- before it has a row here (one is created the first time you edit its
+-- name or result). A row without one is a tournament added by hand,
+-- e.g. from before expenses were logged, with its own date and fee.
+-- result feeds the Wins / Runner-up / Knockouts counts on top of
+-- padel_baseline's pre-tracking lump totals.
+create table if not exists padel_tournaments (
+  id uuid primary key default gen_random_uuid(),
+  transaction_id uuid unique references dd_transactions(id) on delete cascade,
+  name text not null default '',
+  date date,
+  entry_fee numeric,
+  result text check (result in ('group', 'quarter_final', 'semi_final', 'runner_up', 'winner')),
+  created_at timestamptz not null default now()
 );
 
-alter table padel_tournament_results enable row level security;
+alter table padel_tournaments enable row level security;
+
+-- Carry over results saved in the short-lived padel_tournament_results
+-- table this replaced, then drop it.
+do $$
+begin
+  if to_regclass('public.padel_tournament_results') is not null then
+    insert into padel_tournaments (transaction_id, result)
+    select transaction_id, result from padel_tournament_results
+    on conflict (transaction_id) do nothing;
+    drop table padel_tournament_results;
+  end if;
+end $$;
 
 -- ---- Education (Phase 1: Semester & Course core + GPA) ----
 

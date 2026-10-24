@@ -6,7 +6,10 @@ import {
   deletePadelWinning,
   deletePadelYearlyGames,
   setPadelBaseline,
-  setPadelTournamentResult,
+  addManualPadelTournament,
+  deleteManualPadelTournament,
+  saveLinkedPadelTournament,
+  updateManualPadelTournament,
   updatePadelWinning,
   upsertPadelYearlyGames,
 } from "@/lib/padel";
@@ -15,9 +18,32 @@ import { isPadelTournamentResult } from "@/lib/types";
 
 export type FormState = { error: string } | undefined;
 
-export async function savePadelTournamentResult(transactionId: string, result: string): Promise<void> {
-  if (!transactionId) return;
-  await setPadelTournamentResult(transactionId, isPadelTournamentResult(result) ? result : null);
+/** Add or edit a tournament on the Padel Tracker list. With a transactionId it's tied to a Day-to-Day expense (only name and result are saved); with an id and no transactionId it edits a hand-added one; with neither it adds a new hand-added one. */
+export async function savePadelTournament(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = String(formData.get("id") ?? "");
+  const transactionId = String(formData.get("transactionId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const resultRaw = String(formData.get("result") ?? "");
+  const result = isPadelTournamentResult(resultRaw) ? resultRaw : null;
+
+  if (!name) return { error: "Name is required." };
+
+  if (transactionId) {
+    await saveLinkedPadelTournament(transactionId, { name, result });
+  } else {
+    const date = String(formData.get("date") ?? "") || null;
+    const feeRaw = String(formData.get("entryFee") ?? "").trim();
+    const entryFee = feeRaw === "" ? null : Number(feeRaw);
+    if (entryFee !== null && !Number.isFinite(entryFee)) return { error: "Entry fee must be a number." };
+    const input = { name, date, entry_fee: entryFee, result };
+    if (id) await updateManualPadelTournament(id, input);
+    else await addManualPadelTournament(input);
+  }
+  revalidatePath("/workouts/padel");
+}
+
+export async function removePadelTournament(id: string): Promise<void> {
+  await deleteManualPadelTournament(id);
   revalidatePath("/workouts/padel");
 }
 
