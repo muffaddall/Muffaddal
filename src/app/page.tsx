@@ -77,25 +77,35 @@ export default async function HomePage() {
         &ldquo;{quoteOfTheDay()}&rdquo;
       </p>
 
+      {/* Collapsed by default so habit names stay private if someone else
+          glances at the screen — one tap opens the tick buttons. */}
       {habits.length > 0 && (
         <div className="px-4 max-w-2xl mx-auto mb-7">
-          <Link href="/habits" className="block mb-3 px-1">
-            <h2 className="font-display text-2xl tracking-wide leading-none" style={{ color: "var(--color-habits)" }}>
-              Today&apos;s Habits
-            </h2>
-          </Link>
-          <div className="flex flex-wrap gap-2">
-            {habits.map((h) => (
-              <HabitDayButton
-                key={h.id}
-                habitId={h.id}
-                date={today}
-                done={doneByHabit.get(h.id)?.has(today) ?? false}
-                label={h.name}
-                wide
-              />
-            ))}
-          </div>
+          <details className="rounded-2xl bg-[var(--color-surface)] border border-white/8 overflow-hidden">
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+              <span className="font-display text-2xl tracking-wide leading-none" style={{ color: "var(--color-habits)" }}>
+                Today&apos;s Habits
+              </span>
+              <span className="text-xs text-[var(--color-fg-dim)]">Tap to show ▾</span>
+            </summary>
+            <div className="px-4 pb-4">
+              <div className="flex flex-wrap gap-2">
+                {habits.map((h) => (
+                  <HabitDayButton
+                    key={h.id}
+                    habitId={h.id}
+                    date={today}
+                    done={doneByHabit.get(h.id)?.has(today) ?? false}
+                    label={h.name}
+                    wide
+                  />
+                ))}
+              </div>
+              <Link href="/habits" className="block mt-3 text-xs text-[var(--color-fg-dim)] hover:text-white/80">
+                Open Habits →
+              </Link>
+            </div>
+          </details>
         </div>
       )}
 
