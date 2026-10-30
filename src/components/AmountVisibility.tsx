@@ -52,15 +52,17 @@ function useVisibilityContext(): VisibilityContextValue {
   return ctx;
 }
 
-/** Wrap any displayed number in this — it renders dots instead when hidden, with its own eye to override the page-wide setting. */
+/** Wrap any displayed number in this — it renders dots instead when hidden, with its own eye to override the page-wide setting (leave the eye off with hideToggle where space is tight, e.g. calendar cells). */
 export function MaskedAmount({
   id,
   children,
   className,
+  hideToggle = false,
 }: {
   id: string;
   children: ReactNode;
   className?: string;
+  hideToggle?: boolean;
 }) {
   const { isVisible, toggle } = useVisibilityContext();
   const visible = isVisible(id);
@@ -68,14 +70,16 @@ export function MaskedAmount({
   return (
     <span className={`inline-flex items-center gap-1.5 ${className ?? ""}`}>
       <span>{visible ? children : "••••"}</span>
-      <button
-        type="button"
-        onClick={() => toggle(id)}
-        aria-label={visible ? "Hide this amount" : "Show this amount"}
-        className="shrink-0 text-[var(--color-fg-dim)] hover:text-[var(--color-fg)] transition-colors"
-      >
-        <EyeIcon open={visible} />
-      </button>
+      {!hideToggle && (
+        <button
+          type="button"
+          onClick={() => toggle(id)}
+          aria-label={visible ? "Hide this amount" : "Show this amount"}
+          className="shrink-0 text-[var(--color-fg-dim)] hover:text-[var(--color-fg)] transition-colors"
+        >
+          <EyeIcon open={visible} />
+        </button>
+      )}
     </span>
   );
 }
