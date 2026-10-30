@@ -85,6 +85,14 @@ body {
   font-family: var(--font-body);
 }
 
+/* Laptop/desktop screens: blow the whole app up 15% so it isn't tiny on
+   a big display — phones and tablets keep their normal size. */
+@media (min-width: 1024px) {
+  html {
+    zoom: 1.15;
+  }
+}
+
 .font-display {
   font-family: var(--font-display);
   letter-spacing: 0.02em;
