@@ -1283,3 +1283,28 @@ create index if not exists trip_transactions_trip_idx on trip_transactions (trip
 create index if not exists trip_transactions_date_idx on trip_transactions (date);
 
 alter table trip_transactions enable row level security;
+
+-- ---- Habits: daily tick-offs with streaks ----
+
+-- One row per habit you're tracking (sleep, reading, gym, posting, ...),
+-- in the order they're listed.
+create table if not exists habits (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table habits enable row level security;
+
+-- One row per habit per day it was done — no row means not done. Streaks
+-- and completion rates are all worked out from these.
+create table if not exists habit_checks (
+  habit_id uuid not null references habits(id) on delete cascade,
+  date date not null,
+  primary key (habit_id, date)
+);
+
+create index if not exists habit_checks_date_idx on habit_checks (date);
+
+alter table habit_checks enable row level security;
