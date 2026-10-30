@@ -27,15 +27,6 @@ const GROUPS: {
       { href: "/weight", label: "Log Weight" },
     ],
   },
-  {
-    title: "Education",
-    color: "var(--color-education)",
-    items: [
-      { href: "/education/quick/assignment", label: "Add Assignment" },
-      { href: "/education/quick/quiz", label: "Add Quiz" },
-      { href: "/education/quick/exam", label: "Add Exam" },
-    ],
-  },
 ];
 
 export function QuickAddMenu() {

@@ -12,7 +12,6 @@ const PARENT_OVERRIDES: Record<string, string> = {
   "/community": "/",
   "/day-to-day/edit": "/day-to-day",
   "/day-to-day/receivables": "/day-to-day",
-  "/education/quick": "/education",
   "/vault/group": "/vault",
 };
 
