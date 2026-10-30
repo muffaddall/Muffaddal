@@ -28,6 +28,7 @@ import {
 } from "@/lib/format";
 import { todayStr } from "@/lib/date";
 import DiaryEntryCard from "./DiaryEntryCard";
+import SpendingCalendar from "./SpendingCalendar";
 import { AmountVisibilityProvider, MaskedAmount, VisibilityMasterToggle } from "@/components/AmountVisibility";
 
 export const dynamic = "force-dynamic";
@@ -179,6 +180,12 @@ export default async function DayToDayPage({
   const monthDaysLeft = isCurrentMonth ? periodEndDays[2] - todayDay + 1 : 0;
   const monthDailyBudget =
     isCurrentMonth && monthDaysLeft > 0 ? leftAfterPlannedAndPending / monthDaysLeft : null;
+
+  const spentByDate = new Map<string, number>();
+  for (const tx of accountDiaryTransactions) {
+    if (tx.type !== "expense") continue;
+    spentByDate.set(tx.date, (spentByDate.get(tx.date) ?? 0) + tx.amount);
+  }
 
   const byDate = new Map<string, typeof accountDiaryTransactions>();
   for (const tx of accountDiaryTransactions) {
@@ -444,6 +451,26 @@ export default async function DayToDayPage({
             })}
           </div>
         </details>
+
+        {selectedAccount && (
+          <details className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-semibold" style={{ color: "var(--color-accent)" }}>
+                Calendar — {formatMonth(month)}
+              </span>
+              <span className="text-xs text-[var(--color-fg-dim)]">▾</span>
+            </summary>
+            <div className="px-4 pb-4">
+              <SpendingCalendar
+                monthStart={monthStart}
+                monthEnd={monthEnd}
+                spentByDate={spentByDate}
+                today={todayStr()}
+                currency={selectedAccount.currency}
+              />
+            </div>
+          </details>
+        )}
 
         <details className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between">
