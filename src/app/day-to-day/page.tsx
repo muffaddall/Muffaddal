@@ -135,9 +135,29 @@ export default async function DayToDayPage({
   const minMonthKey = activityMonthKeys[0] ?? monthKey;
 
   const periodChain = buildPeriodChain(plannedLeftoverByMonth, netByPeriod, minMonthKey, monthKey);
-  const monthPeriods = periodChain.filter((p) => p.monthKey === monthKey);
-  const carryIn = monthPeriods[0].monthCarryIn;
-  const leftForMonth = monthPeriods[2].remaining;
+  const plannedMonthPeriods = periodChain.filter((p) => p.monthKey === monthKey);
+  const carryIn = plannedMonthPeriods[0].monthCarryIn;
+  const leftForMonth = plannedMonthPeriods[2].remaining;
+
+  // Net future effect of every still-pending (not yet cleared) transaction
+  // on this account, from its whole history — a pending one can be dated
+  // in any month.
+  const pendingNet = selectedAccountId
+    ? computePendingAccountNet(accountTransactions, selectedAccountId)
+    : 0;
+
+  // The spending budget: the same chain, but with every pending
+  // transaction taken off the viewed month up front, so the month starts
+  // from "Left After Bills" minus pending and each 10-day period gets a
+  // third of that. As a pending transaction clears it moves into its
+  // period's logged spend instead, so the total never double-counts it.
+  // Its month-end remaining is "After Pending Clears".
+  const budgetLeftoverByMonth = new Map(plannedLeftoverByMonth);
+  budgetLeftoverByMonth.set(monthKey, (plannedLeftoverByMonth.get(monthKey) ?? 0) + pendingNet);
+  const monthPeriods = buildPeriodChain(budgetLeftoverByMonth, netByPeriod, minMonthKey, monthKey).filter(
+    (p) => p.monthKey === monthKey
+  );
+  const leftAfterPending = monthPeriods[2].remaining;
 
   const paidPeriodChain = buildPeriodChain(paidLeftoverByMonth, netByPeriod, minMonthKey, monthKey);
   const paidMonthPeriods = paidPeriodChain.filter((p) => p.monthKey === monthKey);
@@ -161,25 +181,12 @@ export default async function DayToDayPage({
     if (i > currentPeriodIndex) return periodEndDays[i] - periodStartDays[i] + 1;
     return periodEndDays[i] - todayDay + 1;
   }
-  // actualLeftForMonth (above) is the real current balance — Planned
-  // Expenses leftover chained with logged transactions, the same figure
-  // shown as "Actual Balance". This adds the net future effect of every
-  // still-pending (not yet cleared) transaction on top of it, to project
-  // the balance once all of them actually clear. Pulled from this
-  // account's whole transaction history, not just this month's, since a
-  // pending transaction can be dated in any month.
-  const pendingNet = selectedAccountId
-    ? computePendingAccountNet(accountTransactions, selectedAccountId)
-    : 0;
-  const balanceAfterPending = actualLeftForMonth + pendingNet;
-
-  // Month-wide counterpart to the 10-day Daily Budget: what's left once
-  // every planned expense is paid and every pending transaction clears,
-  // spread evenly over the rest of the month, including today.
-  const leftAfterPlannedAndPending = leftForMonth + pendingNet;
-  const monthDaysLeft = isCurrentMonth ? periodEndDays[2] - todayDay + 1 : 0;
-  const monthDailyBudget =
-    isCurrentMonth && monthDaysLeft > 0 ? leftAfterPlannedAndPending / monthDaysLeft : null;
+  // Daily Spend Limit: what's left in the current 10-day period (of the
+  // pending-adjusted budget above) spread over its remaining days,
+  // including today.
+  const activeDaysLeft = isCurrentMonth ? daysLeftInPeriod(currentPeriodIndex) : 0;
+  const dailySpendLimit =
+    isCurrentMonth && activeDaysLeft > 0 ? monthPeriods[currentPeriodIndex].remaining / activeDaysLeft : null;
 
   const spentByDate = new Map<string, number>();
   for (const tx of accountDiaryTransactions) {
@@ -318,12 +325,12 @@ export default async function DayToDayPage({
               color={CARD_WHITE}
               title="After Pending Clears"
               maskId="balance-after-pending"
-              value={balanceAfterPending}
+              value={leftAfterPending}
               currency={selectedAccount.currency}
               caption={
                 pendingNet !== 0
-                  ? `Once ${formatSignedMoney(pendingNet, selectedAccount.currency)} of pending spends go through`
-                  : "No pending transactions — matches your bank"
+                  ? `Left After Bills, once ${formatSignedMoney(pendingNet, selectedAccount.currency)} of pending spends go through`
+                  : "No pending transactions — same as Left After Bills"
               }
               owed={totalOutstandingOwed}
               owedMaskId="after-pending-personal"
@@ -332,14 +339,14 @@ export default async function DayToDayPage({
               color={CARD_WHITE}
               title="Daily Spend Limit"
               maskId="month-daily-budget"
-              value={monthDailyBudget}
+              value={dailySpendLimit}
               currency={selectedAccount.currency}
               caption={
-                monthDailyBudget !== null
-                  ? `${formatMoney(leftAfterPlannedAndPending, selectedAccount.currency)} after bills & pending, over ${monthDaysLeft} day${monthDaysLeft === 1 ? "" : "s"} left`
+                dailySpendLimit !== null
+                  ? `${formatMoney(monthPeriods[currentPeriodIndex].remaining, selectedAccount.currency)} left in days ${periodLabels[currentPeriodIndex]}, over ${activeDaysLeft} day${activeDaysLeft === 1 ? "" : "s"}`
                   : "Only shown for the current month"
               }
-              owed={monthDailyBudget !== null ? totalOutstandingOwed / monthDaysLeft : 0}
+              owed={dailySpendLimit !== null ? totalOutstandingOwed / activeDaysLeft : 0}
               owedMaskId="month-daily-personal"
               owedSuffix="/day"
             />
